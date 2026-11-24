@@ -1,0 +1,30 @@
+{% extends 'hub/auth_base.html' %}
+{% load static %}
+{% block title %}Autorizar conector — CICA{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'mcpgateway/consent.css' %}">{% endblock %}
+{% block body %}
+<main class="auth-page" id="conteudo">
+  <section class="auth-card">
+    <p class="eyebrow">CONECTOR</p>
+    <h1>{{ application.name|default:"Cliente MCP" }}</h1>
+    <dl class="consent-facts">
+      <dt>Retorna para</dt><dd>{{ redirect_host }}</dd>
+      <dt>Acesso</dt><dd>{% for description in scopes_descriptions %}{{ description }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+    </dl>
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+      {% if form.errors %}<div class="form-errors" role="alert"><strong>Confira os campos abaixo.</strong></div>{% endif %}
+      <div class="field">
+        <label for="{{ form.organization.id_for_label }}">Escritório</label>
+        <div class="input-wrap">{{ form.organization }}</div>
+        {% if form.organization.errors %}<p class="field-error">{{ form.organization.errors|striptags }}</p>{% endif %}
+      </div>
+      <div class="consent-actions">
+        <button class="button" type="submit" name="allow" value="true">Autorizar</button>
+        <button class="button button-quiet" type="submit">Cancelar</button>
+      </div>
+    </form>
+  </section>
+</main>
+{% endblock %}

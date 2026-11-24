@@ -1,5 +1,7 @@
 ﻿# CICA â€” decisÃµes e limites de confirmaÃ§Ã£o
 
+> A linha produto vendável, MCP do Domínio e Contraprova usa numeração própria para D-300 a D-333: ver [DECISOES-produto-vendavel.md](DECISOES-produto-vendavel.md).
+
 > Registro canÃ´nico na raiz desde 17/09/2026, por D-59. Ler com [plano mestre](PLANO-MESTRE.md) e [validaÃ§Ãµes tÃ©cnicas](VALIDACOES.md). DecisÃ£o aprovada nÃ£o Ã© funÃ§Ã£o implementada. As classificaÃ§Ãµes histÃ³ricas abaixo foram preservadas: â€œRegistradaâ€ nÃ£o foi promovida a â€œConfirmadaâ€. NÃ£o repetir perguntas jÃ¡ resolvidas.
 
 O bloco D-01â€“D-45 e a lista â€œDecisÃµes que nÃ£o foram tomadasâ€ sÃ£o o registro histÃ³rico de 15/09. AtualizaÃ§Ãµes D-46â€“D-60 ao final prevalecem somente no escopo explÃ­cito; por exemplo, Q-10 foi resolvida.

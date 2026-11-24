@@ -1,0 +1,13 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-pagamento/pagtoweb/exemplos/retorno_conta_consulta_pagamento/",
+  "servico": "PAGTOWEB.CONTACONSDOCARRPG73",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PAGTOWEB-00000",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": 1
+}

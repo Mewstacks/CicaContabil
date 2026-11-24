@@ -1,0 +1,36 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sn/defis/exemplos/retorno_consultar_declaracoes/",
+  "servico": "DEFIS.CONSDECLARACAO142",
+  "notes": [
+    "O dados escapado do exemplo oficial perdeu pontuação e valores ao ser publicado; reconstruído a partir do texto: aspas, vírgulas e chaves restauradas.",
+    "Item 2: anoCalendario do exemplo cortado em 201 e completado com 2018 (o idDefis é de 2018).",
+    "Item 3: o tipo sumiu do exemplo; preenchido com 2 (retificadora, idDefis 2019002 segue o 2019001). Valores fictícios."
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-DEFIS]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": [
+    {
+      "anoCalendario": 2019,
+      "idDefis": "000000002019001",
+      "tipo": 1,
+      "dataHora": "20230725102410"
+    },
+    {
+      "anoCalendario": 2018,
+      "idDefis": "000000002018003",
+      "tipo": 2,
+      "dataHora": "20230801145404"
+    },
+    {
+      "anoCalendario": 2018,
+      "idDefis": "000000002019002",
+      "tipo": 2,
+      "dataHora": "20230728112244"
+    }
+  ]
+}

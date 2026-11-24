@@ -100,6 +100,17 @@ MODULES: dict[str, ModuleDefinition] = {
         required_capabilities=(),
         icon="TR",
     ),
+    ProductModule.Code.CROSSCHECK: ModuleDefinition(
+        code=ProductModule.Code.CROSSCHECK,
+        label="Contraprova",
+        short_label="Contraprova",
+        description="Conferência de SPED, XML e Domínio.",
+        route_name="crosscheck:index",
+        # Trabalha sobre arquivos enviados; a consulta ao Domínio pelo agente é opcional
+        # e tem o seu próprio sinalizador (D-300).
+        required_capabilities=(),
+        icon="CP",
+    ),
 }
 
 
@@ -122,7 +133,13 @@ OFFERED_MODULE_CHOICES: tuple[tuple[str, str], ...] = tuple(
 #
 # O console da plataforma continua podendo habilitá-lo caso a caso: o que esta
 # lista controla é o que se liga sem alguém decidir.
-NOT_SELF_SERVICE_MODULE_CODES: frozenset[str] = frozenset({ProductModule.Code.PROFITABILITY})
+#
+# Contraprova entra pelo mesmo caminho (D-300): é um módulo novo sem aceite do responsável
+# fiscal sobre as regras de conferência (Q-46) e sem a consulta ao Domínio homologada
+# (Q-47); `docs/cica-module-truth.md` não autoriza texto público sobre ele.
+NOT_SELF_SERVICE_MODULE_CODES: frozenset[str] = frozenset(
+    {ProductModule.Code.PROFITABILITY, ProductModule.Code.CROSSCHECK}
+)
 
 
 def self_service_module_codes() -> tuple[str, ...]:

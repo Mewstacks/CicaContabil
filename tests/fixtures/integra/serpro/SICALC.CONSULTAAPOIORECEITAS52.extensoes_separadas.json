@@ -1,0 +1,46 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sicalc/sicalc/servicos/apoio_consulta_receitas_do_sicalc/",
+  "servico": "SICALC.CONSULTAAPOIORECEITAS52",
+  "notes": [
+    "formato da página do serviço: o array extensoes traz três elementos, cada um com um só objeto (obrigatorios, opcionais, informacoes); o exemplo da página de exemplos agrupa os três no mesmo elemento"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-SICALC]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "receita": {
+      "codigoReceita": "6106",
+      "descricaoReceita": "IRPF - Ganhos de Capital",
+      "extensoes": [
+        {
+          "obrigatorios": {
+            "codigoReceita": true,
+            "codigoReceitaExtensao": true,
+            "dataPA": true,
+            "valorImposto": true,
+            "dataConsolidacao": true
+          }
+        },
+        {
+          "opcionais": {
+            "dataAlienacao": true,
+            "ganhoCapital": true,
+            "observacao": true
+          }
+        },
+        {
+          "informacoes": {
+            "calculado": true,
+            "codigoBarras": true,
+            "pf": true,
+            "pj": false
+          }
+        }
+      ]
+    }
+  }
+}

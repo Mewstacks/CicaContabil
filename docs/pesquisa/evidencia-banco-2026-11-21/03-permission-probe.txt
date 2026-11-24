@@ -1,0 +1,17 @@
+# comando: python -I perm_probe.py  (exit=0)
+
+controle SYSUSERPERM: negado como esperado -> ('42000', '[42000] [SAP][ODBC Driver][SQL Anywhere]Permissio
+checados 4964 em 11.6s | legiveis: 4946 | negados/erro: 18
+erros mais comuns: [("('42000', '[42000] [SAP][ODBC Driver][SQL Anywhere]Permission denied: you do not have perm", 18)]
+legiveis por prefixo: [('ef', 2757), ('fo', 793), ('ge', 400), ('ct', 392), ('hr', 148), ('lr', 129), ('pm', 52), ('po', 45)]
+  usConfUsuario: LEGIVEL
+  foparmto: LEGIVEL
+  geempre: LEGIVEL
+  efsaidas: LEGIVEL
+  efentradas: LEGIVEL
+  ctlancto: LEGIVEL
+  foempregados: LEGIVEL
+  hrfaturamento: LEGIVEL
+  GeUsuarios: LEGIVEL
+  usuarios: negado/inexistente
+  efparametro_vigencia: LEGIVEL

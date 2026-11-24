@@ -1,0 +1,27 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'crosscheck/crosscheck.css' %}?v=1">{% endblock %}
+{% block workspace_content %}
+<nav class="crosscheck-crumbs" aria-label="Caminho"><a href="{% url 'crosscheck:index' %}">Conferências</a><span aria-hidden="true">/</span><span>{{ tool.label }}</span></nav>
+
+<section class="workspace-panel crosscheck crosscheck-head" aria-labelledby="run-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <h2 id="run-heading"><a class="text-action" href="{% url 'hub:company-detail' run.company_id %}">{{ run.company.name }}</a></h2>
+      <span class="crosscheck-sub">{{ tool.label }} · {{ run.competence_label }}</span>
+    </div>
+    {% include 'crosscheck/_state.html' %}
+  </header>
+</section>
+
+{% if run.state == 'draft' %}{% include 'crosscheck/_draft.html' %}
+{% elif run.state == 'queued' or run.state == 'processing' %}{% include 'crosscheck/_progress.html' %}
+{% elif run.state == 'done' and run.has_result %}{% include 'crosscheck/_result.html' %}
+{% elif run.state == 'failed' or run.state == 'canceled' %}{% include 'crosscheck/_failed.html' %}
+{% else %}
+<section class="workspace-panel crosscheck" aria-labelledby="gone-heading">
+  <div class="empty-block operational-empty"><strong id="gone-heading">Resultado apagado</strong>{% if can_write %}<a class="button button-quiet button-small" href="{% url 'crosscheck:new-run' %}?ferramenta={{ run.tool }}&amp;empresa={{ run.company_id }}">Nova conferência</a>{% endif %}</div>
+</section>
+{% endif %}
+<script src="{% static 'crosscheck/crosscheck.js' %}?v=1" defer></script>
+{% endblock %}

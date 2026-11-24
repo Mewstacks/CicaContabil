@@ -1,0 +1,39 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="tv2-ck-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="tv2-ck-title">{{ period_label }}</h2><p>{{ checklist.delivered }}/{{ checklist.expected }} · {{ checklist.percent }}%</p></div>
+    <nav class="tv2-period" aria-label="Competência"><a class="button button-quiet" href="{{ previous_url }}" aria-label="Competência anterior">‹</a><a class="button button-quiet" href="{{ next_url }}" aria-label="Próxima competência">›</a></nav>
+  </header>
+  <form class="tv2-filter" method="get">
+    <input type="hidden" name="periodo" value="{{ period }}">
+    <div class="field"><label for="tv2-ck-q">Empresa</label><input id="tv2-ck-q" type="search" name="q" value="{{ query }}" maxlength="100" autocomplete="off"></div>
+    <label class="tv2-check"><input type="checkbox" name="pendentes" value="1"{% if pending_only %} checked{% endif %}><span>Só pendentes</span></label>
+    <button class="button button-secondary" type="submit">Filtrar</button>
+    {% if pending_only or query %}<a href="?periodo={{ period }}">Limpar</a>{% endif %}
+  </form>
+  {% if page.object_list %}
+  <ul class="tv2-ck-list">
+    {% for row in page %}
+    <li class="tv2-ck-row">
+      <div class="tv2-ck-head">
+        <strong>{{ row.company.name }}</strong>
+        <span class="tv2-ck-pct" role="img" aria-label="{{ row.delivered }} de {{ row.expected }} recebidos">{{ row.delivered }}/{{ row.expected }} · {{ row.percent }}%</span>
+        {% if row.missing %}<a class="button button-quiet" href="{% url 'hub:triage-checklist-request' row.company.pk %}?periodo={{ period }}">Pedir ao cliente</a>{% endif %}
+      </div>
+      {% if row.cells %}<ul class="tv2-cells">{% for cell in row.cells %}<li class="tv2-cell is-{{ cell.status }}"><span class="tv2-cell-type">{{ cell.document_type.label }}</span><span class="tv2-cell-state">{% if cell.status == 'delivered' %}✓ Recebido{% if cell.received_at %} {{ cell.received_at|date:'d/m' }}{% endif %}{% elif cell.status == 'late' %}! Falta há {{ cell.days_late }} dia{{ cell.days_late|pluralize }}{% else %}· No prazo até {{ cell.due|date:'d/m' }}{% endif %}</span></li>{% endfor %}</ul>{% else %}<p class="tv2-meta">Nada esperado</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if page.has_other_pages %}<nav class="triage-queue-pagination" aria-label="Páginas do checklist">{% if page.has_previous %}<a href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ querystring }}&amp;page={{ page.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}
+  {% else %}
+  <div class="module-clean-empty"><h3>{% if pending_only or query %}Nenhuma empresa corresponde{% elif has_types %}Nenhuma empresa{% else %}Nenhum tipo esperado{% endif %}</h3>{% if pending_only or query %}<a class="button button-quiet" href="?periodo={{ period }}">Ver todas</a>{% elif not has_types %}<a class="button" href="{% url 'hub:triage-catalog' %}">Catálogo</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

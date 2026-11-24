@@ -18,7 +18,8 @@ const check = async (name, task) => {
   console.log(name, results.flows.at(-1).status);
 };
 const context = async () => {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+  // The app CSP (script-src 'self') rejects page.waitForFunction's string eval.
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 960 }, bypassCSP: true });
   await ctx.route('**/*', route => {
     const url = new URL(route.request().url());
     return url.origin === base || ['data:', 'blob:'].includes(url.protocol)
@@ -87,7 +88,10 @@ const scan = async (page, paths, prefix) => {
     await page.goto(base + '/app/empresas/');
     await page.setViewportSize({ width: 390, height: 850 });
     await page.locator('[data-workspace-toggle]').click();
-    assert.equal(await page.locator('#workspace-navigation [aria-current=page]').innerText(), 'Empresas');
+    // The menu opens with every group collapsed; expand the current one to read it.
+    await page.locator('#workspace-navigation .topnav-group.is-current > summary').click();
+    assert.equal(await page.locator('#workspace-navigation [aria-current=page] strong').innerText(), 'Empresas');
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     assert(await page.locator('[data-workspace-toggle]').evaluate(e => e === document.activeElement));
     await page.locator('[data-modal-open=company-dialog]').first().click();
@@ -189,7 +193,7 @@ const scan = async (page, paths, prefix) => {
     await check('Demo guide emission and PDF', async () => {
       await p.goto(base + '/app/guias/'); await p.getByRole('button', { name: 'Simular emissão', exact: true }).first().click();
       await p.getByRole('button', { name: 'Gerar resultado fictício', exact: true }).click();
-      const [download] = await Promise.all([p.waitForEvent('download'), p.getByRole('link', { name: 'Baixar PDF fictício sem validade' }).click()]);
+      const [download] = await Promise.all([p.waitForEvent('download'), p.getByRole('link', { name: /Baixar DARF fictício/ }).click()]);
       return { filename: download.suggestedFilename() };
     });
     await check('Demo parcelamento batch', async () => {

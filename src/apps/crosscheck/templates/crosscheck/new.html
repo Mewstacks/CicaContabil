@@ -1,0 +1,86 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'crosscheck/crosscheck.css' %}?v=1">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel crosscheck" aria-labelledby="new-heading">
+  <header class="workspace-panel-head"><div><h2 id="new-heading">Nova conferência</h2></div></header>
+  <form method="post" class="form-stack crosscheck-form" data-crosscheck-form novalidate>
+    {% csrf_token %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors><strong>Confira os campos indicados.</strong>{% for error in form.non_field_errors %}<span class="form-error-line">{{ error }}</span>{% endfor %}</div>{% endif %}
+
+    <fieldset class="crosscheck-tools">
+      <legend>Ferramenta</legend>
+      <div class="crosscheck-tool-grid">
+        {% for tool in tools %}<label class="crosscheck-tool">
+          <input type="radio" name="tool" value="{{ tool.code }}" data-tool-input{% if form.tool.value == tool.code %} checked{% endif %}>
+          <span class="crosscheck-tool-name">{{ tool.label }}</span>
+          <span class="crosscheck-tool-inputs">{% for role in tool.roles %}{{ role.label }}{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+        </label>{% endfor %}
+      </div>
+      {% for error in form.tool.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </fieldset>
+
+    <div class="crosscheck-form-row">
+      <div class="field company-picker" data-company-picker>
+        <label data-company-label for="id_company">Empresa</label>
+        <input class="company-picker-search" data-company-search type="search" autocomplete="off" placeholder="Nome, CNPJ ou código" hidden>
+        <select name="company" id="id_company" required{% if form.company.errors %} aria-invalid="true" aria-describedby="company-error"{% endif %}>
+          <option value="">Escolher</option>
+          {% for company in form.fields.company.queryset %}<option value="{{ company.id }}" data-search="{{ company.name }} {{ company.cnpj_masked }} {{ company.dominio_code }}"{% if form.company.value|stringformat:'s' == company.id|stringformat:'s' %} selected{% endif %}>{{ company.name }}{% if company.cnpj_masked %} · {{ company.cnpj_masked }}{% endif %}</option>{% endfor %}
+        </select>
+        <ul class="company-picker-options" data-company-options role="listbox" hidden></ul>
+        <span class="company-picker-status" data-company-status role="status" aria-live="polite"></span>
+        {% for error in form.company.errors %}<p class="field-error" id="company-error" role="alert">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="id_competence">Competência</label>
+        <input type="month" name="competence" id="id_competence" value="{{ form.competence_text }}" required{% if form.competence.errors %} aria-invalid="true" aria-describedby="competence-error"{% endif %}>
+        {% for error in form.competence.errors %}<p class="field-error" id="competence-error" role="alert">{{ error }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <fieldset class="crosscheck-rules">
+      <legend>Regras</legend>
+      <div class="crosscheck-form-row">
+        <div class="field" data-tools="sped_xml sped_sped icms51 uf_dominio">
+          <label for="id_tolerance_cents">Tolerância</label>
+          <div class="crosscheck-unit"><input type="number" name="tolerance_cents" id="id_tolerance_cents" min="0" max="1000" step="1" inputmode="numeric" value="{{ form.tolerance_cents.value|default_if_none:'1' }}"><span>centavos</span></div>
+          {% for error in form.tolerance_cents.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="field" data-tools="sped_xml sped_sped">
+          <label for="id_operation">Operação</label>
+          <select name="operation" id="id_operation" autocomplete="off">{% for value, label in operations %}<option value="{{ value }}"{% if form.operation.value == value or not form.operation.value and value == 'E' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </div>
+      </div>
+      <div class="field" data-tools="sped_xml">
+        <span class="field-label" id="fields-xml-label">Campos</span>
+        <div class="crosscheck-checks" role="group" aria-labelledby="fields-xml-label">{{ form.fields_xml }}</div>
+        <div class="field crosscheck-nested">
+          <label for="id_no_credit_cfops">CFOP sem crédito</label>
+          <input type="text" name="no_credit_cfops" id="id_no_credit_cfops" value="{{ form.no_credit_cfops.value|default_if_none:'' }}" placeholder="1551, 1556" autocomplete="off" spellcheck="false" maxlength="200">
+        </div>
+      </div>
+      <div class="field" data-tools="sped_sped">
+        <span class="field-label" id="fields-sped-label">Campos</span>
+        <div class="crosscheck-checks" role="group" aria-labelledby="fields-sped-label">{{ form.fields_sped }}</div>
+        <label class="crosscheck-check"><input type="checkbox" name="include_analytic"{% if form.include_analytic.value %} checked{% endif %}> Analítico (C190 e D190)</label>
+      </div>
+      <div class="field" data-tools="icms51">
+        <label for="id_icms51_cfops">CFOP do ICMS 51</label>
+        <input type="text" name="icms51_cfops" id="id_icms51_cfops" value="{{ form.icms51_cfops.value|default_if_none:'' }}" placeholder="1551, 1556" autocomplete="off" spellcheck="false" maxlength="200">
+      </div>
+      {% if agent_enabled %}<fieldset class="field crosscheck-source" data-tools="uf_dominio">
+        <legend>Fonte do Domínio</legend>
+        <label class="crosscheck-check"><input type="radio" name="dominio_source" value="arquivo"{% if form.dominio_source.value != 'agente' %} checked{% endif %}> Arquivo</label>
+        <label class="crosscheck-check"><input type="radio" name="dominio_source" value="agente"{% if form.dominio_source.value == 'agente' %} checked{% endif %}> Agente</label>
+      </fieldset>{% endif %}
+    </fieldset>
+
+    <div class="modal-actions">
+      <button class="button" type="submit">Continuar</button>
+      <a class="button button-quiet" href="{% url 'crosscheck:index' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+<script src="{% static 'crosscheck/crosscheck.js' %}?v=1" defer></script>
+{% endblock %}

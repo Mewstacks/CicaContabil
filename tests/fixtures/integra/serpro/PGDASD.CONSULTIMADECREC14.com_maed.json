@@ -1,0 +1,34 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sn/pgdasd/exemplos/retorno_consultar_ultima_declaracao_recibo/",
+  "servico": "PGDASD.CONSULTIMADECREC14",
+  "notes": [
+    "dados.recibo.pdf: PDF do exemplo trocado por um PDF mínimo válido",
+    "dados.declaracao.pdf: PDF do exemplo trocado por um PDF mínimo válido",
+    "dados.maed.pdfNotificacao: PDF do exemplo trocado por um PDF mínimo válido",
+    "dados.maed.pdfDarf: PDF do exemplo trocado por um PDF mínimo válido"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PGDASD",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "numeroDeclaracao": "00000000201801001",
+    "recibo": {
+      "nomeArquivo": "PGDASD-RECIBO-00000000201801001.pdf",
+      "pdf": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo="
+    },
+    "declaracao": {
+      "nomeArquivo": "PGDASD-DECLARACAO-00000000201801001.pdf",
+      "pdf": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo="
+    },
+    "maed": {
+      "nomeArquivoNotificacao": "PGDASD-NOTIFICACAO-MAED-00000000201801001.pdf",
+      "pdfNotificacao": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo=",
+      "nomeArquivoDarf": "PGDASD-DARF-MAED-00000000201801001.pdf",
+      "pdfDarf": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo="
+    }
+  }
+}

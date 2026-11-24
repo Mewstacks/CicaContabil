@@ -1,0 +1,81 @@
+{
+  "tables": [
+    {"table_id": 10, "owner": "bethadba", "table_name": "geempre", "kind": "BASE", "approx_rows": 120, "object_id": 1000},
+    {"table_id": 11, "owner": "bethadba", "table_name": "efsaidas", "kind": "BASE", "approx_rows": 386290, "object_id": 1001},
+    {"table_id": 12, "owner": "bethadba", "table_name": "EFMVSPRO", "kind": "BASE", "approx_rows": 917584, "object_id": 1002},
+    {"table_id": 13, "owner": "bethadba", "table_name": "vw_saidas", "kind": "VIEW", "approx_rows": 0, "object_id": 1003},
+    {"table_id": 14, "owner": "bethadba", "table_name": "tmp_trabalho", "kind": "GBL TEMP", "approx_rows": 0, "object_id": 1004},
+    {"table_id": 90, "owner": "SYS", "table_name": "SYSTAB", "kind": "BASE", "approx_rows": 5477, "object_id": 9000},
+    {"table_id": 91, "owner": "dbo", "table_name": "sp_dummy", "kind": "BASE", "approx_rows": 1, "object_id": 9001}
+  ],
+  "columns": [
+    {"table_id": 10, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2000},
+    {"table_id": 10, "column_id": 2, "column_name": "nome_emp", "type": "varchar", "width": 60, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2001},
+    {"table_id": 10, "column_id": 3, "column_name": "cgce_emp", "type": "char", "width": 14, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 2002},
+    {"table_id": 10, "column_id": 4, "column_name": "tins_emp", "type": "smallint", "width": 2, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 2003},
+    {"table_id": 10, "column_id": 5, "column_name": "dina_emp", "type": "date", "width": 4, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 2004},
+    {"table_id": 11, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2010},
+    {"table_id": 11, "column_id": 2, "column_name": "codi_sai", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2011},
+    {"table_id": 11, "column_id": 3, "column_name": "dsai_sai", "type": "date", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2012},
+    {"table_id": 11, "column_id": 4, "column_name": "vcon_sai", "type": "numeric", "width": 15, "scale": 2, "nulls": "Y", "dflt": null, "object_id": 2013},
+    {"table_id": 11, "column_id": 5, "column_name": "seg_sai", "type": "smallint", "width": 2, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2014},
+    {"table_id": 12, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2020},
+    {"table_id": 12, "column_id": 2, "column_name": "codi_sai", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2021},
+    {"table_id": 12, "column_id": 3, "column_name": "seg_sai", "type": "smallint", "width": 2, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2022},
+    {"table_id": 12, "column_id": 4, "column_name": "nume_mvs", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2023},
+    {"table_id": 12, "column_id": 5, "column_name": "vlor_mvs", "type": "numeric", "width": 15, "scale": 2, "nulls": "Y", "dflt": null, "object_id": 2024},
+    {"table_id": 13, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2030},
+    {"table_id": 13, "column_id": 2, "column_name": "total_sai", "type": "numeric", "width": 15, "scale": 2, "nulls": "Y", "dflt": null, "object_id": 2031},
+    {"table_id": 14, "column_id": 1, "column_name": "x", "type": "integer", "width": 4, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 2040},
+    {"table_id": 90, "column_id": 1, "column_name": "table_id", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 2090},
+    {"table_id": 91, "column_id": 1, "column_name": "y", "type": "integer", "width": 4, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 2091}
+  ],
+  "remarks": [
+    {"object_id": 1000, "remarks": "Cadastro de empresas do escritorio"},
+    {"object_id": 2000, "remarks": "Codigo da empresa"},
+    {"object_id": 2001, "remarks": "Nome da empresa"},
+    {"object_id": 2002, "remarks": "CNPJ da empresa"},
+    {"object_id": 2003, "remarks": "Tipo da inscricao (1 - CNPJ/2 - CPF)"},
+    {"object_id": 2004, "remarks": "Data de inicio das atividades"},
+    {"object_id": 1001, "remarks": "Notas fiscais de saida"},
+    {"object_id": 2011, "remarks": "Numero do lancamento"},
+    {"object_id": 2012, "remarks": "Data da saida"},
+    {"object_id": 2013, "remarks": "Valor contabil"},
+    {"object_id": 2014, "remarks": "Segmento da nota"},
+    {"object_id": 1002, "remarks": "Produtos das notas de saida"},
+    {"object_id": 2024, "remarks": "Valor do produto"},
+    {"object_id": 1003, "remarks": "Total de saidas por empresa"}
+  ],
+  "indexes": [
+    {"table_id": 10, "index_id": 1, "index_name": "geempre", "category": 1, "uniq": 1},
+    {"table_id": 11, "index_id": 1, "index_name": "efsaidas", "category": 1, "uniq": 1},
+    {"table_id": 11, "index_id": 2, "index_name": "IDX_DATA_SAI", "category": 3, "uniq": 0},
+    {"table_id": 11, "index_id": 3, "index_name": "fk_efsaidas_geempre", "category": 2, "uniq": 0},
+    {"table_id": 12, "index_id": 1, "index_name": "EFMVSPRO", "category": 1, "uniq": 1},
+    {"table_id": 12, "index_id": 2, "index_name": "fk_efmvspro_efsaidas", "category": 2, "uniq": 0}
+  ],
+  "index_columns": [
+    {"table_id": 10, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 11, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 11, "index_id": 1, "sequence": 1, "column_id": 2, "ord": "A", "primary_column_id": null},
+    {"table_id": 11, "index_id": 1, "sequence": 2, "column_id": 5, "ord": "A", "primary_column_id": null},
+    {"table_id": 11, "index_id": 2, "sequence": 1, "column_id": 3, "ord": "A", "primary_column_id": null},
+    {"table_id": 11, "index_id": 2, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 11, "index_id": 3, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": 1},
+    {"table_id": 12, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 12, "index_id": 1, "sequence": 1, "column_id": 2, "ord": "A", "primary_column_id": null},
+    {"table_id": 12, "index_id": 1, "sequence": 2, "column_id": 3, "ord": "A", "primary_column_id": null},
+    {"table_id": 12, "index_id": 1, "sequence": 3, "column_id": 4, "ord": "A", "primary_column_id": null},
+    {"table_id": 12, "index_id": 2, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": 1},
+    {"table_id": 12, "index_id": 2, "sequence": 1, "column_id": 2, "ord": "A", "primary_column_id": 2},
+    {"table_id": 12, "index_id": 2, "sequence": 2, "column_id": 3, "ord": "A", "primary_column_id": 5}
+  ],
+  "foreign_keys": [
+    {"foreign_table_id": 11, "foreign_index_id": 3, "primary_table_id": 10, "primary_index_id": 1},
+    {"foreign_table_id": 12, "foreign_index_id": 2, "primary_table_id": 11, "primary_index_id": 1},
+    {"foreign_table_id": 91, "foreign_index_id": 1, "primary_table_id": 10, "primary_index_id": 1}
+  ],
+  "views": [
+    {"view_object_id": 1003, "view_def": "SELECT codi_emp, SUM(vcon_sai) AS total_sai FROM bethadba.efsaidas GROUP BY codi_emp"}
+  ]
+}

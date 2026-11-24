@@ -95,6 +95,8 @@ def datasets(request: HttpRequest) -> JsonResponse:
     for definition in catalog.definitions.values():
         if definition.source_system != source_system or not definition.validated:
             continue
+        if definition.dispatch == "on_demand":
+            continue
         if definition.requires_source_role and definition.requires_source_role not in armados:
             continue
         saida.append(

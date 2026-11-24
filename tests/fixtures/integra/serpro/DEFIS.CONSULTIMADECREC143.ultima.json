@@ -1,0 +1,21 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sn/defis/exemplos/retorno_consultar_ultimadeclaracaorecibo/",
+  "servico": "DEFIS.CONSULTIMADECREC143",
+  "notes": [
+    "O exemplo oficial chama os PDFs de declaracaoPdf e reciboPdf; a tabela da página os chama de declaracao e recibo, e idDefis é Number na tabela e texto de 15 posições no exemplo.",
+    "dados.declaracaoPdf: PDF do exemplo trocado por um PDF mínimo válido",
+    "dados.reciboPdf: PDF do exemplo trocado por um PDF mínimo válido"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-DEFIS]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "declaracaoPdf": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo=",
+    "reciboPdf": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo=",
+    "idDefis": "000000002021002"
+  }
+}

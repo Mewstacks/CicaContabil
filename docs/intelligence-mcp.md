@@ -4,6 +4,8 @@
 
 O Hub expõe um MCP interno em `POST /api/v1/intelligence/mcp/`. Ele não é um endpoint para Claude Desktop, ChatGPT ou a internet. O usuário autenticado e o escritório ativo determinam o escopo; `organization_id`, papel, SQL, DSN e credenciais nunca são aceitos como argumento de ferramenta.
 
+O MCP **somente leitura do banco do Domínio** para Claude Desktop, Claude Code e ChatGPT é outro servidor, separado deste: roda no computador do escritório, não é exposto pelo Hub e tem política própria (D-317 a D-328). Veja [dominio-mcp.md](dominio-mcp.md).
+
 O protocolo é JSON-RPC 2.0, revisão MCP `2025-06-18`, com `initialize`, `tools/list` e `tools/call`. A resposta de ferramenta usa `structuredContent` e cartões compactos. A interface registra somente metadados de auditoria: ferramenta, chaves de resultado, finalidade e hashes. Ela não registra dados fiscais brutos, prompts ou credenciais.
 
 Ferramentas da primeira versão:

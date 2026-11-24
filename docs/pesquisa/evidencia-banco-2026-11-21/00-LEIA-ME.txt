@@ -1,0 +1,26 @@
+Evidencia real (somente leitura) para a critica do plano do MCP do Dominio.
+
+Todos os arquivos 01..06 sao a saida bruta de scripts que rodaram em 21/11/2026 contra o banco real
+(SQL Anywhere 17.0.11.7312, DSN de sistema 64 bits "contabil", usuario EXTERNO) e contra o dump local do
+catalogo. Nenhum dado de negocio foi lido: so metadados (SYS.*), SELECT ... WHERE 1=0, contagens e WAITFOR.
+
+01-driver-battery.txt        timeout ODBC (HYC00), cancel() por thread, access-mode, isolation_level, fetchmany, START AT, decodificacao.
+02-charset-codepoints.txt    AUTORIDADE sobre acentos: pontos de codigo por estrategia de conexao/decodificacao.
+03-permission-probe.txt      quais objetos o usuario EXTERNO consegue ler (4946 de 4964).
+04-catalog-metrics.txt       prefixos de modulo, legendas, campos obsoletos, regras de sensibilidade, hubs de FK.
+05-retrieval-prototype.txt   recall do prototipo de busca de esquema (26 perguntas em portugues).
+06-sqlglot-dialect.txt       sqlglot nao entende o dialeto SQL Anywhere (CURRENT DATE, START AT).
+
+ATENCAO: o terminal que capturou estas saidas desenha acentos de forma errada (aparece "inscri??o" ou
+"Lan?amento" quando o dado esta correto). NAO conclua nada sobre acentuacao a partir do texto de 01 (T6) nem
+de listas de nomes; use 02, que imprime U+00E7 U+00E3 (c-cedilha, a-til) em vez do glifo.
+
+Complemento (rodadas 1 e 2 da critica do plano):
+07-catalog-dump.txt         contagens brutas do catalogo (objetos, colunas, comentarios, indices, FKs, views).
+08-core-indexes.txt         indices das tabelas fiscais e contabeis principais (ex.: IDX_DATA_SAI).
+09-server-info.txt          versao do servidor, banco, usuario, charset e colunas das visoes de catalogo.
+10-mapa-modulos-centrais.txt modulos (base e legivel) e tabelas centrais por FKs e volume.
+11-triage-probes.txt        PLAN() estima custo sem executar, cancel() em cursor fechado, sonda de frescor (execucao repetida;
+                            os tempos variam entre execucoes: 2 a 19 ms e 26 a 54 ms sao medicoes pontuais).
+12-triage-probes-r2.txt     SELECT PLAN(?) com parametro ligado, PLAN de consulta patologica (nao executa) e sa_conn_info().
+13-probe-frescor.txt  sonda de frescor repetida: as contagens nao mudaram, MAX(last_modified_at) sim (14:00 -> 18:00), logo ele nao e sinal de DDL

@@ -27,7 +27,9 @@ botocore==1.43.58
 celery==5.6.3
     # via cica-contabil
 certifi==2026.7.22
-    # via sentry-sdk
+    # via
+    #   requests
+    #   sentry-sdk
 cffi==2.1.0
     # via
     #   argon2-cffi-bindings
@@ -36,6 +38,7 @@ charset-normalizer==3.4.9
     # via
     #   pdfminer-six
     #   reportlab
+    #   requests
 click==8.4.2
     # via
     #   celery
@@ -56,6 +59,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
 cryptography==50.0.0
     # via
     #   cica-contabil
+    #   jwcrypto
     #   pdfminer-six
 defusedxml==0.7.1
     # via cica-contabil
@@ -64,6 +68,7 @@ django==6.0.8
     #   cica-contabil
     #   django-axes
     #   django-cors-headers
+    #   django-oauth-toolkit
     #   django-redis
     #   django-storages
     #   djangorestframework
@@ -72,6 +77,8 @@ django==6.0.8
 django-axes==8.3.1
     # via cica-contabil
 django-cors-headers==4.9.0
+    # via cica-contabil
+django-oauth-toolkit==3.4.1
     # via cica-contabil
 django-redis==7.0.0
     # via cica-contabil
@@ -91,6 +98,8 @@ gunicorn==26.0.0
     #   uvicorn-worker
 h11==0.16.0
     # via uvicorn
+idna==3.18
+    # via requests
 inflection==0.5.1
     # via drf-spectacular
 jmespath==1.1.0
@@ -101,8 +110,12 @@ jsonschema==4.26.0
     # via drf-spectacular
 jsonschema-specifications==2025.9.1
     # via jsonschema
+jwcrypto==1.6.1
+    # via django-oauth-toolkit
 kombu==5.6.2
     # via celery
+oauthlib==4.0.1
+    # via django-oauth-toolkit
 ofxtools==1.1.1
     # via cica-contabil
 openpyxl==3.1.5
@@ -152,6 +165,8 @@ referencing==0.37.0
     #   jsonschema-specifications
 reportlab==4.5.1
     # via cica-contabil
+requests==2.34.2
+    # via django-oauth-toolkit
 rpds-py==2026.6.3
     # via
     #   jsonschema
@@ -166,9 +181,10 @@ sqlparse==0.6.0
     # via
     #   cica-contabil
     #   django
-typing-extensions==4.16.0 ; python_full_version < '3.13'
+typing-extensions==4.16.0
     # via
     #   django-redis
+    #   jwcrypto
     #   psycopg
     #   referencing
 tzdata==2026.3
@@ -184,6 +200,8 @@ uritemplate==4.2.0
 urllib3==2.7.0
     # via
     #   botocore
+    #   django-oauth-toolkit
+    #   requests
     #   sentry-sdk
 uvicorn==0.51.0
     # via uvicorn-worker

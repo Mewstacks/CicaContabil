@@ -17,6 +17,18 @@ class IntegraTransportError(IntegraError):
     """The gateway could not be reached, or answered something unreadable."""
 
 
+class IntegraPayloadError(IntegraError, ValueError):
+    """A successful answer whose content does not match the documented contract.
+
+    Messages name the field path and the expectation, never the received value: fiscal data
+    must not leak into logs or screens through an error.
+    """
+
+
+class IntegraRequestError(IntegraError, ValueError):
+    """The data of a request is not valid; nothing was sent to the gateway."""
+
+
 class IntegraServiceError(IntegraError):
     """The gateway answered, and the answer is a refusal from the service itself."""
 
@@ -29,3 +41,11 @@ class IntegraServiceError(IntegraError):
 
 class IntegraNotAuthorized(IntegraServiceError):
     """Usually a missing or expired electronic power of attorney for this contributor."""
+
+
+class IntegraBudgetExceeded(IntegraError):
+    """The call would pass the monthly or the conversation limit; nothing was sent."""
+
+
+class IntegraProcuracaoMissing(IntegraError):
+    """The taxpayer has no procuração for the office; the paid call was not made."""

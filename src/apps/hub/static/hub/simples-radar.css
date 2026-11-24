@@ -1,0 +1,8 @@
+/* Radar Simples/MEI (E14). Só acrescenta; usa os tokens e componentes do hub. */
+.radar-tabs{margin:0 0 12px}
+.radar-tabs .tab-count{display:inline-block;min-width:22px;margin-left:4px;padding:1px 6px;border-radius:99px;background:var(--surface-subtle);color:var(--muted);font-size:12px;font-weight:700;text-align:center}
+.radar-table .num,.radar-table th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.radar-source{margin:12px 0 0;color:var(--muted);font-size:13px}
+@media (max-width:680px){
+  .radar-table .num,.radar-table th.num{text-align:left;white-space:normal}
+}

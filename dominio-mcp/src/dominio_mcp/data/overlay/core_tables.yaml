@@ -1,0 +1,37 @@
+# Tabelas centrais do banco do Dominio (D-318): o mapa que a IA le primeiro e os apelidos que o
+# contador usa. Titulos e apelidos proprios; a tabela precisa existir no pack (conferido nos testes).
+# `confianca: media` = nome e comentario do banco apontam para isso, sem revisao de contadora.
+version: 1
+tables:
+  - {name: geempre, titulo: Empresas, aliases: [empresa, empresas, cadastro de empresas, carteira de empresas, cliente do escritorio, clientes do escritorio], confianca: media}
+  - {name: efsaidas, titulo: Notas fiscais de saida, aliases: [nota de saida, notas de saida, nfe de saida, vendas de mercadorias, faturamento de mercadorias], confianca: media}
+  - {name: efentradas, titulo: Notas fiscais de entrada, aliases: [nota de entrada, notas de entrada, nfe de entrada, compras de mercadorias], confianca: media}
+  - {name: efservicos, titulo: Notas fiscais de servico, aliases: [nota de servico, notas de servico, servicos prestados, servicos tomados, nfse], confianca: media}
+  - {name: efmvspro, titulo: Produtos das notas de saida, aliases: [itens da nota de saida, produtos vendidos], confianca: media}
+  - {name: efmvepro, titulo: Produtos das notas de entrada, aliases: [itens da nota de entrada, produtos comprados], confianca: media}
+  - {name: ctlancto, titulo: Lancamentos contabeis, aliases: [lancamento contabil, lancamentos contabeis, razao contabil, diario contabil], confianca: media}
+  - {name: ctcontas, titulo: Plano de contas contabil, aliases: [plano de contas, contas contabeis, conta contabil], confianca: media}
+  - {name: ctccusto, titulo: Centros de custo, aliases: [centro de custo, centros de custo], confianca: media}
+  - {name: efacumulador, titulo: Acumuladores fiscais, aliases: [acumulador, acumuladores, acumuladores fiscais], confianca: media}
+  - {name: efnatureza, titulo: Naturezas de operacao, aliases: [natureza da operacao, naturezas de operacao, cfop, codigo fiscal de operacao], confianca: media}
+  - {name: efprodutos, titulo: Produtos, aliases: [produto, produtos, cadastro de produtos, mercadorias], confianca: media}
+  - {name: effornece, titulo: Fornecedores, aliases: [fornecedor, fornecedores, cadastro de fornecedores], confianca: media}
+  - {name: efclientes, titulo: Clientes das empresas, aliases: [cliente, clientes, cadastro de clientes, clientes das empresas], confianca: media}
+  - {name: efparametro_vigencia, titulo: Parametros da escrita fiscal por vigencia, aliases: [regime tributario, regime da empresa, parametros fiscais, parametros da escrita fiscal], confianca: media}
+  - {name: efsdoimp, titulo: Saldo dos impostos, aliases: [saldo de impostos, saldos de impostos, apuracao de impostos], confianca: media}
+  - {name: geimposto, titulo: Impostos, aliases: [impostos, cadastro de impostos], confianca: media}
+  - {name: gemunicipio, titulo: Municipios, aliases: [municipio, municipios, cidades, codigo do municipio], confianca: media}
+  - {name: geestado, titulo: Estados, aliases: [estado, estados, uf, unidades da federacao], confianca: media}
+  - {name: gepais, titulo: Paises, aliases: [pais, paises], confianca: media}
+  - {name: efunidades, titulo: Unidades de medida, aliases: [unidade de medida, unidades de medida], confianca: media}
+  - {name: efespecies, titulo: Especies de documento, aliases: [especie de documento, especies de documento, modelo de nota], confianca: media}
+  - {name: foempregados, titulo: Empregados, aliases: [empregado, empregados, funcionario, funcionarios, colaborador, colaboradores], confianca: media}
+  - {name: focalculos, titulo: Calculos da folha, aliases: [calculo da folha, calculos da folha, folha calculada], confianca: media}
+  - {name: fofiliais, titulo: Filiais da folha, aliases: [filial, filiais], confianca: media}
+  - {name: fosindicatos, titulo: Sindicatos e convencoes, aliases: [sindicato, sindicatos, convencao coletiva], confianca: media}
+  - {name: foesocial_dados_eventos, titulo: Eventos do eSocial, aliases: [evento do esocial, eventos do esocial, envio ao esocial], confianca: media}
+  - {name: lrcalculo, titulo: Calculo do LALUR, aliases: [lalur, calculo do lalur, lucro real], confianca: media}
+  - {name: foeventos, titulo: Eventos da folha (rubricas), aliases: [eventos da folha, eventos de folha, rubricas da folha], confianca: media}
+  - {name: foaltesal, titulo: Alteracoes de salario, aliases: [alteracao de salario, alteracoes de salario, reajuste salarial], confianca: media}
+  - {name: hrfaturamento_parcela_item, titulo: Itens das parcelas de faturamento de honorarios, aliases: [eventos de faturamento dos honorarios, itens do faturamento de honorarios], confianca: media}
+  - {name: hrcliente, titulo: Clientes do honorarios, aliases: [clientes do honorarios], confianca: media}

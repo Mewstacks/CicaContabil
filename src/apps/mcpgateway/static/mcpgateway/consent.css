@@ -1,0 +1,38 @@
+.consent-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px 20px;
+  margin: 0 0 26px;
+  padding: 16px 0;
+  border-block: 1px solid var(--auth-line);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.consent-facts dt {
+  color: var(--auth-muted);
+  font-weight: 600;
+}
+
+.consent-facts dd {
+  margin: 0;
+  color: var(--auth-ink);
+  overflow-wrap: anywhere;
+}
+
+.consent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.consent-actions .button.button-quiet {
+  margin-top: 0;
+  background: transparent;
+  color: var(--auth-ink);
+  border-color: var(--auth-muted);
+}
+
+.consent-actions .button.button-quiet:hover {
+  background: var(--auth-blue-soft);
+}

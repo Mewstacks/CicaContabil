@@ -1,0 +1,57 @@
+# Conjunto CEGO da recuperacao do esquema (A3, T3.2). CONGELADO por hash em blind.sha256.
+#
+# Regras: escrito antes de qualquer ajuste do overlay; nenhuma pergunta aqui pode ser usada para
+# ajustar glossario, apelidos ou pesos; medido UMA vez por versao do overlay e queimado se falhar
+# (substituido por outro lote independente de pelo menos 20 perguntas). Cada medicao entra em
+# reports/recall.md.
+#
+# STATUS: rascunho tecnico de 21/11/2026, estratificado por modulo e familia de intencao. A
+# relevancia (tabelas aceitas) saiu do nome e do comentario de cada tabela no banco, nao do
+# resultado da busca. Pendente: revisao e complemento pela contadora do escritorio.
+questions:
+  - {q: "saldo de impostos apurado no mês", expected: [efsdoimp], family: apuracao, module: ef}
+  - {q: "pagamentos de impostos realizados", expected: [efpagimp], family: movimento, module: ef}
+  - {q: "parcelas das notas fiscais de saída", expected: [efsaidaspar], family: movimento, module: ef}
+  - {q: "parcelamento de impostos do simples nacional", expected: [efparcelamento_imposto_sn, efparcelamento_imposto], family: apuracao, module: ef}
+  - {q: "cupom fiscal eletrônico", expected: [efcupom_fiscal_eletronico], family: movimento, module: ef}
+  - {q: "tabela de alíquotas interestaduais de ICMS", expected: [eftabela_aliquota_icms], family: tabela_apoio, module: ef}
+  - {q: "grupos de produtos", expected: [efgrupopdi], family: cadastro, module: ef}
+  - {q: "unidades de medida dos produtos", expected: [efunidades], family: cadastro, module: ef}
+  - {q: "espécies de documentos fiscais", expected: [efespecies], family: tabela_apoio, module: ef}
+  - {q: "simulador da reforma tributária", expected: [efsimulacao_reforma_tributaria], family: parametro, module: ef}
+  - {q: "ajustes de impostos lançados", expected: [efajustes, efmovaju, efmovimento_ajuste_federal], family: apuracao, module: ef}
+  - {q: "configuração de importação de nota fiscal eletrônica", expected: [efcfg_importacao_nfe], family: parametro, module: ef}
+  - {q: "pagamento das parcelas das notas de entrada", expected: [efentradaspag], family: movimento, module: ef}
+  - {q: "tanques e bicos de combustível", expected: [efcombustivel_tanque, efcombustivel_bico], family: cadastro, module: ef}
+  - {q: "código fiscal de prestação de serviços", expected: [eftabela_cfps], family: tabela_apoio, module: ef}
+  - {q: "lançamentos contábeis em lote", expected: [ctlanctolote], family: movimento, module: ct}
+  - {q: "centros de custo da contabilidade", expected: [ctccusto], family: cadastro, module: ct}
+  - {q: "conciliação bancária", expected: [ctconciliacao_bancaria], family: movimento, module: ct}
+  - {q: "estrutura da DRE", expected: [ctgruposdre], family: parametro, module: ct}
+  - {q: "plano de contas referencial da Receita", expected: [ctcontas_srf], family: tabela_apoio, module: ct}
+  - {q: "notas explicativas das demonstrações", expected: [ctnotas_explicativas], family: obrigacao, module: ct}
+  - {q: "apuração do custo das mercadorias vendidas", expected: [ctcmv_apuracao], family: apuracao, module: ct}
+  - {q: "lançamentos orçados", expected: [ctorcado], family: movimento, module: ct}
+  - {q: "dependentes dos empregados", expected: [fofilhos], family: cadastro, module: fo}
+  - {q: "afastamentos dos empregados", expected: [foafastamentos], family: movimento, module: fo}
+  - {q: "cargos cadastrados", expected: [focargos], family: cadastro, module: fo}
+  - {q: "cálculo de rescisão", expected: [forescisoes], family: apuracao, module: fo}
+  - {q: "comunicação de acidente de trabalho", expected: [focat], family: obrigacao, module: fo}
+  - {q: "guia de INSS da folha", expected: [foguiainss, fovguiainss], family: apuracao, module: fo}
+  - {q: "jornadas e horários de trabalho", expected: [fojornadas, fohorarios], family: cadastro, module: fo}
+  - {q: "gozo de férias", expected: [foferias_gozo], family: movimento, module: fo}
+  - {q: "departamentos da empresa", expected: [fodepto], family: cadastro, module: fo}
+  - {q: "quadro societário e sócios", expected: [gequadrosocietario_socios, gesocios], family: cadastro, module: ge}
+  - {q: "contadores responsáveis pela empresa", expected: [gecontador], family: cadastro, module: ge}
+  - {q: "pagamentos da DCTF Web", expected: [gedctf_web_pagamento], family: obrigacao, module: ge}
+  - {q: "vigência de impostos", expected: [geimposto_vigencia], family: parametro, module: ge}
+  - {q: "execução de rotinas automáticas", expected: [geraexecutar, gerarotinas], family: parametro, module: ge}
+  - {q: "contratos de honorários", expected: [hrcontrato, hncontrato], family: cadastro, module: hr}
+  - {q: "contas financeiras do escritório", expected: [hrconta_financeira, hncontas], family: cadastro, module: hr}
+  - {q: "clientes fixos e eventuais do honorários", expected: [hrcliente], family: cadastro, module: hr}
+  - {q: "adições do LALUR", expected: [lradicao, lrirpj_real_adicao], family: apuracao, module: lr}
+  - {q: "exclusões do lucro real", expected: [lrexclusao], family: apuracao, module: lr}
+  - {q: "cadastro de turmas do ponto", expected: [poturmas], family: cadastro, module: po}
+  - {q: "baixa de bens do patrimônio", expected: [pmbaixa], family: movimento, module: pm}
+  - {q: "CIAP crédito de ICMS do ativo", expected: [pabasicm], family: apuracao, module: pa}
+  - {q: "avaliação pelo valor justo", expected: [pmavaliacao_valor_justo], family: apuracao, module: pm}

@@ -23,7 +23,6 @@ whose key is in ``chNFSe``. A note carrying ``chSubstda`` substitutes the refere
 
 from __future__ import annotations
 
-import re
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -32,6 +31,8 @@ from defusedxml import DefusedXmlException, ElementTree  # type: ignore[import-u
 from django.db.models import Case, Exists, OuterRef, Q, Value, When
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
+
+from apps.common.cnpj import strip_document
 
 FACTS_VERSION = 1
 
@@ -86,7 +87,7 @@ def _party_document(root: Any, groups: set[str]) -> str:
             continue
         for element in group.iter():
             if _local(element.tag).casefold() in {"cnpj", "cpf"}:
-                digits = re.sub(r"\D", "", element.text or "")
+                digits = strip_document(element.text)
                 if len(digits) in {11, 14}:
                     return digits
     return ""
@@ -188,7 +189,7 @@ def nfse_facts(
         :60
     ]
 
-    company = re.sub(r"\D", "", company_cnpj or "")
+    company = strip_document(company_cnpj)
     provider = _party_document(root, _PROVIDER_GROUPS) if root is not None else ""
     recipient = _party_document(root, _RECIPIENT_GROUPS) if root is not None else ""
     counterparty = ""

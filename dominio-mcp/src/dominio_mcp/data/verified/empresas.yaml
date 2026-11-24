@@ -1,0 +1,40 @@
+# Consulta verificada: carteira de empresas (D-317, T5.3).
+# Semente: contracts/datasets/companies.v1.sql e taxation.v1.sql (validados no banco real).
+version: 1
+name: empresas
+titulo: Empresas da carteira
+descricao: >-
+  Empresas cadastradas no Dominio: codigo, razao social, CNPJ, situacao e o regime tributario
+  vigente (codigo e data de vigencia; a legenda do codigo vai em `legendas`). Filtre por
+  `situacao` ou por `codi_emp`.
+aviso: >-
+  Diagnostico: o cadastro e lido sem confirmacao de transacao. Confira no Dominio antes de agir.
+parametros:
+  - {nome: situacao, tipo: choice, valores: [A, I, C, M, B, E], descricao: "Situacao da empresa (legenda em `legendas`)"}
+  - {nome: codi_emp, tipo: int, descricao: "Codigo da empresa no Dominio"}
+  - {nome: limite, tipo: int, padrao: 50, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, cgce_emp: documento, stat_emp: normal}
+  efparametro_vigencia: {codi_emp: normal, vigencia_par: normal, rfed_par: normal}
+sql: >-
+  SELECT TOP {top}
+    g.codi_emp AS codi_emp, g.razao_emp AS razao_emp, g.cgce_emp AS cnpj, g.stat_emp AS situacao,
+    p.rfed_par AS regime_codigo, p.vigencia_par AS regime_vigencia
+  FROM bethadba.geempre g
+  LEFT OUTER JOIN (
+    SELECT codi_emp, vigencia_par, rfed_par,
+           ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par DESC) AS ordem
+    FROM bethadba.efparametro_vigencia
+    WHERE vigencia_par <= CURRENT DATE
+  ) p ON p.codi_emp = g.codi_emp AND p.ordem = 1
+  WHERE 1 = 1
+    {?situacao: AND g.stat_emp = ?situacao}
+    {?codi_emp: AND g.codi_emp = ?codi_emp}
+  ORDER BY g.codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: cnpj, tipo: text, classe: documento}
+  - {nome: situacao, tipo: text, classe: normal, legenda: {tabela: geempre, coluna: stat_emp}}
+  - {nome: regime_codigo, tipo: int, classe: normal, legenda: {overlay: efparametro_vigencia.rfed_par}}
+  - {nome: regime_vigencia, tipo: date, classe: normal}

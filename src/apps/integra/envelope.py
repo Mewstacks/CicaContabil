@@ -39,12 +39,35 @@ class Party:
         return {"numero": self.normalized, "tipo": self.tipo}
 
 
+@dataclass(frozen=True)
+class BatchParty:
+    """The `contribuinte` of the batch services (EVENTOSATUALIZACAO): a list of CPFs (tipo 3) or
+    of CNPJs (tipo 4) in `numero`, separated by comma, up to 1000. The retrieval of a request
+    sends it empty."""
+
+    numeros: tuple[str, ...]
+    tipo: int = 4
+
+    MAX_ITEMS = 1000
+
+    def as_payload(self) -> dict[str, Any]:
+        if self.tipo not in (3, 4):
+            raise ValueError("O lote é de CPFs (tipo 3) ou de CNPJs (tipo 4).")
+        if len(self.numeros) > self.MAX_ITEMS:
+            raise ValueError("O lote aceita até 1.000 inscrições.")
+        size = 11 if self.tipo == 3 else 14
+        numbers = [_SEPARATORS.sub("", item).upper() for item in self.numeros]
+        if any(not re.fullmatch(rf"[A-Z0-9]{{{size}}}", item) for item in numbers):
+            raise ValueError("Inscrição fora do formato do lote.")
+        return {"numero": ",".join(numbers), "tipo": self.tipo}
+
+
 def build(
     *,
     spec: ServiceSpec,
     contratante: Party,
     autor_pedido: Party,
-    contribuinte: Party,
+    contribuinte: Party | BatchParty,
     dados: dict[str, Any] | str | None = None,
 ) -> dict[str, Any]:
     """The single request shape every Integra Contador service accepts.

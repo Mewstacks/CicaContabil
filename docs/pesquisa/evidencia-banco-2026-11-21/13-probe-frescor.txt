@@ -1,0 +1,13 @@
+# comando: probe_fresh.py via dominio_mcp.odbc (leitura do catalogo, sem dado de negocio) | 21/11/2026 ~19:30
+# SQL: contagens de SYS.SYSTAB, SYSTABCOL, SYSFKEY, SYSIDX, SYSREMARK, SYSVIEW; MAX(last_modified_at) de SYSTAB;
+#      SUM(LENGTH(view_def)) de SYSVIEW.
+
+28 ms -> ['5477', '63031', '6955', '12768', '61250', '256', '2026-11-21 18:00:00', '849538']
+27 ms -> ['5477', '63031', '6955', '12768', '61250', '256', '2026-11-21 18:00:00', '849538']
+25 ms -> ['5477', '63031', '6955', '12768', '61250', '256', '2026-11-21 18:00:00', '849538']
+SELECT PROPERTY('ProductVersion'), DB_PROPERTY('Name') -> ['17.0.11.7312', 'contabil']
+
+# Leitura: as seis contagens sao IGUAIS as da primeira medicao (evidencia 11, ~14:50: 5477, 63031, 6955, 12768,
+# 61250, 256 views), mas MAX(last_modified_at) passou de 2026-11-21 14:00:00 para 2026-11-21 18:00:00. Ou seja,
+# esse campo anda sem DDL (parece atualizacao periodica de estatistica) e NAO serve de sinal de mudanca de
+# esquema: a sonda de frescor usa so contagens e a soma do tamanho das definicoes de view.

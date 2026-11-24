@@ -50,7 +50,18 @@ internal sealed class ProfitabilityProcessor(AgentConfig config, AgentClient cli
 
         // O SQL vem do catálogo, nunca do comando. O que a nuvem manda é o código,
         // a versão e o hash que ela espera — e o hash é conferido dos dois lados.
-        DatasetDefinition dataset = DatasetCatalog.GetForRun(config.EffectiveSourceSystem, code, runKind);
+        // Contrato desconhecido, não validado ou fora do modo: este agente pode estar
+        // mais velho (ou mais novo) que a nuvem. Pular o item, nunca derrubar o ciclo
+        // dos demais processadores.
+        DatasetDefinition dataset;
+        try
+        {
+            dataset = DatasetCatalog.GetForRun(config.EffectiveSourceSystem, code, runKind);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
         if (dataset.SchemaVersion != schemaVersion
             || !string.Equals(
                 dataset.QuerySha256,
@@ -179,7 +190,7 @@ internal sealed class ProfitabilityProcessor(AgentConfig config, AgentClient cli
         }
     }
 
-    private static DatasetValueKind[] ValueKinds(DbDataReader reader)
+    internal static DatasetValueKind[] ValueKinds(DbDataReader reader)
     {
         DataTable? schema = reader.GetSchemaTable();
         if (schema is null || schema.Rows.Count != reader.FieldCount)

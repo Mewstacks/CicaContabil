@@ -1,0 +1,22 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="tv2-upload-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-upload-title">Arquivos</h2><p>{% for suffix in accepted %}{{ suffix }}{% if not forloop.last %} · {% endif %}{% endfor %}</p></div></header>
+  <form class="tv2-form" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Revise os campos indicados.</div>{% endif %}
+    <div class="tv2-grid">
+      <div class="field{% if form.company.errors %} has-error{% endif %}"><label for="{{ form.company.id_for_label }}">{{ form.company.label }}</label>{{ form.company }}{% if form.company.errors %}<p class="field-error">{{ form.company.errors|striptags }}</p>{% endif %}</div>
+      <div class="field"><label for="{{ form.document_type.id_for_label }}">{{ form.document_type.label }}</label>{{ form.document_type }}</div>
+      <div class="field tv2-wide{% if form.documents.errors %} has-error{% endif %}"><label for="{{ form.documents.id_for_label }}">{{ form.documents.label }}</label>{{ form.documents }}{% if form.documents.errors %}<p class="field-error">{{ form.documents.errors|striptags }}</p>{% endif %}</div>
+    </div>
+    <div class="tv2-actions"><button class="button" type="submit">Enviar</button><a class="button button-quiet" href="{% url 'hub:triage' %}">Cancelar</a></div>
+  </form>
+</section>
+{% endblock %}

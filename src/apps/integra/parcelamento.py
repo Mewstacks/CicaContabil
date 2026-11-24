@@ -1,14 +1,28 @@
-"""Bounded interpretation of the PARCSN escaped JSON response."""
+"""Bounded interpretation of the escaped JSON responses of the parcelamento services.
+
+The 8 modalities (PARCSN, PARCSN-ESP, PERTSN, RELPSN, PARCMEI, PARCMEI-ESP, PERTMEI, RELPMEI)
+share one table (`catalog_table.MODALIDADES`); the official pages of the list of requests, of the
+available installments and of the payment detail have the same fields in every modality, so one
+reader serves all of them. Only the consolidation block of the agreement detail differs by
+modality: it is read when it carries the PARCSN names and left empty otherwise. The registry
+`TYPED_SERVICES` is generated from the modality table.
+"""
 
 from __future__ import annotations
 
 import base64
 import binascii
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Annotated, Any
+
+from apps.integra.catalog_table import MODALIDADES
+from apps.integra.errors import IntegraPayloadError
+from apps.integra.typed.base import Fmt, J, Model, Request, open_envelope
+from apps.integra.typed.registry import TypedService
 
 MAX_DADOS_CHARS = 1_000_000
 MAX_ROWS = 500
@@ -60,7 +74,7 @@ def _date(value: Any) -> date | None:
         return None
 
 
-def _document(payload: dict[str, Any], *, max_chars: int = MAX_DADOS_CHARS) -> dict[str, Any]:
+def _document(payload: Mapping[str, Any], *, max_chars: int = MAX_DADOS_CHARS) -> dict[str, Any]:
     if payload.get("status") != 200:
         raise ParcelamentoPayloadError("A consulta não retornou sucesso do Serpro.")
     dados = payload.get("dados")
@@ -120,7 +134,7 @@ def _summary(row: dict[str, Any]) -> ParcelamentoSummary:
     )
 
 
-def pedidos(payload: dict[str, Any]) -> list[ParcelamentoSummary]:
+def pedidos(payload: Mapping[str, Any]) -> list[ParcelamentoSummary]:
     """Read the official `dados` string without losing an empty result."""
 
     document = _document(payload)
@@ -137,15 +151,26 @@ def pedidos(payload: dict[str, Any]) -> list[ParcelamentoSummary]:
     return summaries
 
 
-def detalhe(payload: dict[str, Any], *, numero_esperado: int) -> ParcelamentoDetalhe:
-    """Read a selected agreement, refusing another agreement's response."""
+def _agreement(document: dict[str, Any]) -> dict[str, Any]:
+    """The official examples answer with the agreement itself (`numero`, `situacao`, ...); the
+    first version of this reader expected it under a `parcelamento` key. Both are read."""
 
-    document = _document(payload)
-    row = document.get("parcelamento")
-    if not isinstance(row, dict):
-        raise ParcelamentoPayloadError("O Serpro não devolveu o detalhe do parcelamento.")
+    wrapped = document.get("parcelamento")
+    if isinstance(wrapped, dict):
+        return wrapped
+    if "numero" in document:
+        return document
+    raise ParcelamentoPayloadError("O Serpro não devolveu o detalhe do parcelamento.")
+
+
+def detalhe(
+    payload: Mapping[str, Any], *, numero_esperado: int | None = None
+) -> ParcelamentoDetalhe:
+    """Read a selected agreement; with `numero_esperado`, refuse another agreement's response."""
+
+    row = _agreement(_document(payload))
     summary = _summary(row)
-    if summary.numero != numero_esperado:
+    if numero_esperado is not None and summary.numero != numero_esperado:
         raise ParcelamentoPayloadError("O Serpro devolveu outro parcelamento.")
     consolidation = row.get("consolidacaoOriginal")
     if consolidation is not None and not isinstance(consolidation, dict):
@@ -178,7 +203,7 @@ def detalhe(payload: dict[str, Any], *, numero_esperado: int) -> ParcelamentoDet
     )
 
 
-def parcelas_disponiveis(payload: dict[str, Any]) -> list[ParcelaDisponivel]:
+def parcelas_disponiveis(payload: Mapping[str, Any]) -> list[ParcelaDisponivel]:
     """The official schema says listaParcela, while its example uses listaParcelas."""
 
     document = _document(payload)
@@ -200,7 +225,7 @@ def parcelas_disponiveis(payload: dict[str, Any]) -> list[ParcelaDisponivel]:
     return result
 
 
-def pdf_das(payload: dict[str, Any]) -> bytes:
+def pdf_das(payload: Mapping[str, Any]) -> bytes:
     """Decode only a bounded real PDF, never arbitrary provider-supplied bytes."""
 
     document = _document(payload, max_chars=(MAX_PDF_BYTES * 4 // 3) + 1000)
@@ -218,3 +243,81 @@ def pdf_das(payload: dict[str, Any]) -> bytes:
     ):
         raise ParcelamentoPayloadError("O DAS devolvido pelo Serpro não é um PDF válido.")
     return document_bytes
+
+
+# ---- payment detail of one installment (DETPAGTOPARC) ------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class DiscriminacaoDebito(Model):
+    tributo: Annotated[str, J("tributo")]
+    principal: Annotated[Decimal | None, J("principal")] = None
+    multa: Annotated[Decimal | None, J("multa")] = None
+    juros: Annotated[Decimal | None, J("juros")] = None
+    total: Annotated[Decimal, J("total")]
+    ente_federado_destino: Annotated[str | None, J("enteFederadoDestino")] = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class DebitoPago(Model):
+    pa_debito: Annotated[int, J("paDebito", fmt=Fmt.YEAR_MONTH)]
+    processo: Annotated[str | None, J("processo")] = None
+    discriminacoes: Annotated[tuple[DiscriminacaoDebito, ...], J("discriminacoesDebito")] = ()
+
+
+@dataclass(frozen=True, kw_only=True)
+class PagamentoParcela(Model):
+    numero_das: Annotated[str, J("numeroDas")]
+    data_vencimento: Annotated[date | None, J("dataVencimento", fmt=Fmt.DATE8)] = None
+    pa_das_gerado: Annotated[int | None, J("paDasGerado", fmt=Fmt.YEAR_MONTH)] = None
+    gerado_em: Annotated[datetime | None, J("geradoEm", fmt=Fmt.DATETIME14)] = None
+    numero_parcelamento: Annotated[str | None, J("numeroParcelamento")] = None
+    numero_parcela: Annotated[str | None, J("numeroParcela")] = None
+    data_limite_acolhimento: Annotated[
+        date | None, J("dataLimiteAcolhimento", fmt=Fmt.DATE8)
+    ] = None
+    pagamento_debitos: Annotated[tuple[DebitoPago, ...], J("pagamentoDebitos")] = ()
+    data_pagamento: Annotated[date | None, J("dataPagamento", fmt=Fmt.DATE8)] = None
+    banco_agencia: Annotated[str | None, J("bancoAgencia")] = None
+    valor_pago_arrecadacao: Annotated[Decimal | None, J("valorPagoArrecadacao")] = None
+
+
+def pagamento_parcela(payload: Mapping[str, Any]) -> PagamentoParcela:
+    """DETPAGTOPARC of any modality: how a paid installment was split among the tributos."""
+
+    try:
+        return PagamentoParcela.parse(open_envelope(payload).dados)
+    except IntegraPayloadError as exc:
+        raise ParcelamentoPayloadError(str(exc)) from exc
+
+
+# ---- requests and the registry generated from the modality table -------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class ConsultarParcelamento(Request):
+    """OBTERPARC: one agreement of the taxpayer."""
+
+    numero_parcelamento: Annotated[int, J("numeroParcelamento", ge=1)]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ConsultarPagamentoParcela(Request):
+    """DETPAGTOPARC: the installment of one month (AAAAMM) of one agreement."""
+
+    numero_parcelamento: Annotated[int, J("numeroParcelamento", ge=1)]
+    ano_mes_parcela: Annotated[int, J("anoMesParcela", fmt=Fmt.YEAR_MONTH)]
+
+
+_CONSULTATIONS: dict[str, tuple[type[Request] | None, Any]] = {
+    "pedidos": (None, pedidos),
+    "detalhe": (ConsultarParcelamento, detalhe),
+    "pagamento": (ConsultarPagamentoParcela, pagamento_parcela),
+    "parcelas": (None, parcelas_disponiveis),
+}
+
+TYPED_SERVICES: tuple[TypedService, ...] = tuple(
+    TypedService(f"parcelamento.{modalidade.slug}.{operation}", request, read)
+    for modalidade in MODALIDADES
+    for operation, (request, read) in _CONSULTATIONS.items()
+)

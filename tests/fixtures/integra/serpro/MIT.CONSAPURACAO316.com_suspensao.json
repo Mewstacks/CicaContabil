@@ -1,0 +1,64 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-dctfweb/mit/servicos/consultar_apuracao/",
+  "servico": "MIT.CONSAPURACAO316",
+  "notes": [
+    "Montada da tabela 'Estrutura do objeto dadosApuracaoMIT' (a página só traz o exemplo de apuração sem movimento), com valores fictícios; os exemplos de cada campo vêm da tabela.",
+    "Apuração com movimento e suspensão judicial (ListaSuspensoes), que a página só admite sem eventos especiais."
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-MIT]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "situacaoApuracao": 3,
+    "textoSituacao": "ENCERRADA",
+    "dadosApuracaoMit": {
+      "PeriodoApuracao": {
+        "MesApuracao": 6,
+        "AnoApuracao": 2025
+      },
+      "DadosIniciais": {
+        "SemMovimento": false,
+        "QualificacaoPj": 1,
+        "TributacaoLucro": 3,
+        "VariacoesMonetarias": 1,
+        "ResponsavelApuracao": {
+          "CpfResponsavel": "00000000000"
+        }
+      },
+      "Debitos": {
+        "Csll": {
+          "ListaDebitos": [
+            {
+              "IdDebito": 1,
+              "CodigoDebito": "220601",
+              "ValorDebito": 1500.5
+            }
+          ]
+        }
+      },
+      "ListaSuspensoes": [
+        {
+          "TipoSuspensao": 2,
+          "MotivoSuspensao": 1,
+          "ComDeposito": false,
+          "NumeroProcesso": "98765431220251017777",
+          "ProcessoTerceiro": false,
+          "DataDecisao": 20240920,
+          "VaraJudiciaria": 1,
+          "CodigoMunicipioSj": "5002704",
+          "ListaDebitosSuspensos": [
+            {
+              "IdDebitoSuspenso": 1,
+              "ValorSuspenso": 1000.0
+            }
+          ]
+        }
+      ],
+      "TransmissaoImediata": false
+    }
+  }
+}

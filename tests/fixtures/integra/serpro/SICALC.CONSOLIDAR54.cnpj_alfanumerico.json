@@ -1,0 +1,25 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sicalc/sicalc/exemplos/retorno_consolidado_alfa/",
+  "servico": "SICALC.CONSOLIDAR54",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-SICALC]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "consolidado": {
+      "dataArrecadacaoConsolidacao": "2026-06-22T00:00:00",
+      "dataValidadeCalculo": "2026-06-30T00:00:00",
+      "percentualJuros": "58.49",
+      "percentualMultaMora": "20.00",
+      "termoInicialJuros": "2021-03-01T00:00:00",
+      "valorJuros": "584.90",
+      "valorMultaMora": "200.00",
+      "valorPrincipalMoedaCorrente": "1000.00",
+      "valorTotalConsolidado": "1784.90"
+    }
+  }
+}

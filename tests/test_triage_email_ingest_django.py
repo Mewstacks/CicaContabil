@@ -199,7 +199,8 @@ class EmailAttachmentQuarantineTests(TestCase):
         self.assertEqual(scan.verdict, TriageSafetyScan.Verdict.CLEAN)
         self.assertEqual(scan.content_hash, item.content_hash)
         self.assertEqual(scan.format_verdict, TriageSafetyScan.FormatVerdict.INVALID)
-        self.assertEqual(item.status, TriageStatus.QUARANTINED)
+        self.assertEqual(item.status, TriageStatus.REJECTED)
+        self.assertIn("PDF", item.rejection_reason)
         self.assertEqual(item.events.count(), 2)
 
     def test_clean_supported_pdf_advances_to_extraction_queue(self) -> None:

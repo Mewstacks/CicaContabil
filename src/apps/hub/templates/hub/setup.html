@@ -9,6 +9,7 @@
         <span aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
         <div>
           <div class="setup-step-title"><strong>{{ step.label }}</strong>{% if step.recommended and not step.done %}<em>Recomendado</em>{% endif %}</div>
+          {% if step.note %}<small class="setup-step-note">{{ step.note }}</small>{% endif %}
           {% if not step.done %}{% if can_manage_setup or step.personal_action %}<a class="text-action" href="{{ step.url }}">{{ step.action_label }} <span aria-hidden="true">→</span></a>{% endif %}{% endif %}
         </div>
       </li>

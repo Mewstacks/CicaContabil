@@ -276,6 +276,15 @@ no contrato. Apoio de IA ao DE-PARA também já está incluído; Q-08/Q-09 conti
 valendo para custo/egressão quando houver execução real. Perguntas sobre os
 outros módulos não bloqueiam esta entrega por inferência.
 
+## Contraprova (etapa 15)
+
+| ID | Pergunta objetiva | Por que altera a implementação |
+| --- | --- | --- |
+| Q-46 | Quais das regras de conferência propostas em D-301 o responsável fiscal confirma ou corrige? | Define o que vira divergência e o que vira "ignorada por regra": tolerância de 1 centavo, operação padrão (entradas), conjunto de CFOP sem crédito (1406, 1407, 1551, 1556, 2406, 2407, 2551, 2556), tratamento de situação cancelada ou denegada, crédito do Simples Nacional (ICMSSN101/201/900), IPI com devolução, CFOP do ICMS 51 (1551/1556, com 2551/2556 opcionais) e UF da contraparte na entrada. As regras vêm do código legado e do Guia Prático, não de confirmação fiscal; enquanto estiver aberta, cada conferência grava e exibe as regras usadas. |
+| Q-47 | O contrato `fiscal_counterparts` (objetos `efsaidas`, `efentradas`, `efclientes` e `effornece`; colunas chave, direção e UF; janela por data de escrituração; exemplos mascarados) e o envio da chave de acesso em claro são aprovados? | `agent-windows/CONTRATOS-DOMINIO.md` exige aprovar objeto, chave de empresa e competência, códigos de estado e exemplos mascarados antes de criar uma consulta, e o precedente do backup guarda a contraparte só como hash; a chave de 44 posições embute o CNPJ do emitente. Sem aprovação o dataset permanece `validated: false` e o caminho por arquivo (CSV/XLSX) é o único ativo. Os nomes das colunas de data de `efsaidas`/`efentradas` e da situação cancelada ainda precisam de conferência por metadados na base real, sem valores. |
+| Q-48 | Depois do teste, o escritório paga a primeira mensalidade antes de o plano ser liberado, ou o plano libera na hora e a primeira fatura sai no fechamento (D-79 literal)? | Aberta (20/11/2026, E3). Recomendação: pagar antes para quem se cadastrou sozinho (caixa e fraude); o código hoje segue D-79 literal e a troca é uma condição em `subscription.convert_to_plan`. |
+| Q-49 | Ao encerrar um contrato, o que o CICA apaga e o que retém? A evidência fiscal (`NfseDocument` e correlatos) é imutável por desenho no aplicativo; fatura e trilha de auditoria têm retenção contábil. | Aberta (20/11/2026, E4). Hoje só existe exportação (`office_export`). Recomendação: exportar, esperar o prazo contratual (A DEFINIR) e só então apagar tudo que não seja registro contábil da Mewstack, com comando próprio, confirmação digitada e revisão jurídica da retenção; não escrever o comando antes da resposta. |
+
 ## Donos, etapas e estado das perguntas
 
 **Detalhamento de Q-28 para PC-19 em 26/10/2026:** o
@@ -314,6 +323,8 @@ Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono 
 | Rentabilidade — comercial: Q-43 | Responsável pelo projeto | 14, 10 | Aberto; módulo entra sem preço |
 | Rentabilidade — Siescon: Q-44 | Já decidido | 04, 14 | Resolvido por D-290; resolve também Q-33 |
 | Rentabilidade — conector: Q-45 | Já decidido | 03, 14 | Resolvido por D-289 |
+| Contraprova — regras fiscais: Q-46 | Responsável pelo projeto / responsável fiscal indicado | 15 | Aberto; as regras padrão de D-301 valem até a resposta |
+| Contraprova — contrato do agente: Q-47 | Responsável pelo projeto / administrador do ambiente Domínio indicado | 03, 12, 15 | Aberto; a consulta nasce `validated: false` e desligada |
 
 Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário para a ação seguinte que não possa ser resolvido por inspeção nem pelas decisões existentes. Atualizar o ID original quando respondido, com referência ao novo registro D.
 | Q-38 | Onde estará o backup Domínio Web `.dom` autorizado para contingência e qual será o canal seguro da chave correspondente? | Etapa 12: D-82 transferiu a homologação do backup para a liberação final. Recomenda-se usar um único backup de teste em pasta temporária e chave por canal seguro; o agente nunca registra nem exibe a chave. |

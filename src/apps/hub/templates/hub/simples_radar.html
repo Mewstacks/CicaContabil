@@ -1,0 +1,41 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block title %}Teto · NFS-e · CICA{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/simples-radar.css' %}?v=1">{% endblock %}
+
+{% block page_action %}
+  {% if rows %}<a class="button button-quiet" href="?export=csv{% if tab != 'all' %}&amp;filtro={{ tab }}{% endif %}">Baixar planilha</a>{% endif %}
+{% endblock %}
+
+{% block workspace_content %}
+{% include 'hub/nfse_navigation.html' %}
+<section class="workspace-panel radar-panel" aria-labelledby="radar-title">
+  <header class="workspace-panel-head"><div><h2 id="radar-title">Teto</h2></div><span class="module-state is-muted">Só NFS-e</span></header>
+  <nav class="workspace-tabs radar-tabs" aria-label="Filtro do teto">
+    {% for item in tabs %}<a href="?{% if item.key != 'all' %}filtro={{ item.key }}{% endif %}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }} <span class="tab-count">{{ item.count }}</span></a>{% endfor %}
+  </nav>
+  {% if rows %}
+  <div class="data-table-wrap">
+    <table class="operational-table radar-table">
+      <thead><tr><th>Empresa</th><th>Regime</th><th class="num">Receita no ano</th><th class="num">12 meses</th><th class="num">Teto</th><th>Uso</th><th>Fator R</th></tr></thead>
+      <tbody>
+      {% for row, badge in rows %}
+        <tr>
+          <td data-label="Empresa"><strong>{{ row.company_name }}</strong></td>
+          <td data-label="Regime">{% if row.regime == 'mei' %}MEI{% else %}Simples{% endif %}</td>
+          <td class="num" data-label="Receita no ano">R$ {{ row.year_revenue|floatformat:2 }}</td>
+          <td class="num" data-label="12 meses">R$ {{ row.trailing_12m|floatformat:2 }}</td>
+          <td class="num" data-label="Teto">R$ {{ row.limit|floatformat:2 }}</td>
+          <td data-label="Uso"><span class="module-state {{ badge }}">{{ row.percent|floatformat:1 }}%{% if row.alert %} · alerta {{ row.alert }}%{% endif %}</span></td>
+          <td data-label="Fator R">{% if row.fator_r is not None %}{{ row.fator_r|floatformat:2 }} · Anexo {{ row.annex }}{% else %}<span class="table-muted">Sem folha</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if has_unconfirmed_limit %}<p class="radar-source">Teto a confirmar no portal oficial.</p>{% endif %}
+  {% else %}
+  <div class="empty-state"><p>Nenhuma empresa{% if tab != 'all' %} neste filtro{% endif %}.</p>{% if tab != 'all' %}<a class="button button-quiet button-small" href="{% url 'hub:radar-teto' %}">Ver tudo</a>{% else %}<a class="button button-small" href="{% url 'hub:companies' %}">Carteira</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

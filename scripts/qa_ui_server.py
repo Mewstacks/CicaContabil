@@ -101,6 +101,16 @@ if not ClientCompany.objects.filter(organization=large_office).exists():
 ProductModule.objects.get_or_create(
     organization=large_office, code="guides", defaults={"enabled": True}
 )
+if not (QA_ROOT / "crosscheck-seeded").exists():
+    # Contraprova: conferências sintéticas em todos os estados (somente neste servidor isolado).
+    call_command(
+        "seed_crosscheck",
+        organization="ui-large-portfolio",
+        user="demo@hubcontador.local",
+        force=True,
+        verbosity=0,
+    )
+    (QA_ROOT / "crosscheck-seeded").touch()
 IntelligenceConnector.objects.update_or_create(
     organization=large_office,
     mode="direct_odbc",

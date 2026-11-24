@@ -29,7 +29,7 @@ from django.utils.dateparse import parse_date, parse_datetime
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
-from apps.common.cnpj import normalize_cnpj
+from apps.common.cnpj import cnpj_candidates, normalize_cnpj, strip_document
 from apps.hub.models import (
     AccumulatorCatalogEntry,
     AccumulatorObservation,
@@ -437,18 +437,13 @@ def certificate_cnpjs(parsed_certificate: x509.Certificate) -> set[str]:
         for other_name in alternative_names.get_values_for_type(x509.OtherName):
             if other_name.type_id == ICP_BRASIL_CNPJ_OID:
                 value = _decode_der_text(other_name.value)
-                digits = re.sub(r"\D", "", value)
+                digits = strip_document(value)
                 if len(digits) == 14:
                     candidates.add(digits)
 
     if not candidates:
         for attribute in parsed_certificate.subject:
-            raw_value = str(attribute.value)
-            digits = re.sub(r"\D", "", raw_value)
-            if len(digits) == 14:
-                candidates.add(digits)
-            else:
-                candidates.update(re.findall(r"(?<!\d)\d{14}(?!\d)", raw_value))
+            candidates |= cnpj_candidates(attribute.value)
 
     valid: set[str] = set()
     for candidate in candidates:

@@ -1,0 +1,12 @@
+( Plan [ Estimated cost: 2.3505e+006, Estimated rows: 1, Build optimization time: 4.88e-005, Preoptimization time: 4.5e-005, Optimization time: 5.96e-005, Postoptimization time: 7e-007, Plan build time: 0.0003091, Algorithms: Left-deep trees, Costed best plans: 2, Costed plans: 14, Estimated Cache Pages: 2787960 ] 
+  ( SingleRowGroupBy 
+    [ 12 ]
+      ( SingleRowGroupBy 
+        ( NestedLoopsJoin
+          ( ParallelIndexOnlyScan ( efmvspro a ) FK_EFMVSPRO_EFTABELA_SC_VALORES_DECLARATORIOS_ICMS** )
+          ( IndexOnlyScan ( efmvspro b ) FK_EFMVSPRO_EFTABELA_SC_VALORES_DECLARATORIOS_ICMS** )
+        )
+      )
+    )
+  )
+)

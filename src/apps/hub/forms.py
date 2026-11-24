@@ -226,7 +226,8 @@ class OfficeIdentityForm(forms.ModelForm):  # type: ignore[type-arg]
             "cnpj": forms.TextInput(
                 attrs={
                     "autocomplete": "off",
-                    "inputmode": "numeric",
+                    "autocapitalize": "characters",
+                    "spellcheck": "false",
                     "placeholder": "00.000.000/0000-00",
                 }
             ),

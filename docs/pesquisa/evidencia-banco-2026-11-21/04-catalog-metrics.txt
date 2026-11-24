@@ -1,0 +1,43 @@
+# comando: python -I an2.py  (exit=0)
+
+tabelas BASE bethadba: 4862
+
+== A) amostra por prefixo (3 maiores tabelas com comentario) ==
+ef (2733): efmvspro=Notas Fiscais de Saida - Produtos; EFMVSPRO_APURACAO_ESTOQUE=Notas Fiscais de Sa�da - Produtos - Ap; EFACUMULADOR_VIGENCIA_CFOP=Acumuladores - Cadastro - Naturezas
+fo (746): FOEVENTOS_ALTERACAO_CONTROLE_ENVIO_ESOCIAL=Tabela de controle de envio da rubrica; fointegconteve=Integracao Contabilidade - Configuraca; FOESOCIAL_LOG=Tabela de LOG do esocial
+ge (408): GEGUIA_CONTRIBUICAO_PREVIDENCIARIA_SALDOS_RECOLHER_VALORES_COMPENSADOS=Guia da contribui��o previdenci�ria - ; GEATENDIMENTOACOES=A��es a serem enviadas para o Dom�nio ; GEGUIA_CONTRIBUICAO_PREVIDENCIARIA_SALDOS_RECOLHER=Guia da contribui��o previdenci�ria - 
+ct (392): CTLANCTO_SPED_ECF_GERAL=Lancamento Referencial SPED ECF Geral; ctcontas=Contas Contabeis - Cadastro; ctlancto=Lancamentos Contabeis
+hr (148): HRCONTA_CORRENTE_CLIENTE=Conta corente do cliente; HRCONTRATO_COMPETENCIA=Contratos - Competencias para faturame; HRFATURAMENTO_PARCELA_ITEM=Faturamento - Parcelas - Itens
+lr (129): LRTABELA_GRUPO_IRPJ_ADICAO_GERAL_VIGENCIA=TABELA DESCRICAO DO GRUPO IRPJ ADICAO ; LRTABELA_GRUPO_CSLL_ADICAO_GERAL_VIGENCIA=TABELA DESCRICAO DO GRUPO CSLL ADICAO ; LRTABELA_GRUPO_IRPJ_EXCLUSAO_GERAL_VIGENCIA=TABELA DESCRICAO DO GRUPO IRPJ EXCLUSA
+pm (52): PMCONTA_PATRIMONIAL_TAXA=Contas Patrimoniais - Taxas vari�veis ; PMCONTA_PATRIMONIAL=Contas Patrimoniais; PMCALCULO=C�lculo patrimonial
+po (42): pomarcacao=Marcacoes das batidas; postatemp=Situacao do empregado por dia; poocoger=Ocorrencias geradas
+rg (35): rgtabela_classe_servico=Classe do Servico; rgeventos=Eventos - Cadastro; rgatos=Atos - Cadastro
+pc (28): PCATIVIDADE_MODULO_MENU_SUBMENU_UF_OPCAO=M�dulos - Menu - Submenu - UF - Op��o; PCPROCESSO_ATIVIDADE=Processos - Atividades; PCATIVIDADE_MODULO_MENU_SUBMENU=M�dulos - Menu - Submenu
+hn (26): hnconversao=Conversao para o Novo Honrarios; hnbancos=Bancos - Cadastro; hnagencias=Agencias Bancarias - Cadastro
+la (24): lairadex=Adicoes e Exclusoes do IR - Cadastro; lacsadex=Adicoes e Exclusoes da CS - Cadastro; layout_arqs=Layout dos Arquivos
+au (17): aucolunas=Comentario das colunas auditadas; auvalores=Valores das colunas valoradas; autabelas=Tabelas que serao auditadas
+ho (12): hoclacli=Classificacoes de Clientes; hoparmto=Parametros do Honorarios; hofornec=Fornecedores do Honorarios
+pa (12): pacalmes=Calculo Mensal do Patrimonio; pacontas=Contas patrimoniais - Cadastro; pabasicm=CIAP - Valores do ICMS
+pr (11): prparam=Parametros - Cadastro - Protocolos; prFuncionarios=Funcionarios - Cadastro; prMovtoDocto=Movimento de documentos
+
+== B) colunas: 56317 | com comentario: 54371 | enum-like (>=2 pares 'cod - rotulo'): 1711
+   padrao '(1 - Sim/0 - Nao)': 39
+
+== C) colunas marcadas obsoletas/nao usadas: 54
+    geempre codi_cla | Este campo nao e mais usado a partir da versao 6.1A-01 do Contabil
+    geempre USA_PROCESSOS_GESTTA | Coluna n�o � mais utilizada, controle do gestta processos � feito na tabela GEON
+    efentradas situ_ent | Campo nao utilizado
+    efsaidas situ_sai | Campo nao utilizado
+    GeContador RESPONSAVEL_LEGAL_EMPRESA_JUNTO_BASE_RFB | (ESTA COLUNA N�O � MAIS UTILIZADA)
+    geempre_vigencia codi_cla | Este campo nao e mais usado a partir da versao 6.1A-01 do Contabil
+   tabelas marcadas obsoletas: 5 ['pactacc', 'ctgrelac', 'EFPARAMETRO_VIGENCIA_EVENTOS_HO', 'GEATENDIMENTO_TRAMITES_SCE', 'GEATENDIMENTO_TRAMITES_SL']
+
+== D) colunas por classe de sensibilidade: {'nascimento': 862, 'endereco': 187, 'contato': 124, 'cpf': 170, 'segredo': 83, 'salario': 597, 'bancario': 80, 'pessoa_nome': 14}
+   tabelas com ao menos 1 flag, por prefixo: [('ef', 295), ('fo', 190), ('ge', 51), ('ct', 35), ('hr', 20), ('hn', 7), ('rg', 7), ('pm', 7), ('lr', 4), ('ho', 3)]
+   amostra 'segredo': [('geempre', 'CERTIFICADO_DIGITAL', 'Possui o Certificado digital para assinatura dos a'), ('foparmto', 'SENHA_CONSULTA_FAP', 'Senha para consulta do FAP.'), ('foparmto', 'TIPO_ACESSO_ESOCIAL_DOMESTICO', 'Tipo de acesso eSocial dom�stico. (1=C�digo/2=Cert'), ('foparmto', 'SENHA_ACESSO_ESOCIAL_DOMESTICO', 'Senha de acesso eSocial dom�stico'), ('foparmto', 'GERAR_DCTFWEB_API_CONTADOR', 'Gerar guia DARF DCTFWeb pela API Integra Contador '), ('efentradas', 'ORIGEM_PROCESSO_ENT', 'Origem do processo (1=Justica Federal/ 3=Secretari'), ('usConfUsuario', 'usa_modulo_web', 'Senha M�dulo Web'), ('usConfUsuario', 'senha_modulo_web', 'Senha M�dulo Web')]
+
+== E) tabelas BASE com coluna codi_emp: 3879/4862
+
+== F) views bethadba: 102; amostra: [('sysaustatus', 'Situa��o da auditoria'), ('EFIMPOSTO_CODREC', ''), ('EFCTAPAG', ''), ('EFACUMULADORES', ''), ('EFACUALIQFUNRURAL', ''), ('EFACUIMP_SIMPLES_NACIONAL', ''), ('EFACUIMP_MVA', ''), ('EFACUIMP_CONTAS', ''), ('EFACUIMP_RETENCOES', ''), ('EFACUALIQ', ''), ('EFACUNAT', ''), ('EFACUMUNI', '')]
+
+== H) tabelas mais referenciadas: [('geempre', 1139), ('efnatureza', 220), ('efprodutos', 185), ('ctlancto', 181), ('EFACUMULADOR', 164), ('efsdoimp', 136), ('foempregados', 135), ('EFTABELA_CST_VIGENCIA', 108), ('efsaidas', 82), ('efentradas', 73)]

@@ -47,6 +47,11 @@ CICA_REPORTING_SHARED_SECRET = env_str("CICA_REPORTING_SHARED_SECRET")
 CICA_REPORTING_PREVIOUS_SHARED_SECRET = env_str("CICA_REPORTING_PREVIOUS_SHARED_SECRET")
 CICA_REPORTING_TIMEOUT_SECONDS = env_int("CICA_REPORTING_TIMEOUT_SECONDS", 30)
 ASAAS_WEBHOOK_TOKEN = env_str("ASAAS_WEBHOOK_TOKEN")
+# E3: cobrança automática por Asaas. Desligada por padrão; sem chave nada é chamado. A chave é
+# segredo do ambiente (Fly secrets), nunca banco nem log. Sandbox até a homologação.
+ASAAS_API_KEY = env_str("ASAAS_API_KEY", "")
+ASAAS_ENVIRONMENT = env_str("ASAAS_ENVIRONMENT", "sandbox")
+BILLING_COLLECTION_ENABLED = env_bool("BILLING_COLLECTION_ENABLED", False)
 TOKEN_BILLING_ENABLED = env_bool("TOKEN_BILLING_ENABLED", False)
 RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = env_bool(
     "RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED", False
@@ -76,6 +81,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "rest_framework",
     "drf_spectacular",
+    "oauth2_provider",
 ]
 LOCAL_APPS = [
     "apps.common",
@@ -91,6 +97,8 @@ LOCAL_APPS = [
     "apps.knowledge",
     "apps.triage",
     "apps.profitability",
+    "apps.crosscheck",
+    "apps.mcpgateway",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
 
@@ -102,6 +110,10 @@ DATASET_CATALOG_ROOT = env_str("DATASET_CATALOG_ROOT", "")
 # toda integração antes de homologada: com ela em falso o agente recebe uma lista
 # de contratos vazia e nenhuma execução é aberta.
 PROFITABILITY_SYNC_ENABLED = env_bool("PROFITABILITY_SYNC_ENABLED", False)
+# A consulta de UF ao Domínio pelo agente Windows (dataset `fiscal_counterparts`, ainda
+# `validated: false`). Desligada por padrão (D-300): com ela em falso a tela só oferece o
+# arquivo CSV/XLSX e as rotas do agente respondem 404.
+CONTRAPROVA_AGENT_ENABLED = env_bool("CONTRAPROVA_AGENT_ENABLED", False)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -299,6 +311,10 @@ LOGIN_REDIRECT_URL = "hub:dashboard"
 LOGOUT_REDIRECT_URL = "hub:home"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Arquivos do Contraprova (SPED, XML, relatório). Alias próprio para que, em produção,
+    # a leitura do objeto S3 vá para disco acima de alguns MiB em vez de ocupar a memória
+    # inteira do worker (django-storages lê o objeto todo em RAM por padrão).
+    "crosscheck": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
@@ -349,6 +365,12 @@ SECURE_CSP = {
     "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
 }
 
+# Cloudflare Turnstile no cadastro de escritório novo (E2). Chave vazia = desligado e o cadastro
+# fica como era; a página só abre a CSP para a Cloudflare quando as duas chaves existem.
+TURNSTILE_SITE_KEY = env_str("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = env_str("TURNSTILE_SECRET_KEY", "")
+TURNSTILE_CHECK_HOSTNAME = env_bool("TURNSTILE_CHECK_HOSTNAME", True)
+
 CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -395,6 +417,75 @@ REST_FRAMEWORK = {
 # Plain Django views that reach a database, an ODBC link or a paid API are outside DRF's
 # throttles, so they carry their own budget.
 MCP_RATE_LIMIT_PER_MINUTE = env_int("MCP_RATE_LIMIT_PER_MINUTE", 60)
+
+# Gateway MCP externo (Fase 2 do MCP do Domínio, D-333): Claude e ChatGPT entram com o login
+# do CICA por OAuth 2.1. Desligado por padrão: com a chave em falso todas as rotas respondem
+# 404 e nada muda para o resto do sistema. A URL pública é a origem (https://host, sem barra
+# no fim); sem ela o gateway não liga, porque `resource` e `iss` precisam ser fixos.
+MCP_GATEWAY_ENABLED = env_bool("MCP_GATEWAY_ENABLED", False)
+MCP_GATEWAY_PUBLIC_URL = env_str("MCP_GATEWAY_PUBLIC_URL", "").rstrip("/")
+MCP_GATEWAY_ALLOWED_ORIGINS = env_list("MCP_GATEWAY_ALLOWED_ORIGINS")
+MCP_GATEWAY_RATE_LIMIT_PER_MINUTE = env_int("MCP_GATEWAY_RATE_LIMIT_PER_MINUTE", 60)
+MCP_GATEWAY_ORG_RATE_LIMIT_PER_MINUTE = env_int("MCP_GATEWAY_ORG_RATE_LIMIT_PER_MINUTE", 240)
+MCP_GATEWAY_REGISTRATION_PER_HOUR = env_int("MCP_GATEWAY_REGISTRATION_PER_HOUR", 30)
+# Redirecionamentos aceitos no cadastro do cliente (comparação exata, RFC 9700 §2.1). Os
+# loopbacks sem porta cobrem o Claude Code e o MCP Inspector (RFC 8252 §7.3).
+MCP_GATEWAY_REDIRECT_URIS = [
+    "https://claude.ai/api/mcp/auth_callback",
+    "https://claude.com/api/mcp/auth_callback",
+    "https://chatgpt.com/connector_platform_oauth_redirect",
+    *env_list("MCP_GATEWAY_EXTRA_REDIRECT_URIS"),
+]
+# Modelos do DOT: nomes fixos (sem troca de modelo); as migracoes de `mcpgateway` leem estes.
+OAUTH2_PROVIDER_APPLICATION_MODEL = "oauth2_provider.Application"
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = "oauth2_provider.AccessToken"
+OAUTH2_PROVIDER_ID_TOKEN_MODEL = "oauth2_provider.IDToken"
+OAUTH2_PROVIDER_GRANT_MODEL = "oauth2_provider.Grant"
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = "oauth2_provider.RefreshToken"
+OAUTH2_PROVIDER_DEVICE_GRANT_MODEL = "oauth2_provider.DeviceGrant"
+MCP_GATEWAY_CIMD_HOSTS = env_list("MCP_GATEWAY_EXTRA_CIMD_HOSTS")
+MCP_GATEWAY_SCOPE = "mcp:read"
+OAUTH2_PROVIDER = {
+    "SCOPES": {MCP_GATEWAY_SCOPE: "Consultar dados do escritório"},
+    "DEFAULT_SCOPES": [MCP_GATEWAY_SCOPE],
+    "PKCE_REQUIRED": True,
+    "COMPLIANT_BCP_RFC9700_PKCE_METHOD": True,
+    "COMPLIANT_BCP_RFC9700_TOKEN_STORAGE": True,
+    "COMPLIANT_BCP_RFC9700_AUTHZ_RESPONSE_ISS": True,
+    "COMPLIANT_BCP_RFC9700_ACCESS_TOKEN_TRANSPORT": True,
+    "COMPLIANT_BCP_RFC9700_PASSWORD_GRANT": True,
+    "COMPLIANT_BCP_RFC9700_IMPLICIT_GRANT": True,
+    "COMPLIANT_BCP_RFC9700_REFRESH_TOKEN": True,
+    "AUTHORIZATION_CODE_EXPIRE_SECONDS": 60,
+    "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 60 * 60 * 24 * 30,
+    "ROTATE_REFRESH_TOKEN": True,
+    "REFRESH_TOKEN_REUSE_PROTECTION": True,
+    "REFRESH_TOKEN_GRACE_PERIOD_SECONDS": 0,
+    "REQUEST_APPROVAL_PROMPT": "force",
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],
+    "ALLOW_LOCALHOST_LOOPBACK": True,
+    "OAUTH2_RESPONSE_TYPES_SUPPORTED": ["code"],
+    "OAUTH2_GRANT_TYPES_SUPPORTED": ["authorization_code", "refresh_token"],
+    "OAUTH2_TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED": ["none"],
+    "DCR_ENABLED": True,
+    "DCR_REGISTRATION_TOKEN_EXPIRE_SECONDS": 3600,
+    "DCR_REGISTRATION_PERMISSION_CLASSES": ("apps.mcpgateway.registration.RegistrationPermission",),
+    "CIMD_ENABLED": True,
+    "CIMD_METADATA_FETCHER": "apps.mcpgateway.registration.RedirectCheckedFetcher",
+    "OAUTH2_VALIDATOR_CLASS": "apps.mcpgateway.validators.McpValidator",
+    "CIMD_REGISTRATION_PERMISSION_CLASSES": ("oauth2_provider.cimd.HostAllowlistCIMDPermission",),
+    "CIMD_ALLOWED_HOSTS": ["claude.ai", "claude.com", "chatgpt.com", *MCP_GATEWAY_CIMD_HOSTS],
+    "RESOURCE_SERVER_TOKEN_RESOURCE_VALIDATOR": "apps.mcpgateway.conf.resource_matches",
+    "OIDC_ISS_ENDPOINT": f"{MCP_GATEWAY_PUBLIC_URL}/oauth" if MCP_GATEWAY_PUBLIC_URL else "",
+    "OAUTH2_PROTECTED_RESOURCE_IDENTIFIER": (
+        f"{MCP_GATEWAY_PUBLIC_URL}/mcp" if MCP_GATEWAY_PUBLIC_URL else ""
+    ),
+    "OAUTH2_PROTECTED_RESOURCE_AUTHORIZATION_SERVERS": (
+        [f"{MCP_GATEWAY_PUBLIC_URL}/oauth"] if MCP_GATEWAY_PUBLIC_URL else []
+    ),
+    "OAUTH2_PROTECTED_RESOURCE_NAME": "CICA",
+}
 LEAD_RATE_LIMIT_PER_HOUR = env_int("LEAD_RATE_LIMIT_PER_HOUR", 5)
 MFA_ATTEMPTS_PER_MINUTE = env_int("MFA_ATTEMPTS_PER_MINUTE", 8)
 
@@ -430,6 +521,12 @@ TRIAGE_GOOGLE_PERSONAL_VERIFIED = env_bool("TRIAGE_GOOGLE_PERSONAL_VERIFIED", Fa
 TRIAGE_CLAMD_SOCKET = env_str("TRIAGE_CLAMD_SOCKET")
 TRIAGE_CLAMD_PORT = env_int("TRIAGE_CLAMD_PORT", 0)
 TRIAGE_EMAIL_POLL_ENABLED = env_bool("TRIAGE_EMAIL_POLL_ENABLED", False)
+# OCR of scanned PDFs and images runs on its own Celery queue (triage_ocr) and costs worker
+# time: off by default; each office also needs TriagePolicy.ocr_enabled and a monthly budget.
+TRIAGE_OCR_ENABLED = env_bool("TRIAGE_OCR_ENABLED", False)
+TRIAGE_TESSERACT_CMD = env_str("TRIAGE_TESSERACT_CMD")
+TRIAGE_OCR_TIMEOUT = max(10, env_int("TRIAGE_OCR_TIMEOUT", 120))
+TRIAGE_OCR_MAX_PAGES = max(1, env_int("TRIAGE_OCR_MAX_PAGES", 10))
 TRIAGE_EMAIL_POLL_INTERVAL_MINUTES = max(1, env_int("TRIAGE_EMAIL_POLL_INTERVAL_MINUTES", 5))
 
 # Contributor distribution in the official NFS-e ADN. Disabled until the first
@@ -437,6 +534,17 @@ TRIAGE_EMAIL_POLL_INTERVAL_MINUTES = max(1, env_int("TRIAGE_EMAIL_POLL_INTERVAL_
 NFSE_ADN_SYNC_ENABLED = env_bool("NFSE_ADN_SYNC_ENABLED", False)
 NFSE_ADN_ENVIRONMENT = env_str("NFSE_ADN_ENVIRONMENT", "trial")
 NFSE_ADN_POLL_INTERVAL_MINUTES = max(5, env_int("NFSE_ADN_POLL_INTERVAL_MINUTES", 15))
+
+# D-304/D-305: collection by procuração for offices created after D-304. Off by default;
+# with it off the beat schedule and every legacy task stay exactly as they were. The lane
+# only runs against the production ADN (procurações are not registered in the restricted
+# environment) and never touches an office that collects with each company's A1.
+NFSE_PROCURACAO_SYNC_ENABLED = env_bool("NFSE_PROCURACAO_SYNC_ENABLED", False)
+NFSE_PROCURACAO_POLL_INTERVAL_MINUTES = max(1, env_int("NFSE_PROCURACAO_POLL_INTERVAL_MINUTES", 2))
+
+# E14: radar Simples/MEI (tela e aba). Só lê NFS-e já coletada; desligado, a aba não aparece e a
+# rota devolve 404, então nenhum escritório atual vê diferença.
+SIMPLES_RADAR_ENABLED = env_bool("SIMPLES_RADAR_ENABLED", False)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",
@@ -498,6 +606,8 @@ AXES_LOCKOUT_CALLABLE = "apps.accounts.security.axes_lockout_response"
 CELERY_BROKER_URL = env_str("CELERY_BROKER_URL", redis_url or "memory://")
 CELERY_RESULT_BACKEND = env_str("CELERY_RESULT_BACKEND", redis_url or "cache+memory://")
 CELERY_TASK_DEFAULT_QUEUE = env_str("CELERY_QUEUE_NAME", f"{deployment_name}-default")
+# Task modules that autodiscovery (`<app>.tasks`) does not reach.
+CELERY_IMPORTS = ("apps.hub.tasks_procuracao", "apps.hub.tasks_radar")
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
@@ -606,6 +716,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "hub.dispatch_waiting_financial_report_exports",
         "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
+    # Contraprova: retoma conferências cuja tarefa morreu e apaga arquivos de entrada
+    # vencidos (24 h) e resultados com mais de 90 dias (D-302).
+    "recover-crosscheck-runs": {
+        "task": "crosscheck.recover_runs",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
+    "purge-expired-crosscheck": {
+        "task": "crosscheck.purge_expired",
+        "schedule": crontab(hour=3, minute=40),
+    },
 }
 
 if CICA_CLAUDE_API_KEY:
@@ -618,6 +738,48 @@ if TRIAGE_EMAIL_POLL_ENABLED:
     CELERY_BEAT_SCHEDULE["dispatch-active-triage-mailboxes"] = {
         "task": "triage.dispatch_active_mailboxes",
         "schedule": aligned_periodic_minutes(TRIAGE_EMAIL_POLL_INTERVAL_MINUTES),
+    }
+
+# E5: alarms of the procuração collection. Cheap and harmless for an office on A1 per company.
+CELERY_BEAT_SCHEDULE["notify-office-certificates"] = {
+    "task": "hub.notify_office_certificates",
+    "schedule": crontab(hour=7, minute=40),
+}
+CELERY_BEAT_SCHEDULE["notify-lost-procuracoes"] = {
+    "task": "hub.notify_lost_procuracoes",
+    "schedule": crontab(hour=7, minute=45),
+}
+
+# E4: retention of roster uploads. Cheap and harmless for an office that never imported one.
+CELERY_BEAT_SCHEDULE["purge-roster-artifacts"] = {
+    "task": "hub.purge_roster_artifacts",
+    "schedule": crontab(hour=3, minute=50),
+}
+
+if BILLING_COLLECTION_ENABLED:
+    CELERY_BEAT_SCHEDULE["platform-enforce-payment-policy"] = {
+        "task": "platform.enforce_payment_policy",
+        "schedule": crontab(hour=0, minute=10),
+    }
+    CELERY_BEAT_SCHEDULE["platform-reconcile-payments"] = {
+        "task": "platform.reconcile_payments",
+        "schedule": aligned_periodic_minutes(10),
+    }
+
+if SIMPLES_RADAR_ENABLED:
+    CELERY_BEAT_SCHEDULE["notify-simples-radar"] = {
+        "task": "hub.notify_simples_radar",
+        "schedule": crontab(hour=7, minute=40),
+    }
+
+if NFSE_PROCURACAO_SYNC_ENABLED:
+    CELERY_BEAT_SCHEDULE["dispatch-procuracao-syncs"] = {
+        "task": "hub.dispatch_procuracao_syncs",
+        "schedule": aligned_periodic_minutes(NFSE_PROCURACAO_POLL_INTERVAL_MINUTES),
+    }
+    CELERY_BEAT_SCHEDULE["check-procuracao-lane"] = {
+        "task": "hub.check_procuracao_lane",
+        "schedule": crontab(minute=17),
     }
 
 LOGGING = {

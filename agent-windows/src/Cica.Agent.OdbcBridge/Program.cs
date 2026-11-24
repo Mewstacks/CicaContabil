@@ -1,6 +1,5 @@
 using System.Data;
 using System.Data.Odbc;
-using System.Globalization;
 using System.Text.Json;
 using Cica.Agent.Service;
 
@@ -84,15 +83,8 @@ internal static class Program
         return command;
     }
 
-    internal static object ParameterValue(BridgeParameter parameter) => parameter.Type switch
-    {
-        "integer" => int.Parse(parameter.Value, CultureInfo.InvariantCulture),
-        "decimal" => decimal.Parse(parameter.Value, CultureInfo.InvariantCulture),
-        "date" => DateTime.ParseExact(
-            parameter.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture),
-        "string" => parameter.Value,
-        _ => throw new InvalidOperationException("Tipo de parâmetro não suportado."),
-    };
+    internal static object ParameterValue(BridgeParameter parameter) =>
+        DatasetParameterValue.Convert(parameter.Type, parameter.Value);
 
     private static void WriteRows(
         OdbcDataReader reader, int maxRows, IReadOnlyList<string> expectedColumns)

@@ -200,6 +200,8 @@ def provision_signup(
         cnpj_hash=intent.cnpj_hash,
         contract_status=OfficeProfile.ContractStatus.TRIAL,
         trial_started_at=now,
+        # D-304: a new office collects NFS-e by procuração with its own e-CNPJ.
+        nfse_collection_mode=OfficeProfile.NfseCollectionMode.PROCURACAO,
     )
     plan, _ = Plan.objects.get_or_create(
         code=TRIAL_PLAN_CODE,

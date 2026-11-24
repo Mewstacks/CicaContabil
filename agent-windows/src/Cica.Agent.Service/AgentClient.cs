@@ -119,9 +119,3 @@ internal sealed class AgentClient : IDisposable
 
     public void Dispose() => http.Dispose();
 }
-
-internal sealed class AgentAuthorizationException : Exception
-{
-    internal AgentAuthorizationException()
-        : base("O servidor CICA recusou a autorização deste agente.") { }
-}

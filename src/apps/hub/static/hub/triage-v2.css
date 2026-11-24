@@ -1,0 +1,112 @@
+/* Triagem v2: catálogo, envio e entrada. Só tokens que o hub já define. */
+.tv2-form,.tv2-exceptions{display:grid;gap:14px;padding:0 20px 20px}
+.tv2-exceptions{border-top:1px solid var(--line);padding-top:18px}
+.tv2-exceptions h3{margin:0;font-size:15px}
+.tv2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.tv2-wide{grid-column:1/-1}
+.tv2-form .field,.tv2-inline .field{display:grid;gap:6px;min-width:0}
+.tv2-form label,.tv2-inline label,.tv2-expected legend{font-size:13px;font-weight:650}
+.tv2-form input[type=text],.tv2-form input[type=file],.tv2-form select,.tv2-form textarea,.tv2-inline select{box-sizing:border-box;width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--control-border,var(--line));border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.tv2-form textarea{min-height:84px;resize:vertical}
+.tv2-form input[readonly]{background:var(--soft);color:var(--muted)}
+.tv2-form input:focus-visible,.tv2-form select:focus-visible,.tv2-form textarea:focus-visible,.tv2-inline select:focus-visible,.tv2-check input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tv2-form .has-error input,.tv2-form .has-error select,.tv2-form .has-error textarea{border-color:var(--red)}
+.tv2-expected{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.tv2-expected legend{padding:0 6px}
+.tv2-check{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:500!important;cursor:pointer}
+.tv2-check input{width:24px;height:24px;margin:0;accent-color:var(--accent)}
+.tv2-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.tv2-actions form{margin:0}
+.tv2-inline{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:12px}
+.tv2-inline .form-errors{grid-column:1/-1}
+.tv2-list{margin:0;padding:0 20px 8px;list-style:none}
+.tv2-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-width:0;padding:14px 0;border-top:1px solid var(--line)}
+.tv2-row:first-child{border-top:0}
+.tv2-row.is-off .tv2-main{opacity:.78}
+.tv2-main{min-width:0;overflow-wrap:anywhere}
+.tv2-main strong{font-size:14px}
+.tv2-code,.tv2-label{color:var(--muted);font-size:12px}
+.tv2-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tv2-meta{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.tv2-meta code{font-size:12px}
+.tv2-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;padding:0;list-style:none}
+.tv2-chips li{padding:3px 9px;border-radius:99px;background:var(--soft);color:var(--ink);font-size:12px}
+.tv2-chips .tv2-more{color:var(--muted)}
+.tv2-side{display:flex;flex:none;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.tv2-side form{margin:0}
+.tv2-side .button{min-height:44px}
+.tv2-state{padding:4px 9px;border-radius:99px;background:var(--soft);color:var(--ink);font-size:11px;font-weight:700}
+.tv2-state.is-off{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.tv2-drop{display:grid;gap:8px}
+.tv2-summary{display:grid;gap:4px;margin:0;padding:0 20px 20px;list-style:none;color:var(--muted);font-size:13px}
+.tv2-summary strong{color:var(--ink)}
+@media(max-width:760px){
+  .tv2-form,.tv2-exceptions{padding:0 16px 16px}
+  .tv2-grid,.tv2-inline{grid-template-columns:1fr}
+  .tv2-list{padding:0 16px 8px}
+  .tv2-row{flex-direction:column;gap:10px}
+  .tv2-side{justify-content:flex-start}
+}
+
+/* Checklist */
+.tv2-period{display:flex;gap:6px}
+.tv2-period .button{min-width:44px;min-height:44px}
+.tv2-filter{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:0 20px 16px}
+.tv2-filter .field{display:grid;gap:6px;min-width:min(100%,240px)}
+.tv2-filter label{font-size:13px;font-weight:650}
+.tv2-filter input[type=search]{box-sizing:border-box;width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--control-border,var(--line));border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.tv2-filter .button{min-height:44px}
+.tv2-ck-list{margin:0;padding:0 20px 8px;list-style:none}
+.tv2-ck-row{padding:14px 0;border-top:1px solid var(--line)}
+.tv2-ck-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.tv2-ck-head strong{flex:1 1 200px;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.tv2-ck-pct{font-size:12px;font-weight:700;color:var(--ink)}
+.tv2-cells{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0;padding:0;list-style:none}
+.tv2-cell{display:grid;gap:2px;min-width:0;max-width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);font-size:12px}
+.tv2-cell-type{font-weight:650;overflow-wrap:anywhere}
+.tv2-cell-state{color:var(--muted)}
+.tv2-cell.is-late{border-color:var(--red)}
+.tv2-cell.is-late .tv2-cell-state{color:var(--red);font-weight:700}
+.tv2-cell.is-delivered .tv2-cell-state{color:var(--ink)}
+@media(max-width:760px){.tv2-filter{padding:0 16px 16px}.tv2-ck-list{padding:0 16px 8px}.tv2-cell{flex:1 1 100%}}
+
+/* Pendências */
+.tv2-inbox{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,8fr);gap:16px;align-items:start}
+.tv2-queue .tv2-filter{padding-bottom:12px}
+.tv2-batch{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:0 20px 14px}
+.tv2-batch .button{min-height:44px}
+.tv2-reason{box-sizing:border-box;flex:1 1 140px;min-width:0;min-height:44px;padding:9px 11px;border:1px solid var(--control-border,var(--line));border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.tv2-group{padding:0 0 4px}
+.tv2-group h3{display:flex;align-items:center;gap:8px;margin:0;padding:10px 20px;border-top:1px solid var(--line);background:var(--surface-subtle);font-size:13px;overflow-wrap:anywhere}
+.tv2-count{padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--ink);font-size:11px;font-weight:700}
+.tv2-qrow{align-items:center;padding:8px 0}
+.tv2-qrow.is-selected{box-shadow:inset 3px 0 0 var(--accent);background:var(--soft)}
+.tv2-pick{min-height:44px;min-width:44px;justify-content:center}
+.tv2-link{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:650;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.tv2-qrow.is-selected .tv2-link{font-weight:800}
+.tv2-link:focus-visible,.tv2-text:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tv2-title{overflow-wrap:anywhere}
+.tv2-step{display:flex;flex-wrap:wrap;gap:8px}
+.tv2-step .button{min-height:44px}
+.tv2-body{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:0 20px 20px}
+.tv2-frame{display:block;width:100%;height:60vh;min-height:360px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.tv2-text-box{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.tv2-text-box summary{min-height:44px;padding:11px 12px;cursor:pointer;font-size:13px;font-weight:650}
+.tv2-text{max-height:260px;margin:0;padding:12px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;border-top:1px solid var(--line);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;user-select:text}
+.tv2-rule{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;border-top:1px solid var(--line)}
+.tv2-selected{flex:1 1 160px;min-width:0;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.tv2-side-panel h3{margin:0 0 8px;font-size:14px}
+.tv2-why{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}
+.tv2-why li{display:grid;gap:2px;font-size:13px;overflow-wrap:anywhere}
+.tv2-decide,.tv2-reject{padding:0;margin-top:12px}
+kbd{display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--line);border-radius:4px;background:var(--surface-subtle);color:var(--ink);font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+@media(min-width:1100px){.tv2-body{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}}
+@media(max-width:900px){.tv2-inbox{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.tv2-batch,.tv2-body{padding-left:16px;padding-right:16px}.tv2-group h3{padding:10px 16px}kbd{display:none}}
+@media(prefers-reduced-motion:reduce){.tv2-qrow{transition:none}}
+.tv2-queue .tv2-filter{flex-wrap:nowrap;align-items:flex-end}
+.tv2-queue .tv2-filter .field{flex:1 1 120px;min-width:0}
+.tv2-qrow{justify-content:flex-start;gap:6px}
+.tv2-qrow .tv2-main{flex:1 1 auto}
+.tv2-qrow .tv2-link{text-align:left}
+.tv2-actions .button,.tv2-rule .button,.tv2-filter .button{min-height:44px}

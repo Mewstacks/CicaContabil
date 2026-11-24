@@ -112,17 +112,21 @@ if media_bucket:
             "ServerSideEncryption": "aws:kms",
             "SSEKMSKeyId": media_kms_key,
         }
-    STORAGES["default"] = {
+    _s3_options = {
+        "bucket_name": media_bucket,
+        "region_name": env_str("AWS_REGION", "auto"),
+        "endpoint_url": env_str("AWS_ENDPOINT_URL_S3") or None,
+        "default_acl": None,
+        "querystring_auth": True,
+        "file_overwrite": False,
+        "object_parameters": object_parameters,
+    }
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage", "OPTIONS": _s3_options}
+    # Contraprova lê SPED de dezenas de MiB no worker (~110 MB livres): acima de 8 MiB o
+    # objeto vai para um arquivo temporário em vez de ficar inteiro na memória.
+    STORAGES["crosscheck"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
-        "OPTIONS": {
-            "bucket_name": media_bucket,
-            "region_name": env_str("AWS_REGION", "auto"),
-            "endpoint_url": env_str("AWS_ENDPOINT_URL_S3") or None,
-            "default_acl": None,
-            "querystring_auth": True,
-            "file_overwrite": False,
-            "object_parameters": object_parameters,
-        },
+        "OPTIONS": {**_s3_options, "max_memory_size": 8 * 1024 * 1024},
     }
 
 # The developer console holds the platform SMTP credentials encrypted at rest.

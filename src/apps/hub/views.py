@@ -68,6 +68,7 @@ from apps.accounts.forms import IdentifierAuthenticationForm
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
+from apps.common import turnstile
 from apps.common.cnpj import lookup_company, normalize_cnpj
 from apps.common.network import client_ip
 from apps.common.ratelimit import rate_limited
@@ -201,6 +202,7 @@ from apps.hub.nfse_reports import (
     generate_retention_pdf,
     generate_retention_xlsx,
 )
+from apps.hub.office_certificate import uses_procuracao
 from apps.hub.onboarding import TOURS_BY_ID, tour_for_url_name
 from apps.hub.operations import (
     activity_is_overdue,
@@ -274,6 +276,7 @@ from apps.intelligence.connectors import ReadOnlyDominoOdbc
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_bank_entries, sync_companies
 from apps.organizations.models import Membership, Organization
+from apps.platform import limits as plan_limits
 from apps.platform.availability import copilot_is_available
 from apps.platform.billing import BillingError, UsageQuote, quote_usage
 from apps.platform.forms import LegacyLeadForm, SelfServiceSignupForm, SignupPasswordForm
@@ -490,6 +493,20 @@ def legacy_proposal(request: HttpRequest) -> HttpResponse:
     return render(request, "hub/proposal.html", {"form": form})
 
 
+def _render_signup(
+    request: HttpRequest, form: SelfServiceSignupForm, *, status: int = 200
+) -> HttpResponse:
+    """Signup page; the Cloudflare challenge (E2) only exists once both keys are configured."""
+
+    response = render(
+        request,
+        "hub/signup.html",
+        {"form": form, "turnstile_site_key": turnstile.site_key()},
+        status=status,
+    )
+    return turnstile.allow_in_csp(response) if turnstile.enabled() else response
+
+
 @require_http_methods(["GET", "POST"])
 def signup(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
@@ -499,8 +516,24 @@ def signup(request: HttpRequest) -> HttpResponse:
         f"signup:{client_ip(request)}", limit=5, window_seconds=3600
     ):
         messages.error(request, "Muitas tentativas. Aguarde alguns minutos e tente novamente.")
-        return render(request, "hub/signup.html", {"form": form}, status=429)
+        return _render_signup(request, form, status=429)
     if request.method == "POST" and form.is_valid():
+        challenge = (
+            turnstile.verify(
+                request.POST.get(turnstile.FIELD, ""),
+                hostname=request.get_host().split(":")[0],
+            )
+            if turnstile.enabled()
+            else turnstile.OK
+        )
+        if challenge != turnstile.OK:
+            form.add_error(
+                None,
+                "Confirme que você não é um robô e tente de novo."
+                if challenge == turnstile.FAILED
+                else "Não foi possível validar agora. Tente de novo em alguns minutos.",
+            )
+            return _render_signup(request, form)
         try:
             with transaction.atomic():
                 issued = issue_signup(
@@ -523,7 +556,7 @@ def signup(request: HttpRequest) -> HttpResponse:
             return render(
                 request, "hub/signup_pending.html", {"email": issued.intent.email}, status=202
             )
-    return render(request, "hub/signup.html", {"form": form})
+    return _render_signup(request, form)
 
 
 @require_http_methods(["GET", "POST"])
@@ -1094,11 +1127,13 @@ def office_required[**ViewParams](
                     "O escritório está suspenso. Acesse Integrações para solicitar "
                     "suporte à Mewstack.",
                 )
-            if lifecycle.state == TenantLifecycle.State.GRACE and request.method not in {
-                "GET",
-                "HEAD",
-                "OPTIONS",
-            }:
+            if (
+                lifecycle.state == TenantLifecycle.State.GRACE
+                and request.method not in {"GET", "HEAD", "OPTIONS"}
+                # The way out of read-only is paying or subscribing: that page must accept POST
+                # while the office is read-only (D-79, D-312). Every other view stays refused.
+                and view.__name__ != "subscription_page"
+            ):
                 return refuse(
                     request,
                     "O período de carência permite consulta e suporte em Integrações, "
@@ -1197,6 +1232,11 @@ def team(request: HttpRequest) -> HttpResponse:
     form = CollaboratorInvitationForm(
         request.POST or None, companies=companies, module_codes=module_codes
     )
+    user_limit = plan_limits.state(office, plan_limits.USERS)
+    if request.method == "POST" and form.is_valid() and user_limit.remaining == 0:
+        form.add_error(None, user_limit.message)
+    if request.method == "GET" and user_limit.message:
+        messages.warning(request, user_limit.message)
     if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
@@ -1857,7 +1897,9 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "label": "Classificar NFS-e",
             "url": f"{reverse('hub:nfse-center')}?status=unclassified&company={company.id}",
         }
-    elif not valid_certificates or certificate_expiring:
+    elif not uses_procuracao(company.organization) and (
+        not valid_certificates or certificate_expiring
+    ):
         next_action = {
             "tone": "warning",
             "eyebrow": "Certificado A1",
@@ -2546,6 +2588,17 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "count": atencao_count,
                 "note": "Clientes com margem negativa ou em atenção",
                 "url": reverse("profitability:overview"),
+            }
+        )
+    if ProductModule.Code.CROSSCHECK in enabled_codes:
+        from apps.crosscheck.services import runs_needing_attention
+
+        work_areas.append(
+            {
+                "label": "Contraprova",
+                "count": runs_needing_attention(office, scope),
+                "note": "Conferências com divergência nos últimos 30 dias",
+                "url": reverse("crosscheck:index"),
             }
         )
     context.update(
@@ -4521,6 +4574,8 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         )
 
     requested_nfse_view = request.GET.get("view")
+    if requested_nfse_view == "collection" and uses_procuracao(office):
+        return redirect("hub:procuracoes")  # D-304: no A1 per company in this office
     nfse_view = (
         requested_nfse_view
         if requested_nfse_view in {"collection", "catalog", "exports"}
@@ -13924,6 +13979,16 @@ def companies(request: HttpRequest) -> HttpResponse:
             request,
             "As empresas desta instalação são controladas pelo controle central da Mewstack.",
         )
+    company_limit = plan_limits.state(office, plan_limits.COMPANIES)
+    if (
+        request.method == "POST"
+        and form.is_valid()
+        and company_limit.remaining == 0
+        and plan_limits.adds_company_root(office, str(form.cleaned_data.get("cnpj_masked", "")))
+    ):
+        form.add_error(None, company_limit.message)
+    if request.method == "GET" and company_limit.message:
+        messages.warning(request, company_limit.message)
     if request.method == "POST" and form.is_valid():
         company = form.save(commit=False)
         company.organization = office
@@ -14220,6 +14285,8 @@ def certificates(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
+    if uses_procuracao(office):  # D-304: an office created after D-304 collects by procuração
+        return redirect("hub:procuracoes")
     if request.method == "POST" and not context["support_can_mutate"]:
         return refuse(request, "Esta sessão é somente leitura.")
     allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
@@ -15439,6 +15506,20 @@ def setup_center(request: HttpRequest) -> HttpResponse:
             ],
         }
     )
+    if uses_procuracao(office):
+        # Office in procuração mode (D-304): the steps name the facts that lead to the first
+        # NFS-e. Legacy offices keep the list above untouched.
+        from apps.hub.procuracao_onboarding import procuracao_setup_steps
+        from apps.hub.tasks_procuracao import lane_enabled
+        from apps.hub.views_roster import _blocked_reason
+
+        context["setup_steps"] = procuracao_setup_steps(
+            office=office,
+            profile=profile,
+            mfa_complete=mfa_complete,
+            roster_available=not _blocked_reason(context, office),
+            lane_on=lane_enabled(),
+        )
     return render(request, "hub/setup.html", context)
 
 

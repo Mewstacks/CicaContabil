@@ -177,7 +177,7 @@ class GmailAttachmentHistoryTests(TestCase):
         self.assertEqual(json.loads(self.mailbox.cursor)["history_id"], "200")
         self.assertEqual(TriageItem.objects.count(), 1)
 
-    def test_oversized_attachment_preserves_cursor_without_fetching_bytes(self) -> None:
+    def test_oversized_attachment_is_rejected_without_fetching_bytes_and_cursor_moves(self) -> None:
         calls: list[str] = []
 
         def oversized(url: str, token: str, limit: int) -> dict:
@@ -191,9 +191,10 @@ class GmailAttachmentHistoryTests(TestCase):
                 return self._message(size=25 * 1024 * 1024 + 1)
             raise AssertionError("oversized attachment fetched")
 
-        with self.assertRaises(GmailMailboxError):
-            self._poll(oversized)
+        self._poll(oversized)
         self.mailbox.refresh_from_db()
-        self.assertEqual(json.loads(self.mailbox.cursor)["mode"], "full")
-        self.assertFalse(TriageItem.objects.exists())
+        self.assertEqual(self.mailbox.status, Mailbox.Status.ACTIVE)
+        item = TriageItem.objects.get()
+        self.assertEqual(item.status, "rejeitado")
+        self.assertIn("25 MB", item.rejection_reason)
         self.assertFalse(any("/attachments/" in call for call in calls))

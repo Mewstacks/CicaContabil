@@ -62,6 +62,9 @@ class DatasetDefinition:
     requires_source_role: str
     max_rows_per_run: int
     sql: str
+    # "on_demand" = só roda sob job explícito (fila própria, ex.: Contraprova), nunca
+    # na lista de ciclo diário de `profitability/datasets`. Vazio = ciclo normal.
+    dispatch: str = ""
 
 
 @dataclass(frozen=True)
@@ -213,4 +216,5 @@ def _load_definition(root: Path, raw: dict[str, Any]) -> DatasetDefinition:
         requires_source_role=str(raw.get("requiresSourceRole", "")),
         max_rows_per_run=int(raw["maxRowsPerRun"]),
         sql=sql,
+        dispatch=str(raw.get("dispatch", "")),
     )

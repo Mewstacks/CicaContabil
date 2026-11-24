@@ -400,7 +400,12 @@ document.querySelectorAll('[data-open-details]').forEach((link) => {
   });
 });
 
-if (window.location.hash) openIntegrationDetails(document.querySelector(window.location.hash));
+/* getElementById: a hash such as #1abc is an invalid selector and would abort the rest of this file. */
+if (window.location.hash) {
+  let hashId = window.location.hash.slice(1);
+  try { hashId = decodeURIComponent(hashId); } catch { /* keep the raw fragment */ }
+  openIntegrationDetails(document.getElementById(hashId));
+}
 
 const invalidField = document.querySelector('[data-focus-error] input, [data-focus-error] select');
 if (invalidField) invalidField.focus();

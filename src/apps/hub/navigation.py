@@ -9,6 +9,23 @@ from django.urls import reverse
 from apps.hub.services import backup_managed_source
 
 
+def _procuracao_mode(context: Any) -> bool:
+    """True for an office that collects NFS-e by procuração (D-304); legacy offices: False."""
+
+    request = context["request"]
+    cached = getattr(request, "_hub_procuracao_mode", None)
+    if cached is not None:
+        return bool(cached)
+    office = context.get("office")
+    value = False
+    if office is not None:
+        from apps.hub.office_certificate import uses_procuracao
+
+        value = uses_procuracao(office)
+    request._hub_procuracao_mode = value
+    return value
+
+
 def workspace_navigation(context: Any) -> list[dict[str, Any]]:
     request = context["request"]
     route = request.resolver_match.url_name if request.resolver_match else ""
@@ -69,7 +86,9 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                 "Carteira e dados de cada empresa",
                 routes=("company-detail",),
             ),
-            link("Certificados", "hub:certificates", "Validade e acesso por empresa"),
+            link("Procurações", "hub:procuracoes", "e-CNPJ do escritório e procuração por empresa")
+            if _procuracao_mode(context)
+            else link("Certificados", "hub:certificates", "Validade e acesso por empresa"),
         ],
     )
     fiscal = []
@@ -110,6 +129,15 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
         )
     if "reform" in codes:
         fiscal.append(link("Reforma tributária", "hub:reform", "Publicações e mudanças fiscais"))
+    if "crosscheck" in codes:
+        fiscal.append(
+            link(
+                "Contraprova",
+                "crosscheck:index",
+                "SPED, XML e Domínio lado a lado",
+                routes=("new-run", "run-detail"),
+            )
+        )
     group("fiscal", "Fiscal", fiscal)
     group(
         "accounting",
@@ -175,6 +203,9 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
             fragment="#consumo",
         )
     )
+    billing_roles = {"owner", "admin", "billing"}
+    if _procuracao_mode(context) and membership and membership.role in billing_roles:
+        settings.append(link("Assinatura", "hub:subscription", "Plano, limites e faturas"))
     if membership and membership.role in {"owner", "admin"}:
         settings.append(link("Equipe e acessos", "hub:team", "Pessoas e permissões"))
         if codes and not nfse_only:

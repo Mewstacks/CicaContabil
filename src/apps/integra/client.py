@@ -26,7 +26,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.db import DatabaseError
 
 from apps.integra.catalog import ServiceSpec, service
-from apps.integra.envelope import Party, build
+from apps.integra.envelope import BatchParty, Party, build
 from apps.integra.errors import (
     IntegraAuthenticationError,
     IntegraConfigurationError,
@@ -41,6 +41,7 @@ BASE_URLS = {
     "production": "https://gateway.apiserpro.serpro.gov.br/integra-contador/v1",
 }
 TIMEOUT_SECONDS = 30
+MAX_REQUEST_TAG = 32
 MAX_RESPONSE_BYTES = 4_000_000
 # The store reports expires_in around 2008 seconds. Retire the token early so a call is
 # never dispatched against one that expires in flight.
@@ -279,9 +280,11 @@ class IntegraClient:
         self,
         service_key: str,
         *,
-        contribuinte: str,
+        contribuinte: str | BatchParty,
         autor_pedido: str | None = None,
         dados: dict[str, Any] | str | None = None,
+        autenticar_procurador_token: str | None = None,
+        request_tag: str | None = None,
     ) -> dict[str, Any]:
         """Dispatch one catalogued service. There is no way to name an arbitrary endpoint."""
 
@@ -290,12 +293,18 @@ class IntegraClient:
             spec=spec,
             contratante=Party(self.credentials.contratante),
             autor_pedido=Party(autor_pedido or self.credentials.autor_pedido),
-            contribuinte=Party(contribuinte),
+            contribuinte=Party(contribuinte) if isinstance(contribuinte, str) else contribuinte,
             dados=dados,
         )
-        return self._dispatch(spec, envelope)
+        return self._dispatch(spec, envelope, autenticar_procurador_token, request_tag)
 
-    def _dispatch(self, spec: ServiceSpec, envelope: dict[str, Any]) -> dict[str, Any]:
+    def _dispatch(
+        self,
+        spec: ServiceSpec,
+        envelope: dict[str, Any],
+        autenticar_procurador_token: str | None = None,
+        request_tag: str | None = None,
+    ) -> dict[str, Any]:
         token = self.authenticate()
         headers = {
             "Authorization": f"Bearer {token.access_token}",
@@ -304,6 +313,12 @@ class IntegraClient:
         }
         if token.jwt_token:
             headers["jwt_token"] = token.jwt_token
+        if autenticar_procurador_token:
+            headers["autenticar_procurador_token"] = autenticar_procurador_token
+        if request_tag:
+            if len(request_tag) > MAX_REQUEST_TAG:
+                raise IntegraConfigurationError("O X-Request-Tag aceita até 32 caracteres.")
+            headers["X-Request-Tag"] = request_tag
         status, raw = self._transport(
             f"{self.credentials.base_url}/{spec.verb.value}",
             data=json.dumps(envelope, ensure_ascii=False).encode(),

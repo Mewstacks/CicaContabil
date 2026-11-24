@@ -13,7 +13,17 @@ from apps.hub import (
     title_request_views,
     title_views,
     views,
+    views_procuracao,
+    views_radar,
+    views_roster,
+    views_subscription,
+    views_triage_catalog,
+    views_triage_checklist,
+    views_triage_inbox,
+    views_triage_policy,
+    views_triage_upload,
 )
+from apps.integra import views as integra_views
 from apps.platform.legal import legal_document
 
 app_name = "hub"
@@ -202,6 +212,19 @@ urlpatterns = [
         name="collaborator-deactivate",
     ),
     path("app/nfse/", views.nfse_center, name="nfse-center"),
+    path("app/assinatura/", views_subscription.subscription_page, name="subscription"),
+    path("app/nfse/procuracoes/", views_procuracao.nfse_procuracoes, name="procuracoes"),
+    path("app/nfse/teto/", views_radar.simples_radar_view, name="radar-teto"),
+    path("app/serpro/", integra_views.serpro_status, name="serpro"),
+    path("app/serpro/radar/", integra_views.serpro_radar, name="serpro-radar"),
+    path("app/nfse/carteira/", views_roster.roster, name="roster"),
+    path("app/nfse/carteira/modelo.csv", views_roster.roster_template, name="roster-template"),
+    path("app/nfse/carteira/<uuid:batch_id>/", views_roster.roster_batch, name="roster-batch"),
+    path(
+        "app/nfse/carteira/<uuid:batch_id>/erros.csv",
+        views_roster.roster_errors,
+        name="roster-errors",
+    ),
     path("app/nfse/fila/", views.nfse_queue_status, name="nfse-queue-status"),
     path("app/nfse/fila/repetir/", views.nfse_queue_retry, name="nfse-queue-retry"),
     path(
@@ -428,6 +451,58 @@ urlpatterns = [
         "app/triagem/caixas/<uuid:mailbox_id>/desconectar/",
         views.triage_mailbox_disconnect,
         name="triage-mailbox-disconnect",
+    ),
+    path(
+        "app/triagem/checklist/", views_triage_checklist.triage_checklist, name="triage-checklist"
+    ),
+    path(
+        "app/triagem/checklist/<uuid:company_id>/pedido/",
+        views_triage_checklist.triage_checklist_request,
+        name="triage-checklist-request",
+    ),
+    path("app/triagem/pendencias/", views_triage_inbox.triage_inbox, name="triage-inbox"),
+    path(
+        "app/triagem/pendencias/lote/",
+        views_triage_inbox.triage_inbox_batch,
+        name="triage-inbox-batch",
+    ),
+    path(
+        "app/triagem/pendencias/<uuid:item_id>/aprovar/",
+        views_triage_inbox.triage_inbox_approve,
+        name="triage-inbox-approve",
+    ),
+    path(
+        "app/triagem/pendencias/<uuid:item_id>/rejeitar/",
+        views_triage_inbox.triage_inbox_reject,
+        name="triage-inbox-reject",
+    ),
+    path(
+        "app/triagem/pendencias/<uuid:item_id>/regra/",
+        views_triage_inbox.triage_inbox_rule,
+        name="triage-inbox-rule",
+    ),
+    path("app/triagem/entrada/", views_triage_policy.triage_policy, name="triage-policy"),
+    path("app/triagem/enviar/", views_triage_upload.triage_upload, name="triage-upload"),
+    path("app/triagem/catalogo/", views_triage_catalog.triage_catalog, name="triage-catalog"),
+    path(
+        "app/triagem/catalogo/salvar/",
+        views_triage_catalog.triage_catalog_save,
+        name="triage-catalog-save",
+    ),
+    path(
+        "app/triagem/catalogo/modelo/",
+        views_triage_catalog.triage_catalog_seed,
+        name="triage-catalog-seed",
+    ),
+    path(
+        "app/triagem/catalogo/<uuid:type_id>/estado/",
+        views_triage_catalog.triage_catalog_toggle,
+        name="triage-catalog-toggle",
+    ),
+    path(
+        "app/triagem/catalogo/<uuid:type_id>/excecao/",
+        views_triage_catalog.triage_catalog_exception,
+        name="triage-catalog-exception",
     ),
     path("app/triagem/<uuid:item_id>/", views.triage_item_detail, name="triage-item"),
     path("app/triagem/<uuid:item_id>/arquivo/", views.triage_download, name="triage-download"),

@@ -1,0 +1,138 @@
+# Politica de dados do dominio-mcp (D-319). Texto casado SEM acento e em minusculas.
+#
+# Ordem de avaliacao por coluna (a primeira regra que casa vence):
+#   1. denied_tables                       -> segredo (nunca sai, nao e liberavel)
+#   2. denied_column_name_patterns         -> segredo
+#   3. denied_column_comment_patterns      -> segredo
+#   4. binary_types                        -> segredo
+#   5. column_overrides (curadoria)        -> a classe dada (nao vale sobre 1 a 4)
+#   6. table_rules com `precedence: first` -> auditoria e log (bloqueio que nada libera)
+#   7. column_rules, em ordem              -> documento e pessoal (por categoria); as de classe
+#                                             texto_livre ficam para depois do item 8
+#   8. table_rules restantes               -> tabela por empregado
+#   9. column_rules de texto livre         -> texto_livre (so leitura, sem filtro)
+#  10. nenhuma regra casou                 -> normal se aceita (`build-pack --aceitar`),
+#                                             senao nao_classificada (bloqueada)
+version: 1
+
+denied_tables:
+  - gecertificadosdigitais
+  - geapuracao_assistida_credenciais
+  - fodarf_dctfweb_api_tokens_requisicao
+  - efdas_api_tokens_requisicao
+  - geconfiguracao_envio_email_parametros
+  - gesenhainternethist
+  - syslicacao
+  - gesecusuarios
+
+denied_column_name_patterns:
+  - 'senha'
+  - 'password'
+  - '(^|_)pwd(_|$)'
+  - 'token'
+  - 'secret'
+  - 'segredo'
+  - 'credencial'
+  - 'private'
+  - 'certificado'
+  - 'frase_secreta'
+
+denied_column_comment_patterns:
+  - '\bsenha\b'
+  - 'password'
+  - '\btoken\b'
+  - 'chave privada'
+  - 'certificado digital'
+  - 'secret'
+
+binary_types:
+  - binary
+  - long binary
+  - varbinary
+  - image
+
+# Tipos que guardam texto (para regras de texto livre e de auditoria).
+text_types:
+  - char
+  - varchar
+  - nvarchar
+  - long varchar
+  - long nvarchar
+  - text
+
+# Tipos em que um documento (CNPJ, CPF) pode estar guardado.
+document_types:
+  - char
+  - varchar
+  - numeric
+  - decimal
+  - bigint
+
+column_rules:
+  - id: documento
+    class: documento
+    name: ['(^|_)(cgce|cgc|cnpj)']
+    comment: ['\b(cnpj|cgc|cgce)\b']
+    types: document
+    min_width: 11
+  - id: cpf
+    class: pessoal
+    category: cpf
+    name: ['(^|_)cpf(_|\d|$)']
+    comment: ['\bcpf\b']
+    types: document
+    min_width: 11
+  - id: nascimento
+    class: pessoal
+    category: nascimento
+    name: ['(^|_)(dnas|nasc)']
+    comment: ['nascimento', '\bsexo\b', 'estado civil', '\bpis\b', '\bnit\b', '\bctps\b', 'titulo de eleitor', '\brg\b', 'identidade', '\bcnh\b', 'nacionalidade', 'naturalidade']
+  - id: endereco
+    class: pessoal
+    category: endereco
+    name: ['(^|_)(ende|logr|cep|bair)(_|$)']
+    comment: ['endereco', 'logradouro', '\bcep\b', 'bairro']
+  - id: contato
+    class: pessoal
+    category: contato
+    name: ['(^|_)(email|e_mail|fone|celular|whats)']
+    comment: ['e-?mail', 'telefone', '\bfone\b', 'celular', 'whatsapp', '\bfax\b']
+  - id: bancario
+    class: pessoal
+    category: bancario
+    comment: ['conta corrente', 'agencia', '\biban\b', 'conta bancaria', '\bpix\b']
+  - id: folha
+    class: pessoal
+    category: folha
+    comment: ['salari', 'remuneracao', 'pro-?labore', 'proventos', 'gorjeta']
+  - id: nome_pessoa
+    class: pessoal
+    category: nome
+    comment: ['nome d[oa] (empregad|funcionari|socio|dependente|trabalhador|pessoa|responsavel|contador|titular|representante|proprietario)']
+  - id: texto_livre
+    class: texto_livre
+    name: ['(^|_)(obs|observ|historic|hist|mensag|texto|memo|justific|complement)']
+    types: text
+    min_width: 1
+  - id: texto_longo
+    class: texto_livre
+    types: text
+    min_width: 100
+
+table_rules:
+  # Tabela por empregado (coluna `i_empregados`, 298 tabelas medidas): so a chave sai livre.
+  - id: tabela_por_empregado
+    when_column: i_empregados
+    scope: non_key
+    class: pessoal
+    category: folha
+  # Texto de auditoria e de log: bloqueado por padrao e nao liberavel.
+  - id: auditoria_log_texto
+    precedence: first
+    table_patterns: ['^au', '(^|_)log', 'log(_|$)', '(^|_)[a-z]{2}log', '^audados$', '^geatendimento']
+    scope: text
+    class: texto_livre
+    blocked_reason: auditoria_log
+
+# Curadoria do escritorio: {table, column, class, category}. Nao vale sobre segredo.
+column_overrides: []

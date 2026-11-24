@@ -10,7 +10,13 @@
     const groupFromHash = () => {
       const requested = window.location.hash.replace('#config-', '');
       if (groups.has(requested)) return requested;
-      const target = window.location.hash && document.querySelector(window.location.hash);
+      // An empty hash is a string, not a node, and a malformed hash makes querySelector throw.
+      let target = null;
+      try {
+        target = window.location.hash ? document.querySelector(window.location.hash) : null;
+      } catch {
+        target = null;
+      }
       return target?.closest('[data-config-group]')?.dataset.configGroup || '';
     };
     const groupWithError = panels.find(panel => panel.querySelector('[data-form-errors]'))

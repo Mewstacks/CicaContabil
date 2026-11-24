@@ -1,0 +1,7 @@
+( Plan [ Estimated cost: 9.4314e-006, Estimated rows: 2, Optimization time: 1.89e-005, Costed best plans: 1, Costed plans: 12, Estimated Cache Pages: 2787960 ] [B]
+  ( RowLimit 
+    ( SingleRowGroupBy 
+      ( IndexScan ( efsaidas t0 ) FK_EFSAIDAS_EFENQUADRAMENTO_LEGAL_CREDITO_ACUMULADO[ t0.codi_emp = 1 : 0.0001% Index | Bounded ][ t0.dsai_sai BETWEEN 2025-01-01 AND 2025-12-31 : 12.887% Statistics ] )
+    )
+  )
+)

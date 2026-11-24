@@ -9,6 +9,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -20,7 +21,10 @@ from apps.triage.ingest import (
     MAX_EMAIL_ATTACHMENT_BYTES,
     mailbox_accepts_message,
     receive_email_attachment,
+    record_rejected_attachment,
 )
+from apps.triage.intake_policy import decide_attachment
+from apps.triage.mailtext import clean_body, html_to_text, mailbox_domain, original_sender
 from apps.triage.models import Mailbox
 from apps.triage.oauth import MailboxOAuthError, MailboxOAuthTemporaryError, refresh_access_token
 from apps.triage.poll_state import mark_failure, retry_hint_seconds
@@ -237,6 +241,40 @@ def _parts(part: dict[str, object], path: str = "root") -> list[tuple[str, dict[
     return found
 
 
+def _body_text(payload: dict[str, object]) -> str:
+    """Bounded plain text of the message body (text/plain preferred, HTML reduced)."""
+
+    plain: list[str] = []
+    markup: list[str] = []
+    stack: list[dict[str, object]] = [payload]
+    seen = 0
+    while stack and seen < 60:
+        part = stack.pop(0)
+        seen += 1
+        children = part.get("parts")
+        if isinstance(children, list):
+            stack.extend(child for child in children if isinstance(child, dict))
+        mime = str(part.get("mimeType", ""))
+        body = part.get("body")
+        if part.get("filename") or not isinstance(body, dict) or mime not in {
+            "text/plain",
+            "text/html",
+        }:
+            continue
+        data = body.get("data")
+        if not isinstance(data, str) or len(data) > 200_000:
+            continue
+        try:
+            raw = base64.b64decode(data + "=" * (-len(data) % 4), altchars=b"-_", validate=True)
+        except (ValueError, binascii.Error):
+            continue
+        text = raw.decode("utf-8", errors="replace")
+        (plain if mime == "text/plain" else markup).append(
+            text if mime == "text/plain" else html_to_text(text)
+        )
+    return clean_body("\n".join(plain or markup))
+
+
 def _message(
     mailbox: Mailbox,
     message_id: str,
@@ -282,26 +320,52 @@ def _message(
         return 0, 0, True
     created = duplicates = 0
     delivery_id = _identity("gmail:", message_id)
+    body = _body_text(payload)
+    author = original_sender(body, {mailbox_domain(mailbox.address)})
     for part_id, part in _parts(payload):
         item_part = _identity("", part_id)
         if mailbox.items.filter(message_id=delivery_id, part_id=item_part).exists():
             duplicates += 1
             continue
-        body = part.get("body")
-        if not isinstance(body, dict):
+        body_row = part.get("body")
+        if not isinstance(body_row, dict):
             raise GmailMailboxError("Gmail não trouxe dados do anexo.")
-        raw = _payload(body, message_id=message_id, token=token, get_json=get_json)
-        receipt = receive_email_attachment(
-            mailbox=mailbox,
-            message_id=delivery_id,
-            part_id=item_part,
+        size = body_row.get("size")
+        if isinstance(size, bool) or not isinstance(size, int) or size < 0:
+            raise GmailMailboxError("Anexo Gmail sem tamanho válido.")
+        part_headers = {
+            str(h.get("name", "")).lower(): str(h.get("value", ""))
+            for h in cast(list[object], part.get("headers") or [])
+            if isinstance(h, dict)
+        }
+        mime = str(part.get("mimeType", ""))
+        decision = decide_attachment(
+            organization=mailbox.organization,
             filename=str(part["filename"]),
-            payload=raw,
-            sender=header_map.get("from", ""),
-            subject=header_map.get("subject", ""),
-            received_at=received_at,
-            declared_type=str(part.get("mimeType", "")),
+            size=size,
+            inline="inline" in part_headers.get("content-disposition", "").lower(),
+            content_id="content-id" in part_headers,
+            content_type=mime,
         )
+        if decision.action == "ignore":
+            continue
+        common: dict[str, Any] = {
+            "mailbox": mailbox,
+            "message_id": delivery_id,
+            "part_id": item_part,
+            "filename": str(part["filename"]),
+            "sender": header_map.get("from", ""),
+            "subject": header_map.get("subject", ""),
+            "received_at": received_at,
+            "declared_type": mime,
+            "body_excerpt": body,
+            "original_sender": author,
+        }
+        if decision.action == "reject":
+            receipt = record_rejected_attachment(size=size, reason=decision.reason, **common)
+        else:
+            raw = _payload(body_row, message_id=message_id, token=token, get_json=get_json)
+            receipt = receive_email_attachment(payload=raw, **common)
         created += int(receipt.created)
         duplicates += int(not receipt.created)
     return created, duplicates, True

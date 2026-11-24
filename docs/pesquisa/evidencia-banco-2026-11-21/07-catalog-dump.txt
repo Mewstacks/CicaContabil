@@ -1,0 +1,20 @@
+# comando: python -I catalog_dump.py  (exit=0)
+
+tabelas: 5477 linhas
+colunas: 63031 linhas
+comentarios: 61250 linhas
+indices: 12768 linhas
+colunas_indice: 30929 linhas
+chaves_estrangeiras: 6955 linhas
+views: 256 linhas
+procedures: 1272 linhas
+
+== por dono/tipo ==
+[(('bethadba', 'BASE'), 4862), (('bethadba', 'GBL TEMP'), 203), (('SYS', 'VIEW'), 136), (('bethadba', 'VIEW'), 102), (('SYS', 'BASE'), 81), (('dbo', 'BASE'), 31), (('dbo', 'GBL TEMP'), 24), (('DSDBA', 'VIEW'), 11), (('dbo', 'VIEW'), 7), (('DBA', 'BASE'), 6), (('gerente', 'BASE'), 5), (('gerador', 'BASE'), 5)]
+tabelas/visoes de usuario: 4991
+prefixos (BASE): [('ef', 2733), ('fo', 746), ('ge', 408), ('ct', 392), ('hr', 148), ('lr', 129), ('pm', 52), ('po', 42), ('rg', 35), ('pc', 28), ('hn', 26), ('la', 24), ('au', 17), ('pb', 15), ('ho', 12), ('pa', 12), ('pr', 11), ('at', 8), ('us', 8), ('sa', 8), ('sy', 4), ('ba', 2), ('re', 2), ('de', 2), ('ob', 2), ('co', 2), ('te', 2), ('ca', 1), ('cl', 1), ('ar', 1)]
+colunas de usuario: 58745
+comentarios em tabelas: 4860 | em colunas: 54472
+PKs: 4821 | FKs: 6803
+views de usuario: 113
+maiores (nome, linhas~): [('FOEVENTOS_ALTERACAO_CONTROLE_ENVIO_ESOCIAL', 2850548), ('GEGUIA_CONTRIBUICAO_PREVIDENCIARIA_SALDOS_RECOLHER_VALORES_COMPENSADOS', 1402920), ('fointegconteve', 1278576), ('FOESOCIAL_LOG', 1147077), ('efmvspro', 917584), ('EFMVSPRO_APURACAO_ESTOQUE', 870445), ('foeventosbases', 692676), ('GEATENDIMENTOACOES', 607444), ('EFACUMULADOR_VIGENCIA_CFOP', 579434), ('EFACUMULADOR_VIGENCIA_IMPOSTOS', 535908), ('FOESOCIAL_IMPORTACOES_LOG', 498840), ('CTLANCTO_SPED_ECF_GERAL', 478024), ('efsdopro', 451764), ('focalculosbases', 436536), ('FOESOCIAL_LOG_THREAD_EXECUCAO_LINHA', 409659)]

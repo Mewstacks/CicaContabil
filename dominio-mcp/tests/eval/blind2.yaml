@@ -1,0 +1,42 @@
+# Conjunto CEGO v2 da recuperacao do esquema (A3, T3.2). CONGELADO por hash em blind2.sha256.
+#
+# Motivo: o lote v1 (blind.yaml) foi medido uma vez em 21/11/2026 com o overlay dd8339226c7b e
+# FALHOU (top-5 76%, top-1 43%): esta QUEIMADO e nao serve mais para ajuste. Este v2 foi escrito
+# depois, com outras tabelas, e vale como medicao independente do codigo atual (radical do
+# portugues e cobertura do apelido). Independencia MENOR que a de um lote da contadora, porque o
+# mesmo agente viu o resultado do v1: o lote da contadora (>= 20 perguntas) continua pendente.
+# Regras: nenhuma pergunta daqui ajusta glossario, apelidos ou pesos; medido UMA vez por versao
+# do overlay; cada medicao entra em reports/recall.md.
+questions:
+  - {q: "empreendimentos imobiliários", expected: [efempreendimentos_imobiliarios], family: cadastro, module: ef}
+  - {q: "bilhetes de passagem", expected: [efbilhete_passagem], family: movimento, module: ef}
+  - {q: "créditos presumidos de importação", expected: [eftabela_credito_presumido], family: tabela_apoio, module: ef}
+  - {q: "tabela de ajustes do SPED", expected: [eftabela_movaju_ajuste_sped], family: tabela_apoio, module: ef}
+  - {q: "informativos fiscais", expected: [efinformativos], family: parametro, module: ef}
+  - {q: "planejamento tributário", expected: [efplanejamento_tributario], family: apuracao, module: ef}
+  - {q: "saldo dos impostos por UF", expected: [efsdoimp_por_uf], family: apuracao, module: ef}
+  - {q: "detalhamento do Simples Nacional nos saldos de impostos", expected: [efsdoimp_simples_nacional], family: apuracao, module: ef}
+  - {q: "vigência dos produtos", expected: [efprodutos_vigencia], family: parametro, module: ef}
+  - {q: "apuração de estoque das saídas de produtos", expected: [efmvspro_apuracao_estoque], family: apuracao, module: ef}
+  - {q: "participantes da escrituração contábil", expected: [ctparticipante], family: cadastro, module: ct}
+  - {q: "dirigentes e conselheiros", expected: [ctdirigentes_conselheiros], family: cadastro, module: ct}
+  - {q: "produtores rurais", expected: [ctprodutor_rural], family: cadastro, module: ct}
+  - {q: "coeficientes de análise das demonstrações", expected: [ctcoeficiente], family: parametro, module: ct}
+  - {q: "estrutura do DMPL", expected: [ctgruposdmpl], family: parametro, module: ct}
+  - {q: "natureza das contas contábeis", expected: [ctnatureza_conta], family: tabela_apoio, module: ct}
+  - {q: "operadoras de plano de saúde", expected: [fooperadoraplanosaude], family: cadastro, module: fo}
+  - {q: "funções cadastradas na folha", expected: [fofuncoes], family: cadastro, module: fo}
+  - {q: "centros de custo da folha", expected: [foccustos], family: cadastro, module: fo}
+  - {q: "valores da contribuição sindical", expected: [focontribuicao_sindical], family: tabela_apoio, module: fo}
+  - {q: "espetáculos desportivos", expected: [foespetaculo_desportivo], family: cadastro, module: fo}
+  - {q: "bases de cálculo da folha", expected: [fobasesserv], family: parametro, module: fo}
+  - {q: "processos administrativos e judiciais trabalhistas", expected: [foprocessos_administrativos_judiciais], family: obrigacao, module: fo}
+  - {q: "índices econômicos", expected: [geindice], family: tabela_apoio, module: ge}
+  - {q: "sociedade em conta de participação", expected: [gescp], family: cadastro, module: ge}
+  - {q: "relatórios do chatbot", expected: [gechatbot_relatorios], family: parametro, module: ge}
+  - {q: "impostos não calculados pelo sistema no e-CAC", expected: [geimposto_nao_calculado], family: apuracao, module: ge}
+  - {q: "bancos e agências do honorários", expected: [hnbancos, hnagencias], family: cadastro, module: hn}
+  - {q: "classificação dos clientes do novo honorários", expected: [hnclassificacoes], family: cadastro, module: hn}
+  - {q: "relógios de ponto", expected: [porelogios], family: cadastro, module: po}
+  - {q: "ocorrências do ponto", expected: [poocorrencias], family: cadastro, module: po}
+  - {q: "tabela do grupo DIRBI", expected: [lrtabela_grupo_dirbi], family: tabela_apoio, module: lr}

@@ -1,0 +1,108 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-dctfweb/mit/servicos/consultar_apuracao/",
+  "servico": "MIT.CONSAPURACAO316",
+  "notes": [
+    "Montada da tabela 'Estrutura do objeto dadosApuracaoMIT' (a página só traz o exemplo de apuração sem movimento), com valores fictícios; os exemplos de cada campo vêm da tabela.",
+    "Apuração com movimento, evento especial de cisão parcial (4) e débitos antes e depois do evento (ListaDebitosAposEvento)."
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-MIT]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "situacaoApuracao": 3,
+    "textoSituacao": "ENCERRADA",
+    "dadosApuracaoMit": {
+      "PeriodoApuracao": {
+        "MesApuracao": 4,
+        "AnoApuracao": 2025
+      },
+      "ListaEventosEspeciais": [
+        {
+          "IdEvento": 1,
+          "DiaEvento": 13,
+          "TipoEvento": 4
+        }
+      ],
+      "DadosIniciais": {
+        "SemMovimento": false,
+        "QualificacaoPj": 1,
+        "TributacaoLucro": 1,
+        "VariacoesMonetarias": 2,
+        "RegimePisCofins": 1,
+        "ResponsavelApuracao": {
+          "CpfResponsavel": "00000000000",
+          "TelResponsavel": {
+            "Ddd": "31",
+            "NumTelefone": "999999999"
+          },
+          "EmailResponsavel": "responsavel@mail.com",
+          "RegistroCrc": {
+            "UfRegistro": "SP",
+            "NumRegistro": "SP123456"
+          }
+        }
+      },
+      "Debitos": {
+        "BalancoLucroReal": true,
+        "Irpj": {
+          "ListaDebitos": [
+            {
+              "IdDebito": 1,
+              "IdEventoDebito": 1,
+              "CodigoDebito": "022012",
+              "AnoPostergado": 2020,
+              "TrimPostergado": 2,
+              "AnoDebito": 2024,
+              "CnpjScp": "12345678000195",
+              "ValorDebito": 777.55
+            }
+          ],
+          "ListaDebitosAposEvento": [
+            {
+              "IdDebito": 2,
+              "IdEventoDebito": 1,
+              "CodigoDebito": "022012",
+              "PaDebito": 2,
+              "ValorDebito": 100.1
+            }
+          ]
+        },
+        "Ipi": {
+          "ListaDebitos": [
+            {
+              "IdDebito": 3,
+              "CodigoDebito": "512101",
+              "CnpjEstabelecimento": "000100",
+              "ValorDebito": 50
+            }
+          ]
+        },
+        "PisPasep": {
+          "ListaDebitos": [
+            {
+              "IdDebito": 4,
+              "CodigoDebito": "810902",
+              "CodigoMunicipioOuro": "3550308",
+              "ValorDebito": 12.3
+            }
+          ]
+        },
+        "RetPagamentoUnificado": {
+          "ListaDebitos": [
+            {
+              "IdDebito": 5,
+              "CodigoDebito": "402802",
+              "CnpjIncorporacao": "000100",
+              "ValorDebito": 1000.0
+            }
+          ]
+        }
+      },
+      "TransmissaoImediata": false
+    }
+  }
+}

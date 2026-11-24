@@ -1,5 +1,7 @@
 ﻿## V-140 - Distribuicao administrativa de atividades
 
+> A linha produto vendável, MCP do Domínio e Contraprova usa numeração própria para V-300 a V-314: ver [VALIDACOES-produto-vendavel.md](VALIDACOES-produto-vendavel.md).
+
 Data: 23/09/2026. Proprietario e administrador agora veem, somente no proprio escritorio,
 a distribuicao de atividades abertas por membro ativo, com contagens separadas de atraso e
 impedimento. Cada pessoa abre a fila filtrada por responsavel; atividades sem responsavel tem

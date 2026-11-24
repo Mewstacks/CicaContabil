@@ -153,7 +153,7 @@ class GraphAttachmentDeltaTests(TestCase):
         self.assertEqual(result.duplicates, 1)
         self.assertEqual(TriageItem.objects.count(), 1)
 
-    def test_oversized_attachment_never_downloads_or_advances_delta(self) -> None:
+    def test_oversized_attachment_is_rejected_without_download_and_delta_advances(self) -> None:
         def oversized(url: str, token: str, limit: int) -> dict[str, object]:
             if urlsplit(url).path == self.delta_path:
                 return {"value": [self.message], "@odata.deltaLink": self.delta_link}
@@ -161,13 +161,16 @@ class GraphAttachmentDeltaTests(TestCase):
             row["value"][0]["size"] = 25 * 1024 * 1024 + 1
             return row
 
-        with self.assertRaises(GraphMailboxError):
-            poll_graph_mailbox(
-                mailbox=self.mailbox,
-                get_json=oversized,
-                get_bytes=lambda url, token, limit: self.fail("raw file must not be fetched"),
-                refresh=lambda provider, credential, app: ("access", credential),
-            )
+        result = poll_graph_mailbox(
+            mailbox=self.mailbox,
+            get_json=oversized,
+            get_bytes=lambda url, token, limit: self.fail("raw file must not be fetched"),
+            refresh=lambda provider, credential, app: ("access", credential),
+        )
+        self.assertTrue(result.round_complete)
+        item = TriageItem.objects.get()
+        self.assertEqual(item.status, "rejeitado")
+        self.assertIn("25 MB", item.rejection_reason)
         self.mailbox.refresh_from_db()
-        self.assertEqual(self.mailbox.cursor, "")
-        self.assertFalse(TriageItem.objects.exists())
+        self.assertEqual(self.mailbox.status, Mailbox.Status.ACTIVE)
+        self.assertIn(self.delta_link, self.mailbox.cursor)

@@ -48,7 +48,11 @@ def _require_verified_email_item(item: TriageItem) -> None:
         format_verdict=TriageSafetyScan.FormatVerdict.VALID,
         content_hash=item.content_hash,
     ).first()
-    if item.mailbox_id is None or verdict is None:
+    from_mailbox_or_upload = item.mailbox_id is not None or item.origin in {
+        TriageItem.Origin.UPLOAD,
+        TriageItem.Origin.ARCHIVE,
+    }
+    if not from_mailbox_or_upload or verdict is None:
         raise ValidationError(
             "Somente anexos de e-mail com antimalware e formato validados podem ser aprovados."
         )
@@ -464,6 +468,15 @@ def decide_item(
             )
         else:
             raise ValidationError("Decisão de revisão inválida.")
+    if decision == "archive":
+        # A person approved: count it once toward this sender's rule (three activate it).
+        from apps.triage import learning
+
+        learning.confirm_sender_rule(item)
+        if learning.learn_from_approval(item):
+            from apps.triage.reclassify import reclassify_pending
+
+            reclassify_pending(item.organization, exclude=item.pk)
     record_event(
         action=f"triage.item.{decision}",
         actor=actor,
@@ -503,7 +516,11 @@ def windows_relative_destination(item: TriageItem, profile: DestinationProfile) 
     )
     period = _windows_component(item.period_label or "Sem período", fallback="Sem período")
     filename = _windows_component(item.final_name, fallback="documento")
-    template = profile.folder_template or "{company_name} [Domínio {dominio_code}]"
+    # A folder set on the document type (the office's catalogue) wins over the office default.
+    type_folder = item.document_type.folder_template if item.document_type else ""
+    template = (
+        type_folder or profile.folder_template or "{company_name} [Domínio {dominio_code}]"
+    )
     try:
         folder = template.format(
             company_name=company,

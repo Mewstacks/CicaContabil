@@ -84,6 +84,30 @@ de `RFED_PAR` são convertidos para os nomes exibidos na carteira pelo processad
 `EFPARAMETRO_VIGENCIA` traz empresas que `geempre` não traz — essas linhas são rejeitadas
 individualmente e contadas em `rejected_count`, sem derrubar o run.
 
+## `fiscal_counterparts` (Contraprova, sob demanda)
+
+Entrega a UF da contraparte de cada nota (cliente nas saídas, fornecedor nas entradas) para a
+conferência UF × Domínio. `dispatch: "on_demand"` (campo opcional do manifesto) tira o dataset do
+ciclo de `profitability/datasets`: ele **nunca** é listado ali, nem com `validated: true`, e
+`DatasetCatalog.GetForRun` do agente o recusa. Só roda sob job da fila própria
+`api/agent/v2/contraprova/jobs/*`, que confere `dataset_code`, `schema_version` e `query_sha256`
+com o catálogo embutido.
+
+Colunas: `chave_nfe` (44 dígitos), `direcao` (`S` saída, `E` entrada), `uf` (`sigl_est`; nulo ou
+vazio chega como `""`). Identidade: `chave_nfe` + `direcao`. `LEFT JOIN` no cadastro mantém a nota
+cuja contraparte não tem UF.
+
+Ordem dos `?` (contrato, vínculo posicional): `codi_emp_sai, start_sai, end_sai, codi_emp_ent,
+start_ent, end_ent`. As duas metades usam a mesma empresa e a mesma janela; os nomes são únicos
+porque o binder do agente confere nome, ordem e tipo ODBC contra o manifesto. A janela é a data de
+escrituração: `dsai_sai` nas saídas e `dent_ent` nas entradas, limites inclusivos.
+
+`validated: false` porque nenhum preflight rodou contra um Domínio real. Pendente de confirmar:
+nome da coluna de data de `efsaidas` (`dsai_sai` não aparece em nenhum outro lugar do repositório),
+`dent_ent` em `efentradas` (confirmado só por outro script do repositório), `codi_emp` em
+`effornece` e a semântica de `LENGTH(TRIM(chave)) = 44` no SQL Anywhere. Enquanto estiver `false`, o
+agente responde `/failure` com `dataset_not_validated` e não executa.
+
 ## Procedimento de validação num servidor Domínio real
 
 1. Instale o agente e rode um job `preflight` para cada dataset (o preflight executa a consulta

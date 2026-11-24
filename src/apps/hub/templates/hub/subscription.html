@@ -1,0 +1,86 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/subscription.css' %}?v=2">{% endblock %}
+
+{% block workspace_content %}
+{% if read_only %}
+<aside class="subscription-banner" role="status">
+  <span class="module-state is-danger">Somente leitura</span>
+  <p>{{ access_reason|default:"Consulta e exportação seguem ativas." }}</p>
+  {% if automatic %}<a class="button button-small" href="#faturas">Ver faturas</a>{% endif %}
+</aside>
+{% endif %}
+
+<section class="workspace-panel" aria-labelledby="plan-title">
+  <header class="workspace-panel-head"><div><h2 id="plan-title">Plano</h2></div>{% if contract and contract_label %}<span class="module-state {% if contract.status == 'active' %}is-active{% elif contract.status == 'trial' %}is-warning{% else %}is-danger{% endif %}">{{ contract_label }}</span>{% endif %}</header>
+  {% if contract %}
+  <dl class="subscription-facts">
+    <div><dt>Plano</dt><dd>{{ plan_name|default:"—" }}</dd></div>
+    <div><dt>Mensalidade</dt><dd>{{ price }}</dd></div>
+    <div><dt>Cobrança</dt><dd>{% if automatic %}Automática{% else %}Mewstack{% endif %}</dd></div>
+    {% if contract.status == 'trial' and trial_ends_on %}<div><dt>Teste até</dt><dd>{{ trial_ends_on|date:"d/m/Y" }}</dd></div>{% endif %}
+  </dl>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Sem contrato vigente</strong></div>
+  {% endif %}
+</section>
+
+{% if limit_states %}
+<section class="workspace-panel" aria-labelledby="limits-title">
+  <header class="workspace-panel-head"><div><h2 id="limits-title">Limites</h2></div></header>
+  <ul class="subscription-limits">
+    {% for item in limit_states %}
+    <li>
+      <div class="limit-head"><strong>{{ item.label }}</strong><span>{{ item.used }} de {{ item.limit }}</span>{% if item.level == 'full' %}<span class="module-state is-danger">Limite</span>{% elif item.level == 'warn' %}<span class="module-state is-warning">Atenção</span>{% endif %}</div>
+      <div class="limit-track" role="progressbar" aria-label="{{ item.label }}" aria-valuemin="0" aria-valuemax="{{ item.limit }}" aria-valuenow="{{ item.used }}"><span class="limit-fill is-{{ item.level }}" style="width: {% if item.percent > 100 %}100{% else %}{{ item.percent }}{% endif %}%"></span></div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if plans %}
+<section class="workspace-panel" aria-labelledby="plans-title">
+  <header class="workspace-panel-head"><div><h2 id="plans-title">Planos</h2></div></header>
+  <ul class="subscription-plans">
+    {% for item in plans %}
+    <li>
+      <div><strong>{{ item.plan.name }}</strong><span>{{ item.price }}/mês</span></div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="convert"><input type="hidden" name="plan" value="{{ item.plan.code }}"><button class="button button-small" type="submit">Contratar<span class="sr-only"> {{ item.plan.name }}</span></button></form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section id="faturas" class="workspace-panel" aria-labelledby="invoices-title">
+  <header class="workspace-panel-head"><div><h2 id="invoices-title">Faturas</h2></div></header>
+  {% if rows %}
+  <div class="data-table-wrap">
+    <table class="operational-table nfse-sync-table subscription-table">
+      <thead><tr><th>Competência</th><th>Vencimento</th><th>Total</th><th>Situação</th><th><span class="sr-only">Pagamento</span></th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td data-label="Competência"><strong>{{ row.invoice.period_start|date:"m/Y" }}</strong></td>
+          <td data-label="Vencimento">{{ row.invoice.due_on|date:"d/m/Y" }}</td>
+          <td data-label="Total">{{ row.total }}</td>
+          <td data-label="Situação"><span class="module-state {{ row.tone }}">{{ row.invoice.get_status_display }}</span></td>
+          <td data-label="Pagamento" class="table-action-cell">
+            {% if row.checkout_url %}<a class="row-action-button" href="{{ row.checkout_url }}">Abrir cobrança<span class="sr-only"> {{ row.invoice.period_start|date:"m/Y" }}</span></a>
+            {% elif row.can_pay %}
+            <form class="pay-form" method="post">{% csrf_token %}<input type="hidden" name="action" value="pay"><input type="hidden" name="invoice" value="{{ row.invoice.pk }}">
+              {% for value, label in methods %}<button class="row-action-button" type="submit" name="method" value="{{ value }}">{{ label }}<span class="sr-only"> fatura {{ row.invoice.period_start|date:"m/Y" }}</span></button>{% endfor %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhuma fatura</strong></div>
+  {% endif %}
+</section>
+{% endblock %}

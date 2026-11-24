@@ -12,9 +12,11 @@ handler404 = "apps.common.views.page_not_found"
 handler500 = "apps.common.views.server_error"
 
 urlpatterns: list[URLPattern | URLResolver] = [
+    path("", include("apps.mcpgateway.urls")),
     path("", include("apps.hub.urls")),
     path("app/ia/", include("apps.intelligence.urls")),
     path("app/rentabilidade/", include("apps.profitability.urls")),
+    path("app/contraprova/", include("apps.crosscheck.urls")),
     path("mfa/", include("apps.accounts.urls")),
     path("platform/", include("apps.platform.urls")),
     path("api/v1/", include("config.urls_api")),

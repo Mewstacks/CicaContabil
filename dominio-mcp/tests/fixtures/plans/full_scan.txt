@@ -1,0 +1,11 @@
+( Plan [ Estimated cost: 1.003, Estimated rows: 1, Build optimization time: 3.49e-005, Preoptimization time: 3.53e-005, Optimization time: 4.42e-005, Postoptimization time: 6e-007, Plan build time: 0.0001799, Algorithms: Left-deep trees, Costed best plans: 3, Costed plans: 6, Estimated Cache Pages: 2787960 ] 
+  ( RowLimit 
+    ( SingleRowGroupBy 
+      [ 12 ]
+        ( SingleRowGroupBy 
+          ( ParallelTableScan ( efsaidas t0 ) )
+        )
+      )
+    )
+  )
+)

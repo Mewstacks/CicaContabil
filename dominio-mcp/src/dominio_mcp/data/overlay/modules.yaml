@@ -1,0 +1,20 @@
+# Modulos do Dominio pelo prefixo de 2 letras do nome da tabela (D-318).
+# Descricoes proprias, inferidas dos comentarios de tabela do banco (confianca "inferida").
+version: 1
+modules:
+  ef: {nome: Escrita fiscal, descricao: "Notas fiscais de entrada, saida e servico, produtos, impostos, acumuladores e parametros fiscais.", confianca: inferida}
+  ct: {nome: Contabilidade, descricao: "Plano de contas, lancamentos, centros de custo, extrato bancario e SPED contabil.", confianca: inferida}
+  fo: {nome: Folha de pagamento, descricao: "Empregados, eventos, calculos, guias, eSocial e rotinas de folha.", confianca: inferida}
+  ge: {nome: Cadastros gerais e controles, descricao: "Empresas, municipios, estados, impostos, atendimento e integracoes comuns aos modulos.", confianca: inferida}
+  hr: {nome: Honorarios, descricao: "Contratos, faturamento e parcelas de honorarios do escritorio.", confianca: inferida}
+  ho: {nome: Honorarios (versao anterior), descricao: "Cadastros e parametros do modulo de honorarios anterior.", confianca: inferida}
+  hn: {nome: Honorarios (conversao), descricao: "Conversao e cadastros de bancos e agencias do honorarios novo.", confianca: inferida}
+  lr: {nome: Lucro real e LALUR, descricao: "Tabelas de adicoes, exclusoes e calculo do lucro real.", confianca: inferida}
+  la: {nome: LALUR, descricao: "Adicoes e exclusoes do imposto de renda e da contribuicao social.", confianca: inferida}
+  po: {nome: Ponto, descricao: "Marcacoes de ponto, ocorrencias e situacao do empregado por dia.", confianca: inferida}
+  pm: {nome: Patrimonio, descricao: "Contas patrimoniais, taxas e calculo patrimonial.", confianca: inferida}
+  pa: {nome: Patrimonio (controle), descricao: "Calculo mensal, contas e CIAP do patrimonio.", confianca: inferida}
+  pc: {nome: Processos, descricao: "Processos, atividades e menus do controle de processos.", confianca: inferida}
+  pr: {nome: Protocolos, descricao: "Parametros e movimento de documentos e protocolos.", confianca: inferida}
+  au: {nome: Auditoria, descricao: "Configuracao e registro das tabelas e colunas auditadas.", confianca: inferida}
+  us: {nome: Usuarios e acessos, descricao: "Configuracao de usuarios e permissoes do sistema.", confianca: inferida}
