@@ -6299,3 +6299,22 @@ delegação da D-393, no escopo da D-398/D-399 (só apresentação, só uso dire
    existe quando a CICA lança algo que falta no Razão; a tela diz isso em vez de deixar a dúvida.
 
 Sem migração, custo, IA ou mensagem; publicação pedida pelo responsável antes da reunião.
+
+## D-402 — Apagar de novo a SURIA em produção para a conciliação começar do zero (24/11/2026)
+
+Origem: responsável, 24/11/2026, antes da reunião com a cliente: “quero começar a conciliação da SURIA do
+zero, e não eu anexar ela no sistema e ele já dar como concluído”. Ao ser informado de que o mês fica 163/163
+porque o Razão de 09/2026 já está na CICA e as confirmações automáticas (D-388/D-400) rodam na importação,
+escolheu “Apagar dados da SURIA” (não desligar a conferência automática) e “Só o plano de contas” como o que
+preservar. Executor Claude Code. Repete o critério da D-387 sobre os dados atuais.
+
+Apagar da empresa Domínio 212: extrato OFX e seus 163 movimentos, as 163 confirmações automáticas, fila
+OFX×Domínio, vínculo e mapeamento da conta Sicredi, as duas coletas de Razão (registros e lançamentos lidos),
+as 14 regras DE-PARA e a atividade de conferência. Preservar a empresa, o plano de contas (conta 8 —
+BANCO SICREDI e o catálogo da descoberta) e a trilha de auditoria. Antes, ensaio em transação revertida e
+cópia privada dos registros apagados; nenhum dado de outra empresa.
+
+Efeito esperado: ao anexar o OFX, a conta é vinculada de novo (D-385), a CICA pede sozinha o Razão de 09/2026
+(D-386) e o mês mostra “Aguardando o Razão do Domínio” (D-401) até o agente da CONTAD entregá-lo; só então as
+confirmações automáticas rodam. Regras D-386/D-388/D-393/D-400 não mudam.
+Sem migração, custo, IA ou mensagem externa.

@@ -13176,3 +13176,17 @@ health check passando, live/ready/site 200 e logs sem erro. Tela conferida na se
 “Conciliação bancária › Por empresa › Resultado de setembro de 2026”, “Setembro de 2026 conciliado: nada
 a enviar ao Domínio” com “Baixar relatório (PDF)”, passos ✓ OFX SICREDI.ofx / ✓ 163 de 163 conferidos /
 ✓ Nada a enviar.
+
+## V-461 — D-402: SURIA apagada de novo em produção para começar do zero (24/11/2026)
+
+Levantamento somente leitura antes (máquina web): 1 OFX importado (19/11), 163 movimentos, 163 confirmações,
+todas automáticas (D-388/D-400), 2 coletas de Razão (163 registros e 163 lançamentos lidos), 14 regras
+DE-PARA, conta BANCO SICREDI vinculada com mapeamento e 1 atividade “Conferir movimentos da Conciliação”
+concluída em 24/11. Ensaio em transação revertida limpo, com travas para outra empresa, plano de contas,
+descoberta e auditoria. Aplicação real: 163 decisões, 163 confirmações, 163 movimentos, 163 registros de
+Razão, 163 lançamentos lidos + 334 linhas, 163 lançamentos contábeis, 163 identidades OFX, 1 importação,
+163 transações, 163 pareamentos, 2 coletas de Razão, 14 regras, 1 atividade (3 eventos, 1 evidência),
+1 processamento, 3 fontes, 1 mapeamento e a conta; nenhum registro de outra empresa. Cópia privada (0600)
+em Downloads/CICA-SURIA-backup-antes-de-apagar-2026-11-24.json, 1.191.675 bytes, SHA `b7934d93…216a`
+conferido. Releitura: só restam a empresa, a conta 8 — BANCO SICREDI do plano e a descoberta.
+Não verificado: arquivos brutos no armazenamento de objetos; nova importação pela tela ainda não feita.
