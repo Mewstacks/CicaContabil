@@ -1,0 +1,40 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/procuracao.css' %}?v=6">{% endblock %}
+
+{% block workspace_content %}
+<nav class="workspace-tabs" aria-label="Serpro">
+  <a href="{% url 'hub:serpro' %}" aria-current="page">Identidade</a>
+  <a href="{% url 'hub:serpro-radar' %}">Radar fiscal</a>
+</nav>
+<aside class="procuracao-state" role="status" aria-label="Estado do Serpro">
+  <span class="module-state is-muted">{{ mode_label }}</span>
+  <span class="module-state {{ termo.tone }}">{{ termo.label }}</span>
+  <span class="module-state {% if radar_on %}is-active{% else %}is-muted{% endif %}">Radar {% if radar_on %}ligado{% else %}desligado{% endif %}</span>
+</aside>
+
+{% if can_see_cost %}
+<section class="workspace-panel" aria-labelledby="custo-title">
+  <header class="workspace-panel-head"><div><h2 id="custo-title">Custo por mês</h2></div><span class="record-count">Limite {{ monthly_cap }}</span></header>
+  {% if cost_rows %}
+  <div class="data-table-wrap">
+    <table class="operational-table">
+      <thead><tr><th>Mês</th><th>Chamadas</th><th>Custo</th><th>Do limite</th></tr></thead>
+      <tbody>
+      {% for row in cost_rows %}
+        <tr>
+          <td data-label="Mês">{{ row.month|date:"m/Y" }}</td>
+          <td data-label="Chamadas">{{ row.calls }}</td>
+          <td data-label="Custo">{{ row.cost }}</td>
+          <td data-label="Do limite">{{ row.share }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhuma chamada ao Serpro</strong><a class="button button-quiet button-small" href="{% url 'hub:serpro-radar' %}">Ver radar</a></div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

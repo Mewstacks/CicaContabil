@@ -1,0 +1,33 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/procuracao.css' %}?v=6">{% endblock %}
+
+{% block workspace_content %}
+<nav class="workspace-tabs" aria-label="Serpro">
+  <a href="{% url 'hub:serpro' %}">Identidade</a>
+  <a href="{% url 'hub:serpro-radar' %}" aria-current="page">Radar fiscal</a>
+</nav>
+
+<section class="workspace-panel procuracao-panel" aria-labelledby="radar-title">
+  <header class="workspace-panel-head"><div><h2 id="radar-title">Empresas</h2></div><span class="record-count">{{ rows|length }} empresa{{ rows|length|pluralize }}{% if denied %} · {{ denied }} sem procuração{% endif %}</span></header>
+  {% if rows %}
+  <div class="data-table-wrap">
+    <table class="operational-table procuracao-table">
+      <thead><tr><th>Empresa</th>{% for code, label in events %}<th>{{ label }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td data-label="Empresa"><strong>{{ row.company.name }}</strong><small>{{ row.company.cnpj_masked }}</small></td>
+          {% for label, signal in row.cells %}
+            <td data-label="{{ label }}">{% if signal.sem_procuracao %}<span class="module-state is-warning">Sem procuração</span>{% elif signal.event_date %}{{ signal.event_date|date:"d/m/Y" }}{% else %}<span class="table-muted">Sem novidade</span>{% endif %}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>{% if radar_on %}Nenhum evento coletado{% else %}Radar desligado{% endif %}</strong><a class="button button-quiet button-small" href="{% url 'hub:serpro' %}">Ver identidade</a></div>
+  {% endif %}
+</section>
+{% endblock %}

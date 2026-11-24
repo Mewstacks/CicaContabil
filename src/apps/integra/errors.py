@@ -41,3 +41,11 @@ class IntegraServiceError(IntegraError):
 
 class IntegraNotAuthorized(IntegraServiceError):
     """Usually a missing or expired electronic power of attorney for this contributor."""
+
+
+class IntegraBudgetExceeded(IntegraError):
+    """The call would pass the monthly or the conversation limit; nothing was sent."""
+
+
+class IntegraProcuracaoMissing(IntegraError):
+    """The taxpayer has no procuração for the office; the paid call was not made."""
