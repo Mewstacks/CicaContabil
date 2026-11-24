@@ -106,6 +106,11 @@
         }
       }
       if (!data.poll) delete row.dataset.ledgerStatusUrl;
+      // D-403: the running search ended; show the fresh page (result, problem or retry).
+      if (!data.poll && row.matches('[data-ledger-progress]')
+          && !(autoOpen && conferenceUrl && ['imported', 'empty'].includes(data.status))) {
+        window.location.reload();
+      }
     } finally { window.clearTimeout(timeout); }
   };
   const refresh = async () => {
@@ -119,7 +124,16 @@
     }
     if (rows.some((row) => row.dataset.ledgerStatusUrl)) {
       if (rounds < 60) window.setTimeout(refresh, 10000);
-      else announce('A atualização automática foi pausada. Use Atualizar situação para continuar acompanhando.');
+      else {
+        announce('A atualização automática foi pausada. Use Atualizar situação para continuar acompanhando.');
+        const progress = document.querySelector('[data-ledger-progress]');
+        if (progress) {
+          progress.classList.add('is-paused');
+          progress.querySelector('[data-ledger-progress-bar]')?.setAttribute('aria-valuetext', 'Acompanhamento pausado');
+          const help = progress.querySelector('[data-ledger-progress-help]');
+          if (help) help.textContent = 'O acompanhamento automático foi pausado. Use Atualizar situação, em Solicitações, para conferir de novo.';
+        }
+      }
     }
   };
   if (rows.length) window.setTimeout(refresh, autoOpen ? 3000 : 10000);

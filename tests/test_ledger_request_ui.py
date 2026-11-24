@@ -1,6 +1,6 @@
 """Synthetic customer requests keep bank uploads independent of the official agent."""
 
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -309,3 +309,57 @@ def test_selected_page_still_offers_other_authorized_company_accounts(case):
     assert other_account in response.context["ledger_form"].fields["account"].queryset
     wrong_pair = case["client"].get(endpoint(), options(case, account=str(other_account.pk)))
     assert wrong_pair.status_code == 400 and wrong_pair.context["ledger_form"].errors["account"]
+
+
+def online(case):
+    EdgeAgent.objects.filter(pk=case["agent"].pk).update(
+        ledger_capabilities={"automatic_counts": True},
+        ledger_capabilities_observed_at=timezone.now(),
+        last_seen_at=timezone.now(),
+    )
+
+
+def test_running_search_shows_progress_and_blocks_duplicates(case):
+    """D-403: while the Razão is being fetched the page says so and never queues another."""
+    online(case)
+    mapping(case)
+    assert case["client"].post(endpoint(), command(case)).status_code == 302
+    job = NativeLedgerCollection.objects.get()
+    page = case["client"].get(endpoint(), options(case))
+    html = page.content.decode()
+    assert page.context["ledger_active_job"]["job"].pk == job.pk
+    assert not page.context["ledger_can_request"]
+    assert "Buscando o Razão de 09/2026 no Domínio" in html
+    assert 'data-ledger-progress data-ledger-status-url="' in html
+    assert "Já há uma busca do Razão em andamento" in html
+    assert 'value="request" type="submit" data-busy-label="Solicitando…" disabled' in html
+    response = case["client"].post(endpoint(), command(case))
+    assert response.status_code == 302
+    assert NativeLedgerCollection.objects.count() == 1
+    NativeLedgerCollection.objects.filter(pk=job.pk).update(claimed_at=timezone.now())
+    html = case["client"].get(endpoint(), options(case)).content.decode()
+    assert "Solicitação entregue ao agente" in html
+
+
+def test_progress_pauses_when_agent_is_offline(case):
+    online(case)
+    mapping(case)
+    assert case["client"].post(endpoint(), command(case)).status_code == 302
+    EdgeAgent.objects.filter(pk=case["agent"].pk).update(
+        last_seen_at=timezone.now() - timedelta(hours=1)
+    )
+    html = case["client"].get(endpoint(), options(case)).content.decode()
+    assert "Busca do Razão de 09/2026 parada" in html and "ledger-progress is-paused" in html
+    assert "O pedido continua na fila" in html
+    assert "Confira se o computador do Domínio está ligado" in html
+
+
+@pytest.mark.parametrize("state", ["review", "failed", "imported"])
+def test_finished_search_releases_the_button(case, state):
+    mapping(case)
+    assert case["client"].post(endpoint(), command(case)).status_code == 302
+    NativeLedgerCollection.objects.update(state=state)
+    page = case["client"].get(endpoint(), options(case))
+    assert page.context["ledger_active_job"] is None
+    assert "data-ledger-progress" not in page.content.decode()
+    assert page.context["ledger_can_request"]

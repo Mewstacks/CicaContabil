@@ -705,7 +705,7 @@ def ledger_job_context(*, job: NativeLedgerCollection, actor: User) -> dict[str,
     if not isinstance(job.result, dict):
         raise LedgerRequestError("O resultado da solicitação precisa de revisão de integridade.")
     status = job.state
-    detail = "O agente buscará o Razão quando estiver conectado."
+    detail = "O agente do escritório busca o Razão na próxima verificação."
     label = "Na fila"
     requester_valid = True
     if status == "queued" and is_automatic_scope(scope):

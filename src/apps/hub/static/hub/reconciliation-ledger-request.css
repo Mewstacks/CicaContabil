@@ -9,3 +9,14 @@
 @media(max-width:760px){.ledger-request-panel .ledger-request-table{min-width:0}.ledger-request-panel .ledger-request-table tr{width:100%;padding:16px}.ledger-request-panel .ledger-request-table td{min-width:0;overflow:visible}}
 .ledger-account-hint{display:block;margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5}
 .ledger-account-hint a{display:inline-block;min-height:24px;color:var(--blue);font-weight:700}
+
+.ledger-progress{margin:18px 22px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius-sm);display:grid;gap:10px}
+.ledger-progress-title{margin:0;font-weight:700;line-height:1.4}
+.ledger-progress-track{position:relative;height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.ledger-progress-track span{position:absolute;inset:0 auto 0 0;width:35%;border-radius:inherit;background:var(--accent,var(--blue));animation:ledger-progress 1.6s ease-in-out infinite}
+.ledger-progress.is-paused .ledger-progress-track span{animation:none;width:100%;opacity:.35}
+.ledger-progress-step{margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;line-height:1.5}.ledger-progress-step .status-badge{margin:0}
+.ledger-progress-help{margin:0;color:var(--muted);line-height:1.5}
+@keyframes ledger-progress{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
+@media(max-width:760px){.ledger-progress{margin:16px}}
+@media(prefers-reduced-motion:reduce){.ledger-progress-track span{animation:none;width:100%;opacity:.6}}

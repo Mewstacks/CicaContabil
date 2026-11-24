@@ -13190,3 +13190,24 @@ Razão, 163 lançamentos lidos + 334 linhas, 163 lançamentos contábeis, 163 id
 em Downloads/CICA-SURIA-backup-antes-de-apagar-2026-11-24.json, 1.191.675 bytes, SHA `b7934d93…216a`
 conferido. Releitura: só restam a empresa, a conta 8 — BANCO SICREDI do plano e a descoberta.
 Não verificado: arquivos brutos no armazenamento de objetos; nova importação pela tela ainda não feita.
+
+## V-462 — D-403: “Buscando o Razão” na tela Extrato e Razão (24/11/2026)
+
+Executor Claude Code, branch `claude/contad-razao-carregando` a partir da main `11d846b`. Motivado pelo
+responsável na reunião, ao importar o OFX da SURIA do zero (D-402): a tela mostrava só “Razão do Domínio
+solicitado” e “Aguardando a próxima verificação”, com “Buscar Razão” ativo. Leitura do código confirmou que
+um clique nesse botão criaria um segundo pedido do mesmo mês.
+
+Mudança: a view identifica o pedido em andamento da conta e do mês (na fila ou entregue ao agente, mesmo fora
+da página do histórico); a seção *Extrato e Razão* mostra título, barra contínua, situação e aviso; a barra
+para com o motivo quando o agente está sem conexão, desatualizado ou não confirmado, e depois de 10 minutos de
+acompanhamento; o JS acompanha o pedido pela rota de situação existente e, ao terminar, abre a conferência
+(D-386) ou recarrega a tela; “Buscar Razão” fica desativado e o servidor recusa outro pedido do mesmo mês
+sem criar registro. Texto do pedido na fila passou a “O agente do escritório busca o Razão na próxima
+verificação.” Sem migração; CSS e JS com nome versionado pelo manifesto na publicação.
+
+Testes: 5 novos em `tests/test_ledger_request_ui.py` (barra e bloqueio, pedido entregue, agente sem conexão,
+revisão/falha/importado liberam o botão); 568 aprovados e 13 skips (PostgreSQL) nos testes do Razão e uso
+direto. HTML real renderizado pelo teste, aberto no navegador: 820 px e 375 px sem rolagem horizontal, barra
+animada no estado em andamento e parada no estado sem conexão. Não verificado: comportamento em produção com
+o agente real.

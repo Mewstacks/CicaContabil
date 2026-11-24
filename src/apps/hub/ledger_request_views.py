@@ -238,6 +238,17 @@ def _populate(request: HttpRequest, context: dict[str, Any], form: LedgerRequest
             for job in jobs_page
         ],
     )
+    # D-403: the request still running for this account and month, even if paginated away.
+    active = None
+    for job in jobs.filter(state=NativeLedgerCollection.State.QUEUED)[:5]:
+        row = _job_row(ledger_job_context(job=job, actor=cast(User, request.user)), source, **pages)
+        if row["poll"]:
+            active = row
+            break
+    context.update(
+        ledger_active_job=active,
+        ledger_can_request=bool(context["ledger_can_request"] and active is None),
+    )
     for name, page, parameter, anchor in (
         ("jobs", jobs_page, "page", "ledger-requests"),
         ("sources", sources_page, "sources_page", "ledger-bank-sources"),
@@ -414,6 +425,15 @@ def ledger_request(request: HttpRequest) -> HttpResponse:
         return redirect(_url(account, month, source))
     from apps.hub.ledger_requests import request_ledger
 
+    active = context.get("ledger_active_job")
+    if active is not None and str(active["job"].request_key) != str(
+        form.cleaned_data["request_key"]
+    ):
+        # D-403: one search per account and month at a time; never queue a duplicate.
+        if context.get("ledger_upload_notice"):
+            messages.success(request, context["ledger_upload_notice"])
+        messages.info(request, "O Razão deste mês já está sendo buscado. Acompanhe abaixo.")
+        return redirect(_url(account, month, source))
     try:
         _job, created = request_ledger(
             account=account,
