@@ -99,7 +99,7 @@ Menu do Claude na barra do sistema, **Settings…**, aba **Developer**, **Edit C
 }
 ```
 
-Salve, **feche o Claude Desktop por completo** e abra de novo. Logs: `%APPDATA%\Claude\logs\mcp.log` (conexão) e `mcp-server-dominio.log` (o stderr do servidor, que mostra a versão do pack e o perfil).
+Salve, **feche o Claude Desktop por completo** e abra de novo. A versão da Microsoft Store guarda a config em `%LOCALAPPDATA%\Claude-Data\claude_<id>\claude_desktop_config.json` (e não em `%APPDATA%`); neste computador o servidor foi gravado ali em 24/11/2026, apontando para o Python do `.venv` (`...\dominio-mcp\.venv\Scripts\python.exe -m dominio_mcp serve`), sem depender do `uv` no PATH do aplicativo. Logs: `%APPDATA%\Claude\logs\mcp.log` (conexão) e `mcp-server-dominio.log` (o stderr do servidor, que mostra a versão do pack e o perfil).
 
 ### Claude Code
 
