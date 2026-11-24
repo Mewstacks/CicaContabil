@@ -6318,3 +6318,24 @@ Efeito esperado: ao anexar o OFX, a conta é vinculada de novo (D-385), a CICA p
 (D-386) e o mês mostra “Aguardando o Razão do Domínio” (D-401) até o agente da CONTAD entregá-lo; só então as
 confirmações automáticas rodam. Regras D-386/D-388/D-393/D-400 não mudam.
 Sem migração, custo, IA ou mensagem externa.
+
+## D-403 — Indicação de “buscando o Razão” na tela Extrato e Razão (24/11/2026)
+
+Origem: responsável, 24/11/2026, na reunião com a CONTAD, depois de importar o OFX da SURIA do zero (D-402):
+“senti falta na tela anterior de uma barrinha de loading, por exemplo, para entender que o Razão está sendo
+buscado”; aprovou a proposta com “Sim, faz agora”. Executor Claude Code. Só apresentação e proteção contra
+pedido em dobro; nenhuma regra contábil muda. Vale para todos os escritórios.
+
+1. Enquanto houver pedido do Razão em andamento para a conta e o mês (na fila, entregue ao agente ou em nova
+   tentativa automática), a seção *Extrato e Razão* mostra “Buscando o Razão de MM/AAAA no Domínio”, barra
+   de progresso contínua (sem porcentagem, que o agente não informa), a situação atual do pedido e o aviso
+   de que a tela se atualiza sozinha quando o Razão chegar. A tela segue o pedido sem recarregar; quando ele
+   termina, abre a conferência (D-386) ou recarrega para mostrar o resultado ou o problema.
+2. Agente sem conexão recente, desatualizado ou não confirmado: a barra fica parada e o texto diz o motivo;
+   o pedido continua na fila. Depois de 10 minutos de acompanhamento automático, a barra também para e a tela
+   orienta usar “Atualizar situação”. Com movimento reduzido, a barra não anima.
+3. “Buscar Razão” fica desativado nesse período, com a explicação na tela; o servidor também recusa um novo
+   pedido do mesmo mês e conta enquanto houver um em andamento, sem criar outro. Pedido com falha ou em
+   revisão não bloqueia (continua valendo “Tentar novamente”).
+
+Sem migração, custo, IA ou mensagem externa. Merge e publicação dependem de autorização do responsável na sessão.
