@@ -164,8 +164,8 @@ def test_result_page_says_where_the_client_is_and_what_to_do(
     assert "SITUAÇÃO DO MÊS" in html
     # One CICA entry posted and not sent: sending comes first.
     assert "1 lançamento da CICA pronto para enviar ao Domínio" in html
-    # D-406/D-397: the automatic entry waits for a newer Razão, asked for right here.
-    assert ">Atualizar Razão para gerar o arquivo</a>" in html  # no agent here: a link
+    # D-408: one click generates and downloads the file; no newer Razão is required.
+    assert ">Baixar arquivo do Domínio</button>" in html
     assert "1. Extrato importado" in html and "3. Envio ao Domínio" in html
     assert "1 pronto para enviar" in html
     assert "Relatório (imprimir ou PDF)" in html
@@ -242,33 +242,16 @@ def test_result_page_generates_and_downloads_the_dominio_file_and_shows_rules(
     monkeypatch,
 ):
     """D-406: the Domínio file and the DE-PARA rules live on the same result page."""
-    from tests.test_direct_use import _fresh_razao
 
     from apps.hub.models import AccountingExport
 
     _plain_render(monkeypatch)
 
-    import apps.hub.ledger_requests as ledger_requests
-
     source = _october_source(enabled, django_capture_on_commit_callbacks)
-    # The synthetic account has no Domínio mapping; the request itself is covered in
-    # test_ledger_request_ui. Here only what the result page offers matters.
-    monkeypatch.setattr(
-        ledger_requests,
-        "ledger_request_context",
-        lambda **kwargs: {"readiness": True, "mapping_revision": "r" * 64},
-    )
     url = reverse("hub:reconciliation-source-review", args=[source.pk])
-    page = enabled["client"].get(url)
-    refresh = page.context["direct_use_summary"]["refresh_form"]
-    assert refresh and page.context["direct_use_summary"]["export_form"] is None
-    html = page.content.decode()
-    assert ">Atualizar Razão para gerar o arquivo</button>" in html
-    assert 'name="auto" value="1"' in html and refresh["month"] == "2026-10"
-    with django_capture_on_commit_callbacks(execute=True):
-        _fresh_razao(enabled)
     html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
-    assert ">Gerar arquivo do Domínio</button>" in html
+    assert ">Baixar arquivo do Domínio</button>" in html
+    assert "Aqui você vê o que a CICA fez" not in html  # D-408
     assert 'id="arquivo-dominio"' in html and "Arquivo para o Domínio" in html
     assert "Nenhum arquivo gerado ainda" in html
     assert 'id="regras-depara"' in html and "Regras DE-PARA desta conta" in html
@@ -286,15 +269,17 @@ def test_result_page_generates_and_downloads_the_dominio_file_and_shows_rules(
         },
     )
     assert response.status_code == 302
-    assert response["Location"] == form["next"] + "#arquivo-dominio"
     export = AccountingExport.objects.get()
-    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
+    assert response["Location"] == f"{form['next']}?baixar={export.pk}#arquivo-dominio"
+    started = enabled["client"].get(response["Location"].split("#")[0]).content.decode()
     download = reverse("hub:reconciliation-export-download", args=[export.pk])
+    assert f'<meta http-equiv="refresh" content="0;url={download}">' in started
+    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
     assert f'href="{download}">Baixar arquivo</a>' in html
+    assert "http-equiv" not in html  # only right after generating
     assert "Pronto para importar" in html
     summary = enabled["client"].get(url).context["direct_use_summary"]
-    if summary["state"] == "done":  # nothing else left: the month action is the download
-        assert summary["href"] == download
+    assert summary["href"] == download and summary["action"] == "Baixar arquivo do Domínio"
     assert enabled["client"].get(download).status_code == 200
 
 
@@ -308,12 +293,9 @@ def test_export_return_address_only_accepts_a_result_page(
     monkeypatch,
     target,
 ):
-    from tests.test_direct_use import _fresh_razao
 
     _plain_render(monkeypatch)
     source = _october_source(enabled, django_capture_on_commit_callbacks)
-    with django_capture_on_commit_callbacks(execute=True):
-        _fresh_razao(enabled)
     form = enabled["client"].get(
         reverse("hub:reconciliation-source-review", args=[source.pk])
     ).context["direct_use_summary"]["export_form"]

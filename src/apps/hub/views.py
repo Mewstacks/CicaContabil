@@ -11270,76 +11270,36 @@ def _direct_use_export_and_rules(
     review_url = reverse("hub:reconciliation-source-review", args=[source.pk])
     query = str(context.get("conference_report_querystring") or "")
     form = None
-    refresh = None
-    held = False
     if summary["state"] == "send" and allowed and start and end:
-        from apps.hub.double_booking import check_export
-
-        held = bool(
-            check_export(
-                organization=source.organization,
-                company=source.company,
-                start=start,
-                end=end,
-                withdraw=False,
-            ).held
-        )
-    account = source.financial_account
-    if held and account is not None:
-        # D-397 holds automatic entries until a newer Razão is read; ask for it from here.
-        from apps.hub.ledger_requests import ledger_request_context
-
-        try:
-            ledger = ledger_request_context(account=account, actor=request.user)
-            revision = ledger["mapping_revision"] if ledger["readiness"] else ""
-        except (ValueError, PermissionDenied):
-            revision = ""
-        if revision:
-            refresh = {
-                "company": str(source.company_id),
-                "account": str(account.pk),
-                "month": start.strftime("%Y-%m") if start else "",
-                "bank_source": str(source.pk),
-                "request_key": str(uuid.uuid4()),
-                "revision": revision,
-            }
-        summary["href"] = (
-            reverse("hub:reconciliation-ledger-request")
-            + "?"
-            + urlencode(
-                {
-                    "company": str(source.company_id),
-                    "account": str(account.pk),
-                    "bank_source": str(source.pk),
-                    "month": start.strftime("%Y-%m") if start else "",
-                    "auto": "1",
-                }
-            )
-        )
-        summary["action"] = "Atualizar Razão para gerar o arquivo"
-        summary["text"] = (
-            "São movimentos do extrato que não estavam no Razão e que uma regra reconheceu. "
-            "Antes de gerar o arquivo, a CICA lê o Razão de novo para não lançar em dobro o que "
-            "o escritório já tiver lançado; depois volta para esta tela."
-        )
-    elif summary["state"] == "send" and allowed and start and end:
         form = {
             "company_id": str(source.company_id),
             "start": start.isoformat(),
             "end": end.isoformat(),
             "next": review_url + (f"?{query}" if query else ""),
         }
-        summary["action"] = "Gerar arquivo do Domínio"
+        summary["action"] = "Baixar arquivo do Domínio"
         summary["text"] = (
             "São movimentos do extrato que não estavam no Razão e que uma regra reconheceu. "
-            "Gere o arquivo aqui, baixe e importe no Domínio."
+            "Baixe o arquivo e importe no Domínio."
         )
     elif summary["state"] == "send":
         summary["href"] = "#arquivo-dominio"
-    elif summary["state"] == "done" and exports:
+    elif exports and summary["state"] in {"done", "attention"}:
+        # D-408: once the file exists, downloading it stays the main action of the month.
+        if summary["state"] == "attention":
+            pending = summary["title"]
+            summary["title"] = "Arquivo do Domínio pronto para baixar"
+            summary["text"] = (
+                f"{pending[:1].upper()}{pending[1:]}: a CICA não lançou esses movimentos para "
+                "não duplicar ou por não reconhecer o histórico; veja na lista abaixo."
+            )
         summary["action"], summary["href"] = "Baixar arquivo do Domínio", exports[0]["url"]
+    wanted = request.GET.get("baixar", "")
+    context["direct_use_auto_download"] = next(
+        (row["url"] for row in exports if str(row["export"].pk) == wanted), ""
+    )
     summary["export_form"] = form
-    summary["refresh_form"] = refresh
+    account = source.financial_account
     context.update(
         direct_use_exports=exports,
         direct_use_rules=ledger_rule_rows(account) if account else [],
@@ -12671,6 +12631,8 @@ def reconciliation_export_create(request: HttpRequest) -> HttpResponse:
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     company = get_object_or_404(companies, id=request.POST.get("company_id"))
+    export: AccountingExport | None = None
+    reexport_of: AccountingExport | None = None
     try:
         start = datetime.strptime(request.POST.get("period_start", ""), "%Y-%m-%d").date()
         end = datetime.strptime(request.POST.get("period_end", ""), "%Y-%m-%d").date()
@@ -12713,7 +12675,10 @@ def reconciliation_export_create(request: HttpRequest) -> HttpResponse:
             if held.held:
                 messages.info(request, held.message())
     if target := _result_page_target(request, request.POST.get("next", "")):
-        return redirect(target + "#arquivo-dominio")  # D-406: back to the same result page
+        # D-406/D-408: back to the same result page, which starts the download right away.
+        if export is not None and reexport_of is None:
+            target += ("&" if "?" in target else "?") + urlencode({"baixar": str(export.pk)})
+        return redirect(target + "#arquivo-dominio")
     return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
 
 

@@ -191,11 +191,8 @@ def check_export(
             result.withdrawn += 1
             result.held_ids.add(str(entry.pk))
             continue
-        month = entry.occurred_on.replace(day=1)
-        if not razao_read_after(account, month, entry.approved_at):
-            key = (account.pk, month)
-            result.held[key] = result.held.get(key, 0) + 1
-            result.held_ids.add(str(entry.pk))
+        # D-408 supersedes the D-397 hold in direct use: the Razão already read is enough
+        # (entries only exist after it arrived, D-393); covered entries were withdrawn above.
     return result
 
 

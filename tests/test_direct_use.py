@@ -178,16 +178,7 @@ def test_export_is_allowed_only_for_the_listed_office(
     assert export_allowed(org, "dominio", VERSION)
     assert not export_allowed(org, "dominio", "outra-versao")
     assert not export_allowed(org, "siescon", VERSION)
-    # D-397: the automatic entry waits for a Razão read after its approval.
-    with pytest.raises(ReconciliationError, match="aguardam o Razão atualizado"):
-        create_export(
-            organization=org,
-            company=enabled["company"],
-            start=date(2026, 10, 1),
-            end=date(2026, 10, 31),
-            actor=enabled["user"],
-        )
-    _fresh_razao(enabled)
+    # D-408: the Razão already read is enough; no newer Razão is required (was D-397).
     export = create_export(
         organization=org,
         company=enabled["company"],
