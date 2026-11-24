@@ -32,6 +32,14 @@ HARD_CANCEL_CONFIRM_SECONDS = 60
 HARD_EXECUTIONS_PER_MINUTE = 120
 HARD_PLAN_COST_BUDGET = 100
 HARD_PLAN_ROWS_BUDGET = 10_000_000
+# Teto das consultas verificadas que declaram `orcamento` no YAML (DC-1): o SQL e nosso, fixo e
+# conferido; o cliente nunca escolhe. O custo estimado pelo servidor e pessimista em juncoes largas
+# (33 milhoes de linhas estimadas para uma consulta que roda em ~1 s; custo 24 mil para a
+# numeracao da carteira, ~1 s reais), por isso estas consultas declaram o que mediram. Um produto
+# cartesiano sem filtro passa de 1e6 e continua barrado. O timeout de 30 s com cancelamento e o
+# teto de resposta continuam valendo.
+HARD_TOOL_PLAN_COST_BUDGET = 50_000
+HARD_TOOL_PLAN_ROWS_BUDGET = 200_000_000
 
 # Categorias que o dono do escritorio pode liberar em `allow_pii` (sempre com mascara).
 PII_CATEGORIES = frozenset(

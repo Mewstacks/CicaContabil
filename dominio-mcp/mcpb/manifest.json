@@ -62,6 +62,10 @@
       "description": "Lacunas e duplicidades na numeração de notas emitidas."
     },
     {
+      "name": "analise_da_carteira",
+      "description": "Oito análises da carteira inteira: notas sem lançamento, faturamento e limite do Simples, empresas sem movimento, variação de faturamento, cadastro, lançamentos contábeis, cancelamentos e numeração."
+    },
+    {
       "name": "consulta_estruturada",
       "description": "Consulta em JSON validada contra o catálogo e a política de dados."
     }

@@ -80,7 +80,24 @@ def runner(
 
 def test_shipped_tools_parse_with_their_contract() -> None:
     tools = load_shipped_tools()
-    assert set(tools) == {"empresas", "empresa_perfil", "movimento_fiscal", "conferir_numeracao"}
+    assert set(tools) == {
+        "empresas",
+        "empresa_perfil",
+        "movimento_fiscal",
+        "conferir_numeracao",
+    } | {
+        f"carteira_{name}"
+        for name in (
+            "notas_sem_contabilizacao",
+            "faturamento_e_limite",
+            "sem_movimento",
+            "variacao_faturamento",
+            "cadastro",
+            "lancamentos_contabeis",
+            "notas_canceladas",
+            "numeracao",
+        )
+    }
     assert tools["conferir_numeracao"].variant_param == "documento"
     assert set(tools["conferir_numeracao"].variants) == {"saidas", "servicos"}
     assert tools["movimento_fiscal"].janela == ("inicio", "fim")
@@ -269,3 +286,147 @@ def test_shipped_tools_against_the_real_pack_if_present() -> None:
     assert load_overlay().data("legends.yaml")["legends"]["efparametro_vigencia.rfed_par"][
         "valores"
     ][5]
+
+
+# --- orcamento de custo por consulta verificada (DC-1) ----------------------------------------
+
+HEAVY_PLAN = "( Plan [ Estimated cost: 358, Estimated rows: 33856000 ] )"
+BUDGETED_TOOL = TOOL.replace(
+    "parametros:",
+    "orcamento: {custo: 400, linhas: 40000000, medido_ms: 1300}\nparametros:",
+    1,
+)
+
+
+def test_a_tool_with_a_declared_budget_runs_where_the_default_budget_refuses(
+    tmp_path: Path,
+) -> None:
+    refused, driver, _ = runner(tmp_path)
+    driver.server.script += [Rows(["plan"], [(HEAVY_PLAN,)])]
+    with pytest.raises(QueryRefused) as exc:
+        refused.run("empresas_teste", {"codi_emp": 1})
+    assert exc.value.code == "custo_estimado_alto"
+
+    admitted, driver2, _ = runner(tmp_path / "b", BUDGETED_TOOL)
+    driver2.server.script += [
+        Rows(["plan"], [(HEAVY_PLAN,)]),
+        Rows(["codi_emp", "nome", "cnpj"], [(1, "ACME", None)]),
+    ]
+    out = admitted.run("empresas_teste", {"codi_emp": 1})
+    assert out["linhas"] == [[1, "ACME", None]]
+
+
+def test_the_declared_budget_is_still_a_ceiling(tmp_path: Path) -> None:
+    runr, driver, _ = runner(tmp_path, BUDGETED_TOOL)
+    driver.server.script += [
+        Rows(["plan"], [("( Plan [ Estimated cost: 401, Estimated rows: 1 ] )",)])
+    ]
+    with pytest.raises(QueryRefused) as exc:
+        runr.run("empresas_teste", {"codi_emp": 1})
+    assert exc.value.code == "custo_estimado_alto"
+    runr2, driver2, _ = runner(tmp_path / "b", BUDGETED_TOOL)
+    driver2.server.script += [
+        Rows(["plan"], [("( Plan [ Estimated cost: 1, Estimated rows: 40000001 ] )",)])
+    ]
+    with pytest.raises(QueryRefused):
+        runr2.run("empresas_teste", {"codi_emp": 1})
+
+
+@pytest.mark.parametrize(
+    "budget",
+    [
+        "{custo: 50001, linhas: 1}",
+        "{custo: 10, linhas: 200000001}",
+        "{custo: 0, linhas: 1}",
+        "{custo: abc, linhas: 1}",
+        "{linhas: 1}",
+        "{custo: 10}",
+    ],
+)
+def test_a_budget_above_the_hard_ceiling_or_malformed_is_a_programming_error(budget: str) -> None:
+    text = TOOL.replace("parametros:", f"orcamento: {budget}\nparametros:", 1)
+    with pytest.raises(VerifiedError):
+        parse_tool(text)
+
+
+def test_the_client_cannot_ask_for_a_bigger_budget(tmp_path: Path) -> None:
+    runr, _, _ = runner(tmp_path)
+    with pytest.raises(QueryRefused) as exc:
+        runr.run("empresas_teste", {"orcamento": 5000})
+    assert exc.value.code == "parametro_desconhecido"
+
+
+# --- paginacao por deslocamento nas consultas de carteira (DC-1) ------------------------------
+
+PAGED_TOOL = TOOL.replace(
+    "SELECT TOP {top} g.codi_emp", "SELECT TOP {top} START AT {start} g.codi_emp"
+)
+
+
+def test_start_placeholder_is_one_based_and_bound_to_the_offset() -> None:
+    text, names = assemble("SELECT TOP {top} START AT {start} x", {}, 51, start=101)
+    assert text == "SELECT TOP 51 START AT 101 x" and names == []
+    default, _ = assemble("SELECT TOP {top} START AT {start} x", {}, 11)
+    assert default == "SELECT TOP 11 START AT 1 x"
+
+
+def test_a_tool_that_uses_start_gets_the_offset_parameter(tmp_path: Path) -> None:
+    tool = parse_tool(PAGED_TOOL)
+    assert "deslocamento" in {p.nome for p in tool.params}
+    assert "deslocamento" not in {p.nome for p in parse_tool(TOOL).params}
+    runr, driver, _ = runner(tmp_path, PAGED_TOOL)
+    driver.server.script += [
+        Rows(["plan"], [(CHEAP,)]),
+        Rows(["codi_emp", "nome", "cnpj"], [(3, "C", None)]),
+    ]
+    out = runr.run("empresas_teste", {"limite": 5, "deslocamento": 2})
+    assert out["linhas"] == [[3, "C", None]]
+    assert "START AT 3" in driver.server.log[-1][0]
+
+
+@pytest.mark.parametrize("bad", [-1, 100_001, "x"])
+def test_the_offset_is_bounded(tmp_path: Path, bad: Any) -> None:
+    runr, _, _ = runner(tmp_path, PAGED_TOOL)
+    with pytest.raises(QueryRefused) as exc:
+        runr.run("empresas_teste", {"deslocamento": bad})
+    assert exc.value.code == "parametro_invalido"
+
+
+# --- achados da revisao independente: datas absurdas e teto no executor (DC-1) ----------------
+
+DATE_TOOL = TOOL.replace(
+    "  - {nome: limite,",
+    "  - {nome: dia, tipo: date}\n  - {nome: limite,",
+    1,
+)
+
+
+@pytest.mark.parametrize("bad", ["9999-12-31", "0001-01-01", "1899-12-31", "2101-01-01"])
+def test_implausible_dates_are_refused_before_the_database(tmp_path: Path, bad: str) -> None:
+    runr, driver, _ = runner(tmp_path, DATE_TOOL)
+    with pytest.raises(QueryRefused) as exc:
+        runr.run("empresas_teste", {"dia": bad})
+    assert exc.value.code == "parametro_invalido" and "data" in exc.value.message
+    assert driver.server.log == []
+
+
+def test_plausible_dates_pass(tmp_path: Path) -> None:
+    runr, driver, _ = runner(tmp_path, DATE_TOOL)
+    driver.server.script += [Rows(["plan"], [(CHEAP,)]), Rows(["codi_emp", "nome", "cnpj"], [])]
+    assert runr.run("empresas_teste", {"dia": "2026-10-15"})["quantidade"] == 0
+
+
+def test_the_executor_clamps_a_budget_above_the_hard_ceiling(tmp_path: Path) -> None:
+    import dataclasses
+
+    from dominio_mcp.config import HARD_TOOL_PLAN_COST_BUDGET
+
+    over = HARD_TOOL_PLAN_COST_BUDGET + 1
+    runr, driver, _ = runner(tmp_path)
+    tool = runr._tools["empresas_teste"]
+    runr._tools["empresas_teste"] = dataclasses.replace(tool, orcamento=(10**9, 10**12))
+    plan = f"( Plan [ Estimated cost: {over}, Estimated rows: 1 ] )"
+    driver.server.script += [Rows(["plan"], [(plan,)])]
+    with pytest.raises(QueryRefused) as exc:
+        runr.run("empresas_teste", {"codi_emp": 1})
+    assert exc.value.code == "custo_estimado_alto"

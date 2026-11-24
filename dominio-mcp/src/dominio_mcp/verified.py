@@ -30,6 +30,7 @@ from typing import Any
 import yaml
 
 from dominio_mcp.compiler import CompiledQuery, OutColumn
+from dominio_mcp.config import HARD_TOOL_PLAN_COST_BUDGET, HARD_TOOL_PLAN_ROWS_BUDGET
 from dominio_mcp.executor import QueryEngine
 from dominio_mcp.literals import UnsafeLiteral, encode_literal
 from dominio_mcp.overlay import Overlay
@@ -38,6 +39,9 @@ from dominio_mcp.policy import PolicyClass
 from dominio_mcp.query_spec import QueryRefused, coerce
 
 MAX_WINDOW_DAYS = 396
+DATE_MIN = date(1990, 1, 1)  # o banco tem datas lixo (1979, 8320, 5026); fora disto e recusa
+DATE_MAX = date(2100, 12, 31)
+OFFSET = "deslocamento"
 _CONDITIONAL = re.compile(r"\{\?(\w+):([^{}]*)\}")
 _NAMED = re.compile(r"\?(\w+)")
 _RANK = {
@@ -104,6 +108,7 @@ class Tool:
     aviso: str
     version: int = 1
     sql_hash: str = field(default="", compare=False)
+    orcamento: tuple[int, int] | None = None  # (custo, linhas) estimados que a consulta admite
 
 
 def _param(raw: dict[str, Any]) -> Param:
@@ -131,6 +136,19 @@ def _dependencies(raw: dict[str, Any]) -> dict[str, dict[str, PolicyClass]]:
     return result
 
 
+def _budget(raw: Any) -> tuple[int, int] | None:
+    """`orcamento: {custo, linhas, medido_ms}`: dentro do teto duro e nunca vindo do cliente."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise VerifiedError("orcamento deve ser um mapa")
+    cost, rows = raw.get("custo"), raw.get("linhas")
+    for value, ceiling in ((cost, HARD_TOOL_PLAN_COST_BUDGET), (rows, HARD_TOOL_PLAN_ROWS_BUDGET)):
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= ceiling:
+            raise VerifiedError("orcamento fora do teto duro ou malformado")
+    return int(cost), int(rows)  # type: ignore[arg-type]
+
+
 def parse_tool(text: str) -> Tool:
     try:
         raw = yaml.safe_load(text)
@@ -155,14 +173,29 @@ def parse_tool(text: str) -> Tool:
             variants[None] = Variant(str(raw["sql"]), _dependencies(raw["dependencias"]))
             variant_param = None
         janela = raw.get("janela")
+        orcamento = _budget(raw.get("orcamento"))
         digest = hashlib.sha256(
             json.dumps({str(k): v.sql for k, v in variants.items()}, sort_keys=True).encode()
         ).hexdigest()[:12]
+        params = tuple(_param(p) for p in raw["parametros"])
+        if any("{start}" in v.sql for v in variants.values()) and not any(
+            p.nome == OFFSET for p in params
+        ):
+            params += (
+                Param(
+                    nome=OFFSET,
+                    tipo="int",
+                    descricao="Linhas ja recebidas (a proxima pagina comeca depois delas)",
+                    padrao=0,
+                    minimo=0,
+                    maximo=100_000,
+                ),
+            )
         return Tool(
             name=str(raw["name"]),
             titulo=str(raw["titulo"]),
             descricao=str(raw["descricao"]),
-            params=tuple(_param(p) for p in raw["parametros"]),
+            params=params,
             variants=variants,
             variant_param=variant_param,
             saidas=saidas,
@@ -170,6 +203,7 @@ def parse_tool(text: str) -> Tool:
             aviso=str(raw.get("aviso", "")),
             version=int(raw.get("version", 1)),
             sql_hash=digest,
+            orcamento=orcamento,
         )
     except (KeyError, TypeError, ValueError, yaml.YAMLError) as exc:
         raise VerifiedError(f"consulta verificada malformada: {type(exc).__name__}") from None
@@ -221,10 +255,13 @@ def _coerce_param(param: Param, raw: Any) -> Any:
                 raise ValueError
             return str(raw)
         value = coerce(kind, raw)
+        if kind == "date" and not DATE_MIN <= value <= DATE_MAX:
+            raise ValueError
     except (ValueError, TypeError):
         raise QueryRefused(
             "parametro_invalido",
             f"o parametro {param.nome} nao serve (tipo {param.tipo}"
+            + (", data entre 1990 e 2100" if param.tipo == "date" else "")
             + (f", valores {', '.join(param.valores)}" if param.valores else "")
             + ")",
             parametro=param.nome,
@@ -237,13 +274,18 @@ def _coerce_param(param: Param, raw: Any) -> Any:
     return value
 
 
-def assemble(sql: str, values: dict[str, Any], top: int) -> tuple[str, list[str]]:
-    """Aplica `{top}` e os blocos condicionais; devolve o SQL com `?` e a ordem dos parametros."""
+def assemble(sql: str, values: dict[str, Any], top: int, start: int = 1) -> tuple[str, list[str]]:
+    """Aplica `{top}`, `{start}` e os blocos condicionais; devolve o SQL com `?` e a ordem dos
+    parametros. `{start}` e a primeira linha (base 1) de `TOP n START AT m`."""
 
     def conditional(match: re.Match[str]) -> str:
         return match.group(2) if values.get(match.group(1)) is not None else ""
 
-    text = _CONDITIONAL.sub(conditional, sql).replace("{top}", str(int(top)))
+    text = (
+        _CONDITIONAL.sub(conditional, sql)
+        .replace("{top}", str(int(top)))
+        .replace("{start}", str(int(start)))
+    )
     names: list[str] = []
 
     def bind(match: re.Match[str]) -> str:
@@ -325,7 +367,7 @@ class VerifiedRunner:
         variant = self._variant(tool, values)
         limits = self._engine.settings.limits
         top = min(int(values["limite"]), limits.max_rows) if "limite" in values else 1
-        sql, names = assemble(variant.sql, values, top + 1)
+        sql, names = assemble(variant.sql, values, top + 1, int(values.get(OFFSET, 0)) + 1)
         kinds = {p.nome: _PARAM_KINDS[p.tipo] for p in tool.params}
         try:
             literal = render_literal(sql, names, kinds, values)
@@ -356,7 +398,12 @@ class VerifiedRunner:
         if tool.aviso:
             extra["aviso"] = tool.aviso
         return self._engine.execute_compiled(
-            compiled, tool=f"verificada:{tool.name}", args=digest, pack=pack, extra=extra
+            compiled,
+            tool=f"verificada:{tool.name}",
+            args=digest,
+            pack=pack,
+            extra=extra,
+            budget=tool.orcamento,
         )
 
     def _values(self, tool: Tool, args: dict[str, Any]) -> dict[str, Any]:

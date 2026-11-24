@@ -1,0 +1,63 @@
+# Consulta verificada de carteira: cadastro das empresas e pendencias de parametrizacao (DC-1).
+# Pergunta real: o Dominio distribui como .bgr "Relatorio com Regimes Tributarios das empresas",
+# "Relacao de Empresas", "CNAEs de cada empresa" e "empresas sem configuracao dos Parametros na
+# Escrita Fiscal / na Contabilidade" (Central de Solucoes), e o artigo 11646 ensina a importar
+# "Relacao de Clientes - Regime de Apuracao". Aqui tudo sai junto, com as pendencias marcadas.
+version: 1
+name: carteira_cadastro
+titulo: Cadastro da carteira e pendencias de parametrizacao
+descricao: >-
+  Por empresa: situacao, modulos que usa (escrita fiscal, contabilidade, folha), regime federal
+  vigente com a data da vigencia, CNAE 2.0 e as pendencias encontradas em `pendencias` (texto com
+  `sem_regime`, `sem_cnae` e `inativa_com_modulo` separados por espaco; vazio se nao ha nenhuma).
+  Use `so_pendencias` para ver so as empresas com pendencia, `situacao` e `codi_emp` para filtrar.
+aviso: >-
+  Diagnostico: `sem_regime` so vale para empresa ativa que usa escrita fiscal; `inativa_com_modulo`
+  aponta empresa inativa que ainda esta marcada como usuaria de modulo. O regime vem da legenda
+  inferida de `rfed_par`. Confira no cadastro do Dominio antes de agir.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 0.014; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 10, linhas: 1000000, medido_ms: 200}
+parametros:
+  - {nome: situacao, tipo: choice, valores: [A, I, C, M, B, E], descricao: "Situacao da empresa (legenda em `legendas`)"}
+  - {nome: codi_emp, tipo: int, descricao: "So esta empresa (codigo no Dominio)"}
+  - {nome: so_pendencias, tipo: int, minimo: 1, maximo: 1, descricao: "Use 1 para ver so as empresas com alguma pendencia"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, uefi_emp: normal, ucta_emp: normal, ufol_emp: normal, i_cnae20: normal}
+  efparametro_vigencia: {codi_emp: normal, vigencia_par: normal, rfed_par: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} codi_emp, razao_emp, situacao, usa_escrita, usa_contabilidade, usa_folha,
+         regime_codigo, regime_vigencia, cnae, pendencias FROM (
+    SELECT g.codi_emp AS codi_emp, g.razao_emp AS razao_emp, g.stat_emp AS situacao,
+           g.uefi_emp AS usa_escrita, g.ucta_emp AS usa_contabilidade, g.ufol_emp AS usa_folha,
+           p.rfed_par AS regime_codigo, p.vigencia_par AS regime_vigencia, g.i_cnae20 AS cnae,
+           TRIM(
+             CASE WHEN g.stat_emp = 'A' AND g.uefi_emp = 1 AND p.rfed_par IS NULL THEN 'sem_regime ' ELSE '' END
+             || CASE WHEN g.stat_emp = 'A' AND (g.i_cnae20 IS NULL OR TRIM(g.i_cnae20) = '') THEN 'sem_cnae ' ELSE '' END
+             || CASE WHEN g.stat_emp = 'I' AND (g.uefi_emp = 1 OR g.ucta_emp = 1 OR g.ufol_emp = 1) THEN 'inativa_com_modulo ' ELSE '' END
+           ) AS pendencias
+    FROM bethadba.geempre g
+    LEFT OUTER JOIN (
+      SELECT codi_emp, vigencia_par, rfed_par,
+             ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par DESC) AS ordem
+      FROM bethadba.efparametro_vigencia
+      WHERE vigencia_par <= CURRENT DATE
+    ) p ON p.codi_emp = g.codi_emp AND p.ordem = 1
+    WHERE 1 = 1
+      {?situacao: AND g.stat_emp = ?situacao}
+      {?codi_emp: AND g.codi_emp = ?codi_emp}
+  ) r
+  WHERE 1 = 1
+    {?so_pendencias: AND pendencias <> ''}
+  ORDER BY codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: situacao, tipo: text, classe: normal, legenda: {tabela: geempre, coluna: stat_emp}}
+  - {nome: usa_escrita, tipo: int, classe: normal}
+  - {nome: usa_contabilidade, tipo: int, classe: normal}
+  - {nome: usa_folha, tipo: int, classe: normal}
+  - {nome: regime_codigo, tipo: int, classe: normal, legenda: {overlay: efparametro_vigencia.rfed_par}}
+  - {nome: regime_vigencia, tipo: date, classe: normal}
+  - {nome: cnae, tipo: text, classe: normal}
+  - {nome: pendencias, tipo: text, classe: normal}

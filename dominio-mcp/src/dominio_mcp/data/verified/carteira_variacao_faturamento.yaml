@@ -1,0 +1,71 @@
+# Consulta verificada de carteira: variacao do faturamento contra a media recente (DC-1).
+# Hipotese de produto (nao ha fonte de pesquisa que a peca como relatorio): o contador que acompanha
+# 300 clientes so olha o mes quando o cliente liga; queda ou salto fora do normal e o sinal mais
+# barato de nota nao enviada, venda nova ou erro de lancamento.
+version: 1
+name: carteira_variacao_faturamento
+titulo: Variacao do faturamento contra a media dos 3 meses anteriores
+descricao: >-
+  Por empresa ativa que usa escrita fiscal: faturamento do mes de referencia, media dos 3 meses
+  anteriores e a variacao percentual (negativa = queda). So entram empresas cuja media anterior
+  passa de `base_minima`, que tiveram movimento em pelo menos `meses_minimos` dos 3 meses anteriores e cuja
+  variacao absoluta chega a `variacao_minima`. Informe `mes` (qualquer
+  dia do mes de referencia). Ordenado pela maior variacao absoluta.
+aviso: >-
+  Sinal, nao conclusao: a base e o valor contabil das saidas menos o valor excluido, mais servicos.
+  Queda pode ser documento nao enviado, sazonalidade ou encerramento; salto pode ser venda unica.
+  Empresa sem movimento nos meses anteriores nao tem variacao e fica de fora; com menos de 3 meses
+  de historico (`meses_anteriores`) a media e pouco confiavel. Notas canceladas, denegadas e inutilizadas
+  ficam de fora.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 0.75; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 10, linhas: 1000000, medido_ms: 500}
+parametros:
+  - {nome: mes, tipo: date, obrigatorio: true, descricao: "Qualquer dia do mes de referencia (AAAA-MM-DD)"}
+  - {nome: variacao_minima, tipo: int, padrao: 30, minimo: 1, maximo: 10000, descricao: "Variacao absoluta minima, em percentual"}
+  - {nome: base_minima, tipo: int, padrao: 1000, minimo: 0, maximo: 1000000000, descricao: "Media minima dos 3 meses anteriores, em reais"}
+  - {nome: meses_minimos, tipo: int, padrao: 2, minimo: 1, maximo: 3, descricao: "Meses anteriores com movimento exigidos (empresa sem historico nao tem variacao)"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, uefi_emp: normal}
+  efsaidas: {codi_emp: normal, dsai_sai: normal, vcon_sai: normal, vexc_sai: normal, cancelada_sai: normal, situacao_sai: normal}
+  efservicos: {codi_emp: normal, dser_ser: normal, vcon_ser: normal, cancelada_ser: normal, situacao_ser: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} codi_emp, razao_emp, faturamento_mes, media_3_meses, meses_anteriores, variacao_percentual FROM (
+    SELECT codi_emp, razao_emp, faturamento_mes, media_3_meses, meses_anteriores,
+           ROUND(100.0 * (faturamento_mes - media_3_meses) / NULLIF(media_3_meses, 0), 1) AS variacao_percentual
+    FROM (
+      SELECT g.codi_emp AS codi_emp, g.razao_emp AS razao_emp,
+             SUM(CASE WHEN m.mes = YEAR(CAST(?mes AS DATE)) * 100 + MONTH(CAST(?mes AS DATE)) THEN m.valor ELSE 0 END) AS faturamento_mes,
+             SUM(CASE WHEN m.mes < YEAR(CAST(?mes AS DATE)) * 100 + MONTH(CAST(?mes AS DATE)) THEN m.valor ELSE 0 END) / 3.0 AS media_3_meses,
+             COUNT(DISTINCT CASE WHEN m.mes < YEAR(CAST(?mes AS DATE)) * 100 + MONTH(CAST(?mes AS DATE)) THEN m.mes END) AS meses_anteriores
+      FROM bethadba.geempre g
+      JOIN (
+        SELECT s.codi_emp AS codi_emp, YEAR(s.dsai_sai) * 100 + MONTH(s.dsai_sai) AS mes,
+               SUM(ISNULL(s.vcon_sai, 0) - ISNULL(s.vexc_sai, 0)) AS valor
+        FROM bethadba.efsaidas s
+        WHERE s.dsai_sai BETWEEN DATEADD(month, -3, DATEADD(day, 1 - DAY(CAST(?mes AS DATE)), CAST(?mes AS DATE)))
+                             AND DATEADD(day, -1, DATEADD(month, 1, DATEADD(day, 1 - DAY(CAST(?mes AS DATE)), CAST(?mes AS DATE))))
+          AND ISNULL(s.cancelada_sai, 'N') <> 'S' AND ISNULL(s.situacao_sai, 0) NOT IN (2, 7, 8)
+        GROUP BY s.codi_emp, YEAR(s.dsai_sai) * 100 + MONTH(s.dsai_sai)
+        UNION ALL
+        SELECT v.codi_emp, YEAR(v.dser_ser) * 100 + MONTH(v.dser_ser), SUM(ISNULL(v.vcon_ser, 0))
+        FROM bethadba.efservicos v
+        WHERE v.dser_ser BETWEEN DATEADD(month, -3, DATEADD(day, 1 - DAY(CAST(?mes AS DATE)), CAST(?mes AS DATE)))
+                             AND DATEADD(day, -1, DATEADD(month, 1, DATEADD(day, 1 - DAY(CAST(?mes AS DATE)), CAST(?mes AS DATE))))
+          AND ISNULL(v.cancelada_ser, 'N') <> 'S' AND ISNULL(v.situacao_ser, 0) NOT IN (2, 7, 8)
+        GROUP BY v.codi_emp, YEAR(v.dser_ser) * 100 + MONTH(v.dser_ser)
+      ) m ON m.codi_emp = g.codi_emp
+      WHERE g.stat_emp = 'A' AND g.uefi_emp = 1
+      GROUP BY g.codi_emp, g.razao_emp
+    ) base
+    WHERE media_3_meses > ?base_minima
+  ) r
+  WHERE ABS(variacao_percentual) >= ?variacao_minima AND meses_anteriores >= ?meses_minimos
+  ORDER BY ABS(variacao_percentual) DESC, codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: faturamento_mes, tipo: decimal, classe: normal}
+  - {nome: media_3_meses, tipo: decimal, classe: normal}
+  - {nome: meses_anteriores, tipo: int, classe: normal}
+  - {nome: variacao_percentual, tipo: decimal, classe: normal}

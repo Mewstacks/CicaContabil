@@ -1,0 +1,68 @@
+# Consulta verificada de carteira: empresas sem movimento fiscal na janela (DC-1).
+# Pergunta real: quem ainda nao entregou documento no fechamento. O proprio Dominio so oferece
+# "Quantidade de notas fiscais por Tipo e Empresa" como arquivo .bgr da Central de Solucoes, e os
+# guias do setor apontam documento atrasado como o que transforma o fechamento em emergencia.
+# `ultimo_movimento` vale ate o fim da janela; o que veio depois sai em `movimento_posterior` (empresa
+# que voltou a movimentar depois da janela nao e a que "parou agora"). Datas lixo do banco (1979, 5026)
+# ficam fora das duas colunas.
+version: 1
+name: carteira_sem_movimento
+titulo: Empresas sem movimento fiscal na janela
+descricao: >-
+  Empresas ativas que usam escrita fiscal e nao tem nenhuma nota de saida, entrada ou servico na
+  janela, com a data do ultimo movimento ate o fim da janela (`ultimo_movimento`, vazio se nunca
+  tiveram), a data do primeiro movimento depois dela (`movimento_posterior`) e o total de notas
+  distintas de toda a historia. Ordenado pelo ultimo movimento mais recente primeiro: quem parou
+  agora aparece antes de quem nunca movimentou.
+aviso: >-
+  Diagnostico, nao apuracao: empresa sem movimento pode ser empresa sem operacao legitima, cliente
+  que ainda nao enviou documentos ou empresa cuja escrita ainda nao foi migrada para o Dominio.
+  Use `so_com_historico` para esconder as que nunca tiveram movimento. Confira com o cliente.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 3; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 20, linhas: 1000000, medido_ms: 500}
+parametros:
+  - {nome: inicio, tipo: date, obrigatorio: true, descricao: "Primeiro dia da janela (AAAA-MM-DD)"}
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Ultimo dia da janela, no maximo 13 meses depois do inicio"}
+  - {nome: so_com_historico, tipo: int, minimo: 1, maximo: 1, descricao: "Use 1 para esconder as empresas que nunca tiveram movimento"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+janela: {inicio: inicio, fim: fim}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, uefi_emp: normal}
+  efsaidas: {codi_emp: normal, codi_esp: normal, seri_sai: normal, nume_sai: normal, dsai_sai: normal}
+  efentradas: {codi_emp: normal, codi_esp: normal, seri_ent: normal, nume_ent: normal, codi_for: normal, dent_ent: normal}
+  efservicos: {codi_emp: normal, codi_esp: normal, seri_ser: normal, nume_ser: normal, dser_ser: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} g.codi_emp AS codi_emp, g.razao_emp AS razao_emp,
+         u.ultimo_movimento AS ultimo_movimento, u.movimento_posterior AS movimento_posterior,
+         ISNULL(u.documentos_total, 0) AS documentos_total
+  FROM bethadba.geempre g
+  LEFT OUTER JOIN (
+    SELECT codi_emp, MAX(CASE WHEN dia <= CAST(?fim AS DATE) THEN dia END) AS ultimo_movimento,
+           MIN(CASE WHEN dia > CAST(?fim AS DATE) THEN dia END) AS movimento_posterior,
+           COUNT(*) AS documentos_total
+    FROM (
+      SELECT codi_emp, MAX(dsai_sai) AS dia FROM bethadba.efsaidas
+      WHERE dsai_sai BETWEEN '1990-01-01' AND CURRENT DATE
+      GROUP BY codi_emp, codi_esp, TRIM(seri_sai), nume_sai
+      UNION ALL
+      SELECT codi_emp, MAX(dent_ent) FROM bethadba.efentradas
+      WHERE dent_ent BETWEEN '1990-01-01' AND CURRENT DATE
+      GROUP BY codi_emp, codi_esp, TRIM(seri_ent), nume_ent, codi_for
+      UNION ALL
+      SELECT codi_emp, MAX(dser_ser) FROM bethadba.efservicos
+      WHERE dser_ser BETWEEN '1990-01-01' AND CURRENT DATE
+      GROUP BY codi_emp, codi_esp, TRIM(seri_ser), nume_ser
+    ) t GROUP BY codi_emp
+  ) u ON u.codi_emp = g.codi_emp
+  WHERE g.stat_emp = 'A' AND g.uefi_emp = 1
+    AND NOT EXISTS (SELECT 1 FROM bethadba.efsaidas s WHERE s.codi_emp = g.codi_emp AND s.dsai_sai BETWEEN ?inicio AND ?fim)
+    AND NOT EXISTS (SELECT 1 FROM bethadba.efentradas e WHERE e.codi_emp = g.codi_emp AND e.dent_ent BETWEEN ?inicio AND ?fim)
+    AND NOT EXISTS (SELECT 1 FROM bethadba.efservicos v WHERE v.codi_emp = g.codi_emp AND v.dser_ser BETWEEN ?inicio AND ?fim)
+    {?so_com_historico: AND u.ultimo_movimento IS NOT NULL}
+  ORDER BY CASE WHEN u.ultimo_movimento IS NULL THEN 1 ELSE 0 END, u.ultimo_movimento DESC, g.codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: ultimo_movimento, tipo: date, classe: normal}
+  - {nome: movimento_posterior, tipo: date, classe: normal}
+  - {nome: documentos_total, tipo: int, classe: normal}

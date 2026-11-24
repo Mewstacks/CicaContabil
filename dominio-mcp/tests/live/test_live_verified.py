@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from dominio_mcp.catalog import build_catalog, extract_raw
-from dominio_mcp.config import Settings
+from dominio_mcp.config import Limits, Settings
 from dominio_mcp.executor import QueryEngine
 from dominio_mcp.freshness import FreshnessGuard, make_rehasher
 from dominio_mcp.odbc import Session, build_session
@@ -42,8 +42,8 @@ WINDOW = ("2025-06-01", "2025-06-30")
 
 
 class Rig:
-    def __init__(self, home: Path) -> None:
-        settings = Settings(dsn=DSN, home=home)
+    def __init__(self, home: Path, limits: Limits | None = None) -> None:
+        settings = Settings(dsn=DSN, home=home, limits=limits or Limits())
         self.session: Session = build_session(settings, lock_wait_seconds=30.0)
         policy, overlay = load_policy(), load_overlay()
         with self.session.slot() as slot:

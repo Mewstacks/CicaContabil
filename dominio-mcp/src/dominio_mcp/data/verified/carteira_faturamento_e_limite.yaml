@@ -1,0 +1,113 @@
+# Consulta verificada de carteira: faturamento e proximidade do limite do Simples (DC-1).
+# Pergunta real: acompanhar o acumulado de 12 meses de cada cliente e avisar antes de estourar o
+# limite e o sublimite e a pratica citada por todos os guias do setor; o Dominio ja tem os
+# relatorios "Demonstrativo de Faturamento com a Receita Bruta Acumulada" e "Faturamento de Todas
+# Empresas" como arquivos .bgr da Central de Solucoes, nao como tela da carteira.
+# Regras de negocio (LC 123/2006, a conferir com a contadora): limite de R$ 4,8 milhoes e sublimite
+# de R$ 3,6 milhoes para ICMS/ISS; MEI com R$ 81 mil por ano; no ano em que a empresa comeca a
+# atividade o limite e proporcional (R$ 400 mil, ou R$ 6.750 no MEI, por mes de atividade, contando
+# a fracao como mes cheio, art. 3 par. 2). A base da faixa e o acumulado de 12 meses e a da exclusao
+# por excesso e a receita do ano-calendario, por isso saem os dois acumulados.
+# Simples = `efparametro_vigencia.simplesn_optante_par = 'S'` (a flag real do cadastro; no banco ela
+# coincide com `rfed_par` 2 e 4, cuja legenda "Microempresa" e so inferida e nao vale como limite).
+version: 1
+name: carteira_faturamento_e_limite
+titulo: Faturamento e proximidade do limite, por empresa
+descricao: >-
+  Por empresa ativa que usa escrita fiscal: faturamento do mes de referencia, acumulado dos 12
+  meses que terminam nele, acumulado do ano-calendario, meses com dado, se e optante do Simples ou
+  MEI e o percentual do limite (R$ 4,8 milhoes; R$ 81 mil no MEI) e do sublimite (R$ 3,6 milhoes).
+  No ano em que a empresa comecou a atividade sai tambem o limite proporcional do ano e o percentual
+  contra ele. Ordenado pelo maior acumulado. Informe `fim` (qualquer dia do mes de referencia).
+aviso: >-
+  Estimativa, nao apuracao: a base e o valor contabil das saidas menos o valor excluido, mais o
+  valor contabil dos servicos (notas canceladas, denegadas e inutilizadas ficam de fora), sem os
+  ajustes da receita bruta legal (devolucoes, ST, ajustes). Empresa com menos de 12 meses no
+  Dominio (`meses_com_dados`) tem acumulado parcial. O limite proporcional segue a leitura da LC
+  123/2006 e precisa de conferencia da contadora. Confira com o Demonstrativo de Faturamento do
+  Dominio antes de agir.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 4.1; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 20, linhas: 1000000, medido_ms: 1000}
+parametros:
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Qualquer dia do mes de referencia (AAAA-MM-DD)"}
+  - {nome: codi_emp, tipo: int, descricao: "So esta empresa (codigo no Dominio)"}
+  - {nome: percentual_minimo, tipo: int, minimo: 1, maximo: 1000, descricao: "So empresas com este percentual do limite (12 meses ou proporcional do ano) ou mais"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, uefi_emp: normal, dtinicio_emp: normal}
+  efsaidas: {codi_emp: normal, dsai_sai: normal, vcon_sai: normal, vexc_sai: normal, cancelada_sai: normal, situacao_sai: normal}
+  efservicos: {codi_emp: normal, dser_ser: normal, vcon_ser: normal, cancelada_ser: normal, situacao_ser: normal}
+  efparametro_vigencia: {codi_emp: normal, vigencia_par: normal, rfed_par: normal, simplesn_optante_par: normal, simplesn_mei_par: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} codi_emp, razao_emp, regime_codigo, optante_simples, mei,
+         inicio_atividade, meses_com_dados, primeiro_mes, faturamento_mes, acumulado_12m,
+         acumulado_ano, limite, percentual_do_limite, percentual_do_sublimite,
+         limite_proporcional, percentual_do_limite_proporcional FROM (
+    SELECT g.codi_emp AS codi_emp, g.razao_emp AS razao_emp, p.rfed_par AS regime_codigo,
+           p.simplesn_optante_par AS optante_simples, p.simplesn_mei_par AS mei,
+           g.dtinicio_emp AS inicio_atividade,
+           COUNT(DISTINCT m.mes) AS meses_com_dados, MIN(m.mes) AS primeiro_mes,
+           SUM(CASE WHEN m.mes = YEAR(CAST(?fim AS DATE)) * 100 + MONTH(CAST(?fim AS DATE)) THEN m.valor ELSE 0 END) AS faturamento_mes,
+           SUM(m.valor) AS acumulado_12m,
+           SUM(CASE WHEN m.mes >= YEAR(CAST(?fim AS DATE)) * 100 + 1 THEN m.valor ELSE 0 END) AS acumulado_ano,
+           CASE WHEN p.simplesn_mei_par = 'S' THEN 81000
+                WHEN p.simplesn_optante_par = 'S' THEN 4800000 END AS limite,
+           CASE WHEN p.simplesn_mei_par = 'S' THEN ROUND(100.0 * SUM(m.valor) / 81000, 1)
+                WHEN p.simplesn_optante_par = 'S' THEN ROUND(100.0 * SUM(m.valor) / 4800000, 1) END AS percentual_do_limite,
+           CASE WHEN p.simplesn_optante_par = 'S' AND ISNULL(p.simplesn_mei_par, 'N') <> 'S'
+                THEN ROUND(100.0 * SUM(m.valor) / 3600000, 1) END AS percentual_do_sublimite,
+           CASE WHEN p.simplesn_optante_par = 'S' AND g.dtinicio_emp IS NOT NULL
+                  AND YEAR(g.dtinicio_emp) = YEAR(CAST(?fim AS DATE))
+                THEN (CASE WHEN p.simplesn_mei_par = 'S' THEN 6750 ELSE 400000 END) * (13 - MONTH(g.dtinicio_emp)) END AS limite_proporcional,
+           CASE WHEN p.simplesn_optante_par = 'S' AND g.dtinicio_emp IS NOT NULL
+                  AND YEAR(g.dtinicio_emp) = YEAR(CAST(?fim AS DATE))
+                THEN ROUND(100.0 * SUM(CASE WHEN m.mes >= YEAR(CAST(?fim AS DATE)) * 100 + 1 THEN m.valor ELSE 0 END)
+                           / ((CASE WHEN p.simplesn_mei_par = 'S' THEN 6750 ELSE 400000 END) * (13 - MONTH(g.dtinicio_emp))), 1) END AS percentual_do_limite_proporcional
+    FROM bethadba.geempre g
+    LEFT OUTER JOIN (
+      SELECT codi_emp, rfed_par, simplesn_optante_par, simplesn_mei_par,
+             ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par DESC) AS ordem
+      FROM bethadba.efparametro_vigencia
+      WHERE vigencia_par <= DATEADD(day, -1, DATEADD(month, 1, DATEADD(day, 1 - DAY(CAST(?fim AS DATE)), CAST(?fim AS DATE))))
+    ) p ON p.codi_emp = g.codi_emp AND p.ordem = 1
+    JOIN (
+      SELECT s.codi_emp AS codi_emp, YEAR(s.dsai_sai) * 100 + MONTH(s.dsai_sai) AS mes,
+             SUM(ISNULL(s.vcon_sai, 0) - ISNULL(s.vexc_sai, 0)) AS valor
+      FROM bethadba.efsaidas s
+      WHERE s.dsai_sai BETWEEN DATEADD(month, -11, DATEADD(day, 1 - DAY(CAST(?fim AS DATE)), CAST(?fim AS DATE)))
+                           AND DATEADD(day, -1, DATEADD(month, 1, DATEADD(day, 1 - DAY(CAST(?fim AS DATE)), CAST(?fim AS DATE))))
+        AND ISNULL(s.cancelada_sai, 'N') <> 'S' AND ISNULL(s.situacao_sai, 0) NOT IN (2, 7, 8)
+        {?codi_emp: AND s.codi_emp = ?codi_emp}
+      GROUP BY s.codi_emp, YEAR(s.dsai_sai) * 100 + MONTH(s.dsai_sai)
+      UNION ALL
+      SELECT v.codi_emp, YEAR(v.dser_ser) * 100 + MONTH(v.dser_ser), SUM(ISNULL(v.vcon_ser, 0))
+      FROM bethadba.efservicos v
+      WHERE v.dser_ser BETWEEN DATEADD(month, -11, DATEADD(day, 1 - DAY(CAST(?fim AS DATE)), CAST(?fim AS DATE)))
+                           AND DATEADD(day, -1, DATEADD(month, 1, DATEADD(day, 1 - DAY(CAST(?fim AS DATE)), CAST(?fim AS DATE))))
+        AND ISNULL(v.cancelada_ser, 'N') <> 'S' AND ISNULL(v.situacao_ser, 0) NOT IN (2, 7, 8)
+        {?codi_emp: AND v.codi_emp = ?codi_emp}
+      GROUP BY v.codi_emp, YEAR(v.dser_ser) * 100 + MONTH(v.dser_ser)
+    ) m ON m.codi_emp = g.codi_emp
+    WHERE g.stat_emp = 'A' AND g.uefi_emp = 1
+    GROUP BY g.codi_emp, g.razao_emp, p.rfed_par, p.simplesn_optante_par, p.simplesn_mei_par, g.dtinicio_emp
+  ) r
+  WHERE 1 = 1
+    {?percentual_minimo: AND (percentual_do_limite >= ?percentual_minimo OR percentual_do_limite_proporcional >= ?percentual_minimo)}
+  ORDER BY acumulado_12m DESC, codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: regime_codigo, tipo: int, classe: normal, legenda: {overlay: efparametro_vigencia.rfed_par}}
+  - {nome: optante_simples, tipo: text, classe: normal}
+  - {nome: mei, tipo: text, classe: normal}
+  - {nome: inicio_atividade, tipo: date, classe: normal}
+  - {nome: meses_com_dados, tipo: int, classe: normal}
+  - {nome: primeiro_mes, tipo: int, classe: normal}
+  - {nome: faturamento_mes, tipo: decimal, classe: normal}
+  - {nome: acumulado_12m, tipo: decimal, classe: normal}
+  - {nome: acumulado_ano, tipo: decimal, classe: normal}
+  - {nome: limite, tipo: decimal, classe: normal}
+  - {nome: percentual_do_limite, tipo: decimal, classe: normal}
+  - {nome: percentual_do_sublimite, tipo: decimal, classe: normal}
+  - {nome: limite_proporcional, tipo: decimal, classe: normal}
+  - {nome: percentual_do_limite_proporcional, tipo: decimal, classe: normal}

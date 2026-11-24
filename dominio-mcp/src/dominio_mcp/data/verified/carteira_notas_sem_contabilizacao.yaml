@@ -1,0 +1,95 @@
+# Consulta verificada de carteira: notas fiscais sem lancamento contabil (DC-1).
+# Pergunta real: a propria Thomson Reuters distribui um relatorio .bgr "Notas - Nao Contabilizadas"
+# (Central de Solucoes, artigo 10058) porque o sistema nao tem relatorio nativo; aqui sai da carteira
+# inteira em uma chamada. A ligacao nota -> lancamento foi conferida no banco real: `ctlancto.orig_lan`
+# (5 saida, 6 entrada, 7 servico) mais `ctlancto.ndoc_lan` = codigo interno da nota (`codi_sai`,
+# `codi_ent`, `codi_ser`), com valor e data iguais; o proprio Dominio indexa isso em IDX_DOCTO.
+# `ndoc_lan` NAO e o numero da nota (casa por coincidencia, com data e valor diferentes).
+# Unidade: a NOTA (especie, serie e numero; na entrada tambem o fornecedor), nao a linha: a nota tem
+# uma linha por segmento (`segi_*`) e cada segmento tem o proprio `codi_*`.
+# Fora: documento cancelado, denegado ou inutilizado (`situacao_*` 2, 7 e 8, legenda do leiaute de
+# importacao da Central de Solucoes, artigo 672) e, na saida e no servico, `cancelada_* = 'S'`.
+version: 1
+name: carteira_notas_sem_contabilizacao
+titulo: Notas sem lancamento contabil, por empresa
+descricao: >-
+  Por empresa ativa que usa contabilidade e por segmento (saidas, entradas, servicos), quantas notas
+  da janela estao totalmente lancadas (`contabilizadas`), lancadas so em parte (`parciais`: algum
+  segmento da nota tem lancamento e outro nao) e sem nenhum lancamento (`sem_lancamento`), com o
+  valor contabil das que nao tem. Notas canceladas, denegadas ou inutilizadas ficam de fora.
+  Ordenado pelo maior valor sem lancamento.
+aviso: >-
+  Diagnostico, nao apuracao: nem toda nota gera lancamento (o acumulador pode nao contabilizar).
+  Empresa com 100% sem lancamento costuma ser empresa que nao integra a escrita fiscal com a
+  contabilidade. Nota e a unidade (especie, serie e numero), nao a linha. Confira no Dominio
+  (relatorio de notas nao contabilizadas) antes de agir.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 591; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 2400, linhas: 100000000, medido_ms: 1300}
+parametros:
+  - {nome: inicio, tipo: date, obrigatorio: true, descricao: "Primeiro dia da janela (AAAA-MM-DD)"}
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Ultimo dia da janela, no maximo 13 meses depois do inicio"}
+  - {nome: codi_emp, tipo: int, descricao: "So esta empresa (codigo no Dominio)"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+janela: {inicio: inicio, fim: fim}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, ucta_emp: normal}
+  efsaidas: {codi_emp: normal, codi_sai: normal, codi_esp: normal, seri_sai: normal, nume_sai: normal, dsai_sai: normal, vcon_sai: normal, cancelada_sai: normal, situacao_sai: normal}
+  efentradas: {codi_emp: normal, codi_ent: normal, codi_esp: normal, seri_ent: normal, nume_ent: normal, codi_for: normal, dent_ent: normal, vcon_ent: normal, situacao_ent: normal}
+  efservicos: {codi_emp: normal, codi_ser: normal, codi_esp: normal, seri_ser: normal, nume_ser: normal, dser_ser: normal, vcon_ser: normal, cancelada_ser: normal, situacao_ser: normal}
+  ctlancto: {codi_emp: normal, orig_lan: normal, ndoc_lan: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} codi_emp, razao_emp, segmento, notas, contabilizadas, parciais,
+         sem_lancamento, valor_sem_lancamento, percentual_sem_lancamento FROM (
+    SELECT g.codi_emp AS codi_emp, g.razao_emp AS razao_emp, d.segmento AS segmento,
+           COUNT(*) AS notas,
+           SUM(CASE WHEN d.lig = d.seg THEN 1 ELSE 0 END) AS contabilizadas,
+           SUM(CASE WHEN d.lig > 0 AND d.lig < d.seg THEN 1 ELSE 0 END) AS parciais,
+           SUM(CASE WHEN d.lig = 0 THEN 1 ELSE 0 END) AS sem_lancamento,
+           SUM(CASE WHEN d.lig = 0 THEN d.valor ELSE 0 END) AS valor_sem_lancamento,
+           ROUND(100.0 * SUM(CASE WHEN d.lig = 0 THEN 1 ELSE 0 END) / COUNT(*), 1) AS percentual_sem_lancamento
+    FROM bethadba.geempre g
+    JOIN (
+      SELECT 'saidas' AS segmento, s.codi_emp AS codi_emp, COUNT(*) AS seg,
+             SUM(CASE WHEN l.ndoc_lan IS NULL THEN 0 ELSE 1 END) AS lig, SUM(ISNULL(s.vcon_sai, 0)) AS valor
+      FROM bethadba.efsaidas s
+      LEFT OUTER JOIN (SELECT DISTINCT codi_emp, ndoc_lan FROM bethadba.ctlancto WHERE orig_lan = 5) l
+        ON l.codi_emp = s.codi_emp AND l.ndoc_lan = s.codi_sai
+      WHERE s.dsai_sai BETWEEN ?inicio AND ?fim AND ISNULL(s.cancelada_sai, 'N') <> 'S'
+        AND ISNULL(s.situacao_sai, 0) NOT IN (2, 7, 8)
+        {?codi_emp: AND s.codi_emp = ?codi_emp}
+      GROUP BY s.codi_emp, s.codi_esp, TRIM(s.seri_sai), s.nume_sai
+      UNION ALL
+      SELECT 'entradas', e.codi_emp, COUNT(*), SUM(CASE WHEN l.ndoc_lan IS NULL THEN 0 ELSE 1 END),
+             SUM(ISNULL(e.vcon_ent, 0))
+      FROM bethadba.efentradas e
+      LEFT OUTER JOIN (SELECT DISTINCT codi_emp, ndoc_lan FROM bethadba.ctlancto WHERE orig_lan = 6) l
+        ON l.codi_emp = e.codi_emp AND l.ndoc_lan = e.codi_ent
+      WHERE e.dent_ent BETWEEN ?inicio AND ?fim AND ISNULL(e.situacao_ent, 0) NOT IN (2, 7, 8)
+        {?codi_emp: AND e.codi_emp = ?codi_emp}
+      GROUP BY e.codi_emp, e.codi_esp, TRIM(e.seri_ent), e.nume_ent, e.codi_for
+      UNION ALL
+      SELECT 'servicos', v.codi_emp, COUNT(*), SUM(CASE WHEN l.ndoc_lan IS NULL THEN 0 ELSE 1 END),
+             SUM(ISNULL(v.vcon_ser, 0))
+      FROM bethadba.efservicos v
+      LEFT OUTER JOIN (SELECT DISTINCT codi_emp, ndoc_lan FROM bethadba.ctlancto WHERE orig_lan = 7) l
+        ON l.codi_emp = v.codi_emp AND l.ndoc_lan = v.codi_ser
+      WHERE v.dser_ser BETWEEN ?inicio AND ?fim AND ISNULL(v.cancelada_ser, 'N') <> 'S'
+        AND ISNULL(v.situacao_ser, 0) NOT IN (2, 7, 8)
+        {?codi_emp: AND v.codi_emp = ?codi_emp}
+      GROUP BY v.codi_emp, v.codi_esp, TRIM(v.seri_ser), v.nume_ser
+    ) d ON d.codi_emp = g.codi_emp
+    WHERE g.stat_emp = 'A' AND g.ucta_emp = 1
+    GROUP BY g.codi_emp, g.razao_emp, d.segmento
+    HAVING SUM(CASE WHEN d.lig = 0 THEN 1 ELSE 0 END) > 0 OR SUM(CASE WHEN d.lig > 0 AND d.lig < d.seg THEN 1 ELSE 0 END) > 0
+  ) r
+  ORDER BY valor_sem_lancamento DESC, sem_lancamento DESC, codi_emp, segmento
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: segmento, tipo: text, classe: normal}
+  - {nome: notas, tipo: int, classe: normal}
+  - {nome: contabilizadas, tipo: int, classe: normal}
+  - {nome: parciais, tipo: int, classe: normal}
+  - {nome: sem_lancamento, tipo: int, classe: normal}
+  - {nome: valor_sem_lancamento, tipo: decimal, classe: normal}
+  - {nome: percentual_sem_lancamento, tipo: decimal, classe: normal}
