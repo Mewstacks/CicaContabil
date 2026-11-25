@@ -134,6 +134,20 @@ def test_equal_pairs_become_separate_x_lotes_and_other_compositions_are_refused(
         render_dominio_lote19([split])
 
 
+def test_pairing_does_not_depend_on_the_order_the_database_returns_lines(company):
+    # Débitos 500/300 e créditos 300/500 gravados nesta ordem: pareados por posição dariam
+    # 500 com 300 e o export recusaria um lançamento válido (ordem física do Postgres).
+    crossed = entry(
+        company,
+        [("8", "debit", 500), ("9", "debit", 300), ("42", "credit", 300), ("41", "credit", 500)],
+    )
+    rows = records(render_dominio_lote19([crossed]))
+    amounts = [field(row, 24, 38) for row in rows if row[:2] == "03"]
+    assert amounts == ["000000000000300", "000000000000500"]
+    pairs = [(field(row, 10, 16), field(row, 17, 23)) for row in rows if row[:2] == "03"]
+    assert pairs == [("0000009", "0000042"), ("0000008", "0000041")]
+
+
 @pytest.mark.parametrize("code", ["1.1", "ABC", "12345678"])
 def test_account_codes_must_be_domínio_reduced_codes(company, code):
     item = entry(company, [(code, "debit", 100), ("41", "credit", 100)])

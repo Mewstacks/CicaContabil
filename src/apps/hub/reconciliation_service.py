@@ -1998,8 +1998,18 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
     sequence = 0
     for entry in sorted(entries, key=lambda item: (item.occurred_on, str(item.pk))):
         parts = list(entry.lines.all())
-        debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
-        credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
+        # Ordem do banco não é contrato: sem ORDER BY o Postgres devolve as linhas na ordem
+        # física, que muda com o estado da tabela, e o zip abaixo pareava uma partida de 500
+        # com uma de 300. Ordenar os dois lados pelo mesmo critério faz pares iguais sempre
+        # coincidirem e torna a ordem do arquivo estável.
+        debits = sorted(
+            (line for line in parts if line.side == JournalLine.Side.DEBIT),
+            key=lambda line: (line.amount_cents, line.account_code),
+        )
+        credits = sorted(
+            (line for line in parts if line.side == JournalLine.Side.CREDIT),
+            key=lambda line: (line.amount_cents, line.account_code),
+        )
         # Only the "X" lote type (one debit, one credit) is emitted until another type
         # is proven on the destination importer; equal debit/credit pairs become one
         # X lote each, preserving totals. Other compositions are refused.
