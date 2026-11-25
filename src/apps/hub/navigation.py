@@ -161,6 +161,7 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                 "Horas da equipe e vínculos com o ERP",
                 routes=("collaborator-detail",),
             ),
+            link("Valor", "profitability:value", "Quanto cada pessoa gera"),
             link("Horas", "profitability:hours", "Conferir horas automáticas e F9"),
             link("Análises", "profitability:analyses", "A carteira por segmento e regime"),
         ]

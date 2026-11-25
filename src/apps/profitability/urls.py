@@ -13,6 +13,7 @@ urlpatterns = [
         views.collaborator_detail,
         name="collaborator-detail",
     ),
+    path("valor/", views.value_by_collaborator, name="value"),
     path("horas/", views.hours, name="hours"),
     path("analises/", views.analyses, name="analyses"),
     path("configuracao/", views.settings_view, name="settings"),

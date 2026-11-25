@@ -30,10 +30,12 @@ from apps.profitability.calc import custo_anual_colaborador, mensalidade_sugerid
 from apps.profitability.forms import ProfitabilityConfigForm
 from apps.profitability.matching import aplicar_vinculo
 from apps.profitability.models import (
+    AtribuicaoDepartamento,
     ClienteCompetenciaMetrics,
     Colaborador,
     ColaboradorCompetenciaMetrics,
     Competencia,
+    Departamento,
     FaixaMargem,
     OrigemHoras,
     RegistroHoras,
@@ -65,6 +67,7 @@ from apps.profitability.services import (
     variacao,
     vinculos_do_erp,
 )
+from apps.profitability.valor import valor_da_competencia
 
 PAGINA = 20
 
@@ -696,3 +699,89 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         }
     )
     return render(request, "profitability/settings.html", context)
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def value_by_collaborator(request: HttpRequest) -> HttpResponse:
+    """Quanto cada pessoa gera: a mensalidade da carteira dela, repartida por departamento.
+
+    Só administrador abre: o valor ao lado do custo expõe o salário de quem é
+    olhado, e a pergunta é de gestão.
+    """
+
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.PROFITABILITY))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    if not _e_admin(context):
+        return refuse(request, "Só um administrador vê o valor por colaborador.")
+    competencia = _competencia_selecionada(request, office)
+
+    if request.method == "POST":
+        if not context["support_can_mutate"]:
+            return refuse(request, "Esta sessão é somente leitura.")
+        return _salvar_valor(request, office, competencia)
+
+    valor = valor_da_competencia(office, competencia) if competencia else None
+    context.update(
+        {
+            "competencia": competencia,
+            "competencias": _competencias(office),
+            "valor": valor,
+            "departamentos": Departamento.choices,
+            "equipe": Colaborador.objects.filter(organization=office, ativo=True).order_by(
+                "codigo"
+            ),
+            "page_title": "Valor por colaborador",
+        }
+    )
+    return render(request, "profitability/value.html", context)
+
+
+def _salvar_valor(request: HttpRequest, office: Organization, competencia: str) -> HttpResponse:
+    destino = f"{reverse('profitability:value')}?competencia={competencia}"
+    validos = {valor for valor, _ in Departamento.choices}
+    acao = request.POST.get("acao", "")
+    depto = request.POST.get("departamento", "")
+    if acao == "departamento":
+        pessoa = get_object_or_404(
+            Colaborador, pk=request.POST.get("colaborador", ""), organization=office
+        )
+        if depto and depto not in validos:
+            return refuse(request, "Departamento desconhecido.")
+        pessoa.departamento = depto
+        pessoa.save(update_fields=["departamento"])
+        record_event(
+            action="profitability.collaborator.department_set",
+            actor=request.user,
+            organization=office,
+            target=pessoa,
+            request=request,
+            metadata={"departamento": depto},
+        )
+        messages.success(request, "Departamento gravado.")
+    elif acao == "atribuir":
+        if depto not in validos:
+            return refuse(request, "Departamento desconhecido.")
+        empresa = get_object_or_404(
+            ClientCompany, pk=request.POST.get("empresa", ""), organization=office
+        )
+        pessoa = get_object_or_404(
+            Colaborador, pk=request.POST.get("colaborador", ""), organization=office
+        )
+        AtribuicaoDepartamento.objects.get_or_create(
+            organization=office, empresa=empresa, departamento=depto, colaborador=pessoa
+        )
+        record_event(
+            action="profitability.department_assignment.created",
+            actor=request.user,
+            organization=office,
+            target=empresa,
+            request=request,
+            metadata={"departamento": depto},
+        )
+        messages.success(request, "Atribuição gravada.")
+    else:
+        return refuse(request, "Ação desconhecida.")
+    return redirect(destino)
