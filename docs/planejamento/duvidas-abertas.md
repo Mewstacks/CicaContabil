@@ -308,7 +308,7 @@ Q-53, Q-58 e Q-59. Envio à cliente só com autorização do responsável
 **Evidência e proposta (25/11/2026, D-420/V-477) — a confirmar pela CONTAD, não são respostas:**
 Q-50: contas de passagem no Razão do banco (9 COBRANÇA, 4 PAGAMENTO DE FORNECEDORES) e plano com conta por
 cliente (3.067) e fornecedor (739); proposta: baixa da CICA move da passagem para a conta analítica, achada pelo
-nome (149/151 e 15/17). Q-51: setembro lançou PIX ao marketplace como fornecedor, não propaganda (conflito com
+código do cliente/fornecedor da posição, que é o código da conta (147/151 e 17/19; D-421 item 6). Q-51: setembro lançou PIX ao marketplace como fornecedor, não propaganda (conflito com
 R-12). Q-52: `*1NNNNNNPP` = NF + parcela (51/51); `XX…` sem relação com a NF. Q-53: proposta 132 JUROS ATIVOS e
 230 DESCONTOS CONCEDIDOS. Q-54: aplicação/resgate em 13; proposta 134 e 232 por resgate (há provisões 14-16).
 Q-55: parcela 02/35 dividida em 117 (principal) e 231 (juros); falta a fonte da divisão. Q-56: setembro lançou

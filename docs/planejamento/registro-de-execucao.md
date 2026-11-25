@@ -1,3 +1,12 @@
+<!-- D421-V478-2026-11-25 -->
+## 25/11/2026 — D-421/V-478: desenho do lançamento real e do lote 19 (PC-33, grupo 1)
+
+- [x] Lançamento real: banco pelo uso direto (D-393), baixas pelo multifontes; condições para lançar registradas.
+- [x] Prévia das baixas na simulação; conta do cliente/fornecedor pelo código da posição.
+- [x] Lote 19: um lado único contra várias partidas vira pares X.
+- [x] Análise para decidir os documentos escaneados na tela (opções e números).
+- [ ] Lançamento real: depende da confirmação das contas (D-420) e da guarda das fontes do mês.
+
 <!-- D420-V477-2026-11-25 -->
 ## 25/11/2026 — D-420/V-477: respostas propostas com evidência (PC-33, Q-50 a Q-66)
 

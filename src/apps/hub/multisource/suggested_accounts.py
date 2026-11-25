@@ -89,6 +89,7 @@ class Chart:
         self.by_name: dict[str, list[ChartAccount]] = {}
         for account in self.accounts:
             self.by_name.setdefault(_plain(account.name), []).append(account)
+        self.by_code = {str(a.code): a for a in self.accounts}
         self.customers = groups.get("CLIENTES", "")
         self.suppliers = groups.get("FORNECEDORES", "")
 
@@ -104,12 +105,18 @@ class Chart:
             )
         return tuple(self.by_name.get(wanted, ()))
 
-    def party(self, kind: str, name: str) -> tuple[ChartAccount, ...]:
+    def party(self, kind: str, name: str, code: str = "") -> tuple[ChartAccount, ...]:
         prefix = self.customers if kind == "receivable" else self.suppliers
         wanted = _plain(name)
         if not prefix or not wanted:
             return ()
-        return tuple(a for a in self.by_name.get(wanted, ()) if a.classification.startswith(prefix))
+        # V-477: o código do cliente/fornecedor na posição do Domínio é o código da conta analítica.
+        exact = self.by_code.get(code.strip()) if code.strip().isdigit() else None
+        if exact is not None and exact.classification.startswith(prefix):
+            return (exact,)
+        return tuple(
+            a for a in self.by_name.get(wanted, ()) if a.classification.startswith(prefix)
+        )
 
     def containing_digits(self, digits: str) -> tuple[ChartAccount, ...]:
         return tuple(
@@ -160,7 +167,7 @@ def suggest_part(
     if part.kind in ("receivable", "payable"):
         item = result.installments.get(part.installment_key) if part.installment_key else None
         bank = RECEIPT_BANK if part.kind == "receivable" else PAYMENT_BANK
-        party = chart.party(part.kind, item.party_name) if item else ()
+        party = chart.party(part.kind, item.party_name, item.party_code) if item else ()
         return [
             Suggestion("banco", chart.named(bank)),
             Suggestion("baixa", party, "" if party else "conta do cliente/fornecedor não achada"),

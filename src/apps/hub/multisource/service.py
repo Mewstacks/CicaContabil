@@ -176,6 +176,23 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
         )  # D-417
     if documents:
         output.reports["documentos.csv"] = render_documents_csv(result)
+    from apps.hub.multisource.planned_entries import (
+        plan_settlements,
+        planned_summary,
+        render_planned_csv,
+    )
+
+    planned = plan_settlements(
+        result,
+        output.suggestions,
+        {
+            "receivables": positions.get("reference_receivables"),
+            "payables": positions.get("reference_payables"),
+        },
+    )
+    if planned:  # D-421: prévia das baixas, sem arquivo .txt
+        output.reports["lancamentos-previstos.csv"] = render_planned_csv(planned)
+        output.reports["resumo.md"] += "\n".join(planned_summary(planned)) + "\n"
     if output.suggestions is not None:
         from apps.hub.multisource.suggested_accounts import summary_lines
 

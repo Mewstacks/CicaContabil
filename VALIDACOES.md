@@ -13541,3 +13541,31 @@ repositório); nada enviado. Sem migração, deploy ou mensagem externa.
 Não verificado: tela com o plano real e a linha “Conta sugerida” no navegador (o servidor descartável não tem
 plano descoberto; a busca foi testada com dados sintéticos e a linha pelo template); as propostas
 não são respostas — dependem da confirmação da contadora.
+
+## V-478 — D-421: desenho do lançamento real, prévia das baixas e lote 19 com várias partidas (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa; nada
+lançado nem exportado.
+
+- **Desenho conferido contra o código:** o uso direto (D-393, `direct_use.py`) lança banco × conta da regra
+  aprendida do Razão; o multifontes não gera lançamento do banco, só a prévia das baixas — não há caminho para
+  o mesmo movimento ser lançado duas vezes.
+- `multisource/planned_entries.py` (novo): baixas previstas por título (passagem × cliente/fornecedor, juros),
+  situação “pronto quando as contas forem confirmadas”, “o Domínio já registra” (título ausente da posição do
+  mês ou com saldo menor; juros seguem o título), “sem conta” e “escolher” (nome repetido). `service.py` gera
+  `lancamentos-previstos.csv` e a seção do resumo. `suggested_accounts.py`: conta do cliente/fornecedor pelo
+  código da posição.
+- `reconciliation_service.py` (`_lote19_pairs`): um débito contra vários créditos (ou o inverso) vira pares X;
+  vários contra vários de valores diferentes continuam recusados. `tests/test_dominio_lote19.py` atualizado.
+- **Outubro (arquivos reais fora do repositório):** com a posição do Domínio de 10/2026, as 96 baixas aparecem
+  como “o Domínio já registra” (a CONTAD fez à mão), o que confirma a proteção contra baixa em dobro; sem a
+  posição do mês, 90 prontas, 1 sem conta e 5 para escolher. Código da posição = código da conta: CR 09 147/151,
+  CP 09 17/19, CR 10 133/136, CP 10 19/20.
+- **Documentos escaneados:** análise em `docs/planejamento/analise-documentos-escaneados-na-tela-2026-11-25.md`
+  (scans de 43,7 MB/50 páginas e 6,0 MB/7 páginas; OCR de 1,5 s por página numa Apple M5; web e worker
+  `shared-cpu-1x`/512 MB; worker com uma tarefa por vez e limite de 270 s). Sem decisão.
+- Testes: 3 em `tests/test_multisource_planned_entries.py` e o caso “um contra vários” no lote 19.
+  Regressão: `uv run pytest -q` 5832 passaram, 59 ignorados; `ruff check .` limpo.
+
+Não verificado: importação real de um lote com pares gerados de um lançamento composto (V-428 continua
+pendente); tempo de OCR na máquina de produção.

@@ -6623,3 +6623,44 @@ de 24/11), plano de contas da SURIA (empresa 212, 4.134 contas, descoberta D-373
    autorização do responsável.
 
 Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-421 — PC-33: desenho do lançamento real multifontes e do lote 19 com várias partidas (25/11/2026)
+
+Origem: responsável, 25/11/2026, “Sim, grupo 1”, depois de lhe ser proposto decidir, com a delegação da D-393,
+como funcionará o lançamento real quando as contas forem confirmadas e como fica o lote 19 com várias partidas.
+Executor Claude Code. Resolve o conflito com a D-393 apontado no plano (risco 12.1-2) **pelo desenho**, sem
+revogá-la. Nada é lançado nesta decisão: o lançamento real continua bloqueado pelas confirmações abaixo.
+
+1. **Divisão sem lançamento em dobro:** o lançamento do **banco** (banco × conta da regra) continua sendo do uso
+   direto (D-393), com as regras aprendidas do Razão — que em setembro já levam cobrança a COBRANÇA e pagamentos a
+   PAGAMENTO DE FORNECEDORES. O multifontes gera **só o que ninguém gera hoje**: os lançamentos de **baixa** que a
+   CONTAD fazia no Domínio (R-07), um por título: COBRANÇA × conta do cliente pelo valor nominal; COBRANÇA × juros
+   pela diferença; conta do fornecedor × PAGAMENTO DE FORNECEDORES. Data = data do movimento do banco; histórico
+   com a NF e a parcela (“Baixa NF 29740 parc. 3 — francesinha 26/000001-1”), como pede R-08.
+2. **O que nunca gera baixa:** movimento sinalizado; título “identificado” sem estar na posição de abertura;
+   natureza pelo caixa (já é do lançamento do banco); aplicação, transferência, empréstimo e cartão (lançamento
+   do banco pela regra; divisão de juros do empréstimo só com a fonte da Q-55).
+3. **Condições para lançar de verdade** (todas): contas confirmadas pela contadora (Q-50 e Q-53, hoje só
+   propostas na D-420); o mês com Razão recebido (mesma regra da D-393 item 3); a baixa ainda não feita no
+   Domínio para aquele título (a posição do mês, quando houver, não pode já trazê-lo baixado — senão é
+   sinalizado como possível baixa em dobro); e a gravação das fontes do mês, que hoje não existe (D-413: nada é
+   guardado) e exige decisão própria sobre guarda de arquivos.
+4. **Lote 19 com várias partidas:** continua só o tipo “X” (um débito, um crédito), o único da especificação já
+   usada e ainda sem importação real (V-428). Um lançamento com um lado único e vários do outro (ex.: parcela do
+   empréstimo = principal + juros contra o banco) vira **um par X por partida**, com a mesma conta do lado único;
+   os totais e as contas não mudam, só o Razão mostra uma linha por par. Composições com vários débitos e vários
+   créditos continuam recusadas. Os tipos “D”, “C” e “V” do leiaute só depois da importação real de teste.
+5. **Prévia agora:** a simulação passa a listar os lançamentos de baixa que **seriam** gerados
+   (`lancamentos-previstos.csv`, com as contas sugeridas da D-420), sem arquivo `.txt`: um lote de baixas de
+   outubro importado na empresa real duplicaria as baixas que a CONTAD já fez à mão. Título ausente da posição
+   do Domínio do mês (o relatório não detalha quitados, Q-59) ou com saldo menor conta como já baixado lá; os
+   juros acompanham o título da mesma cobrança.
+6. **Conta do cliente/fornecedor pelo código (refina a D-420 item 1):** o código do cliente ou fornecedor na
+   posição CR/CP do Domínio é o próprio código da conta analítica (147 de 151 clientes e 17 de 19
+   fornecedores de setembro). A sugestão usa o código primeiro e o nome só quando o código não é conta do
+   grupo; nome repetido sem código vira “escolher”, nunca soma de contas.
+7. **Documentos escaneados na tela:** não decidido aqui. A análise com opções, números e recomendação está em
+   `docs/planejamento/analise-documentos-escaneados-na-tela-2026-11-25.md`; a escolha envolve guarda de
+   dados pessoais e possível custo, que são do responsável.
+
+Sem migração, custo, IA, deploy ou mensagem externa.

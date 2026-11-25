@@ -26,6 +26,8 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] D-419: resultado do extrato sem estourar “Não comparável” no celular e ignorados fora dos “não conferidos” (V-476).
 - [x] D-420: respostas propostas com evidência para Q-50 a Q-59 e Q-66; contas sugeridas (a confirmar) e Seu Nº na simulação; mensagem à CONTAD reescrita (V-477).
 - [ ] Confirmação da CONTAD sobre as propostas da D-420 (envio da mensagem depende do responsável).
+- [x] D-421: desenho do lançamento real (baixas pelo multifontes, banco pelo uso direto), prévia `lancamentos-previstos.csv` e lote 19 com um lado único contra várias partidas (V-478).
+- [ ] Documentos escaneados na tela: escolha do responsável entre as opções da análise de 25/11.
 - [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

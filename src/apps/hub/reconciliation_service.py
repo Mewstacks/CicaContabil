@@ -2018,6 +2018,33 @@ def _dominio_record(kind: str, body: str) -> str:
     return record
 
 
+def _lote19_pairs(parts: list[JournalLine]) -> list[tuple[str, str, int]]:
+    """Pares (débito, crédito, valor) do tipo "X", o único emitido até a importação real (V-428).
+
+    Pares iguais viram um lote X cada. D-421: um lado único contra várias partidas do outro (ex.:
+    principal + juros contra o banco) vira um par X por partida, repetindo a conta do lado único;
+    totais e contas não mudam. Vários débitos contra vários créditos de valores diferentes são
+    recusados."""
+    debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
+    credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
+    if len(debits) == len(credits) and all(
+        debit.amount_cents == credit.amount_cents
+        for debit, credit in zip(debits, credits, strict=True)
+    ):
+        pairs = zip(debits, credits, strict=True)
+        return [(d.account_code, c.account_code, d.amount_cents) for d, c in pairs]
+    debit_total = sum(d.amount_cents for d in debits)
+    credit_total = sum(c.amount_cents for c in credits)
+    if len(debits) == 1 and credits and credit_total == debit_total:
+        return [(debits[0].account_code, c.account_code, c.amount_cents) for c in credits]
+    if len(credits) == 1 and debits and debit_total == credit_total:
+        return [(d.account_code, credits[0].account_code, d.amount_cents) for d in debits]
+    raise ReconciliationError(
+        "Partidas compostas com vários débitos e vários créditos de valores diferentes ainda não "
+        "são aceitas no arquivo Domínio; divida o lançamento em pares de débito e crédito."
+    )
+
+
 def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
     """Render approved entries of one company as the official fixed-width lote file."""
     entries = list(entries)
@@ -2056,21 +2083,8 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
             entry.lines.all(),
             key=lambda line: (-line.amount_cents, line.account_code, str(line.pk)),
         )
-        debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
-        credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
-        # Only the "X" lote type (one debit, one credit) is emitted until another type
-        # is proven on the destination importer; equal debit/credit pairs become one
-        # X lote each, preserving totals. Other compositions are refused.
-        if len(debits) != len(credits) or any(
-            debit.amount_cents != credit.amount_cents
-            for debit, credit in zip(debits, credits, strict=False)
-        ):
-            raise ReconciliationError(
-                "Partidas compostas com valores diferentes ainda não são aceitas no arquivo "
-                "Domínio; divida o lançamento em pares de débito e crédito."
-            )
-        for debit, credit in zip(debits, credits, strict=True):
-            if debit.amount_cents <= 0:
+        for debit_code, credit_code, amount in _lote19_pairs(parts):
+            if amount <= 0:
                 raise ReconciliationError("O valor do lançamento deve ser maior que zero.")
             sequence += 1
             lines.append(
@@ -2087,9 +2101,9 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
                 _dominio_record(
                     "03",
                     _fixed_number(sequence, 7, "Sequencial")
-                    + _fixed_number(debit.account_code, 7, "Conta débito")
-                    + _fixed_number(credit.account_code, 7, "Conta crédito")
-                    + _fixed_number(debit.amount_cents, 15, "Valor")
+                    + _fixed_number(debit_code, 7, "Conta débito")
+                    + _fixed_number(credit_code, 7, "Conta crédito")
+                    + _fixed_number(amount, 15, "Valor")
                     + "0" * 7
                     + _fixed_text(entry.history, 512)
                     + company_code,

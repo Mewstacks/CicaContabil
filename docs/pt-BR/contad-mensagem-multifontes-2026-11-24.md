@@ -34,8 +34,10 @@ como sugestão; nada é lançado.
    COBRANÇA** e pagamentos (boleto e PIX) contra **4 — PAGAMENTO DE FORNECEDORES**. Entendemos que a baixa de
    cada nota é que leva o valor da conta de passagem para a conta do cliente ou do fornecedor. Como a baixa
    passa a ser feita pela CICA, a proposta é gerar esse segundo lançamento: COBRANÇA × conta do cliente e
-   conta do fornecedor × PAGAMENTO DE FORNECEDORES, uma linha por nota. A conta do cliente ou do fornecedor
-   é localizada pelo nome: encontramos 149 de 151 clientes e 15 de 17 fornecedores das posições. É assim?
+   conta do fornecedor × PAGAMENTO DE FORNECEDORES, uma linha por nota. O código do cliente e do fornecedor
+   no relatório de contas a receber e a pagar é o próprio código da conta no plano (147 de 151 clientes e
+   17 de 19 fornecedores de setembro), e é por ele que a CICA localiza a conta. O lançamento do banco
+   continua como hoje. É assim?
 2. **Juros recebidos (Q-53).** Em setembro, a cobrança foi lançada pelo total, com os juros juntos, contra
    COBRANÇA. A proposta é separar, na baixa, o valor da nota (conta do cliente) e os juros e a multa em
    **132 — JUROS ATIVOS**. Desconto concedido iria para **230 — DESCONTOS CONCEDIDOS**. Usam outra conta

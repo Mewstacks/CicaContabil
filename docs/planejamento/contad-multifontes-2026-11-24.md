@@ -612,3 +612,18 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   da descoberta D-373), sem lançar nada. Outubro: 254 de 260 partes com conta sugerida.
 - O Seu Nº `*1NNNNNNPP` passa a indicar a NF quando o caixa não traz a nota.
 - A mensagem à CONTAD virou pedido de confirmação com as evidências; envio depende do responsável.
+
+## 24. Lançamento real, lote 19 e documentos escaneados (D-421, V-478)
+
+- **Desenho:** o lançamento do banco continua com o uso direto (D-393); o multifontes gera só as baixas que a
+  CONTAD fazia no Domínio (passagem × cliente/fornecedor e juros), uma por título, com a NF no histórico.
+  Sinalizado nunca gera baixa. Lançar de verdade exige: contas confirmadas, Razão do mês recebido, título ainda
+  não baixado no Domínio e guarda das fontes do mês (decisão própria).
+- **Prévia:** `lancamentos-previstos.csv`. Outubro com a posição do Domínio do mês: as 96 baixas aparecem como
+  “o Domínio já registra” (a CONTAD fez à mão). Sem a posição do mês: 90 prontas, 1 sem conta e 5 com nome
+  repetido para escolher.
+- **Lote 19:** um lado único contra várias partidas vira um par X por partida; os demais tipos do leiaute só
+  depois da importação real de teste (V-428).
+- **Documentos escaneados na tela:** análise com opções em
+  [`analise-documentos-escaneados-na-tela-2026-11-25.md`](analise-documentos-escaneados-na-tela-2026-11-25.md);
+  recomendação: medir o OCR de uma página na máquina web e, se couber, OCR página a página sem guardar nada.
