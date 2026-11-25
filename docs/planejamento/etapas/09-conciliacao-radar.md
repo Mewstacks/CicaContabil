@@ -14,6 +14,7 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] Fase 1 (linha de comando): leitores CP/CR .xls, francesinha e caixa do cliente; posição de títulos; motor e sinalizações; outubro simulado com os arquivos reais (V-466).
 - [x] D-410: agente sem mudança (já aceita outubro); comparação simulação × Razão no comando, em PDF ou ledger-csv-v1 (V-467).
 - [ ] Obter o Razão de outubro da SURIA (tela ou exportação da CONTAD) e rodar a comparação.
+- [x] D-411: aplicação/resgate pelo extrato da aplicação e natureza divergente (R-12) na simulação (V-468).
 - [ ] Tela de fechamento do mês (protocolo de UI).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

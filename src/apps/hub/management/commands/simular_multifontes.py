@@ -42,6 +42,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--aba", default="SICREDI", help="Aba do caixa que corresponde ao extrato."
         )
+        parser.add_argument("--aplicacao", type=Path, help="Extrato de aplicação Sicredi (PDF).")
         parser.add_argument(
             "--razao-pdf", type=Path, help="Razão da conta bancária (PDF do Domínio)."
         )
@@ -69,6 +70,7 @@ class Command(BaseCommand):
         from apps.hub.bank_evidence import read_sicredi_pdf
         from apps.hub.multisource.client_cashbook import read_client_cashbook_xlsx
         from apps.hub.multisource.francesinha import read_francesinha_pdf
+        from apps.hub.multisource.investment import read_investment_pdf
         from apps.hub.multisource.ledger_comparison import (
             compare_with_ledger,
             movements_from_ledger_csv,
@@ -127,6 +129,9 @@ class Command(BaseCommand):
                 raise CommandError("--aba-sem-extrato exige --caixa.")
             if options["razao_pdf"] and options["razao_csv"]:
                 raise CommandError("Informe o Razão em PDF ou em CSV, não os dois.")
+            investment = None
+            if content := _read(options["aplicacao"]):
+                investment = read_investment_pdf(content)
             ledger_movements = None
             if content := _read(options["razao_pdf"]):
                 from apps.hub.ledger_evidence import LedgerEvidenceError, read_dominio_ledger_pdf
@@ -149,6 +154,7 @@ class Command(BaseCommand):
             reference_receivables=positions.get("receber_referencia"),
             reference_payables=positions.get("pagar_referencia"),
             cash_accounts=cash_accounts,
+            investment=investment,
         )
         output: Path = options["saida"]
         output.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -168,6 +174,6 @@ class Command(BaseCommand):
             target.write_text(text, encoding="utf-8")
             target.chmod(0o600)
         self.stdout.write(
-            f"{len(result.lines)} movimentos: {result.automatic_share:.1%} baixa automática, "
+            f"{len(result.lines)} movimentos: {result.automatic_share:.1%} automático, "
             f"{result.identified_share:.1%} identificados. Relatórios em {output}"
         )

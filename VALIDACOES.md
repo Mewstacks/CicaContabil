@@ -13302,3 +13302,22 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Somente código 
 
 Não verificado: comparação de outubro, porque o Razão de outubro ainda não foi obtido (pedido pela tela ou
 exportado pela CONTAD).
+
+## V-468 — D-411: aplicação financeira e natureza divergente na simulação de outubro (PC-33, Fase 2)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Somente simulação local; nada em produção.
+
+- Novo `src/apps/hub/multisource/investment.py` e opção `--aplicacao` do `simular_multifontes`. Extrato de
+  aplicação real de outubro (fora do repositório): 37 movimentos, linha repetida na virada de página
+  descartada, cadeia 228.016,06 + 81.583,33 − 122.495,40 + 471,33 − 105,92 = 187.469,40 conferida.
+- Simulação de outubro com extrato, francesinha, posição 09, caixa (abas SICREDI, CAIXA e CEF) e aplicação:
+  184 movimentos; **83 automáticos (45,1%)** — 48 com baixa de títulos e 35 aplicações/resgates casados com o
+  extrato da aplicação (204.078,73), inclusive resgates em várias linhas no banco; 94 identificados pelo
+  caixa; 7 sinalizados (os mesmos da V-466). Rendimentos 471,33 e IRRF 105,92 listados “a lançar na conta da
+  aplicação” (Q-54). Nenhum movimento da aplicação ficou sem par no banco.
+- Regra R-12: sem sinalização nova em outubro; dois falsos positivos de grafia do caixa (“ADIANTAMENTOCLIENTE
+  …”, “ADIANTAMENTO …”) foram eliminados com tolerância de semelhança (0,8) antes do commit.
+- Testes: 5 novos em `tests/test_multisource_investment.py`; 49 aprovados nos arquivos multifontes;
+  `ruff check .` limpo.
+
+Não verificado: contas de rendimento/IRRF (Q-54); o critério de semelhança da R-12 com outros clientes.

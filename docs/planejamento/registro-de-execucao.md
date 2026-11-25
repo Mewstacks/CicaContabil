@@ -1,3 +1,10 @@
+<!-- D411-V468-2026-11-24 -->
+## 24/11/2026 — D-411/V-468: aplicação financeira e natureza divergente (PC-33, Fase 2)
+
+- [x] Leitor do extrato de aplicação Sicredi e casamento de aplicações/resgates com o banco; rendimento e IRRF listados.
+- [x] R-12: natureza diferente da habitual para o mesmo CPF/CNPJ vira sinalização.
+- [x] Outubro: 45,1% automático, 96,2% identificado, 7 sinalizações (V-468).
+
 <!-- D410-V467-2026-11-24 -->
 ## 24/11/2026 — D-410/V-467: comparação com o Razão; agente sem mudança
 

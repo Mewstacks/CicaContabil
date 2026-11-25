@@ -510,3 +510,17 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
 - ~~Período configurável no agente~~ não é necessário (D-410). Comparação com o Razão pronta no comando (`--razao-pdf`/`--razao-csv`); falta obter o Razão de outubro.
 - Tela de fechamento do mês, com o protocolo de UI do AGENTS.md.
 - Aplicação e resgate com rendimento/IRRF (Fase 2).
+
+## 16. Fase 2 — aplicação financeira e natureza divergente (D-411, V-468)
+
+- `--aplicacao extrato-aplicacao.pdf` confere a cadeia de saldos do extrato de aplicação.
+- Aplicações e resgates do banco (inclusive em várias linhas) são casados com o extrato da aplicação e ficam
+  como transferência automática.
+- Rendimentos e IRRF ficam listados para lançar na conta da aplicação; as contas dependem da Q-54.
+- R-12: o mesmo CPF/CNPJ com natureza habitual no caixa e um movimento de natureza diferente vira
+  sinalização. Variações de grafia são toleradas.
+- Outubro da SURIA: **45,1% automático** (era 26,1%), 96,2% identificado e as mesmas 7 sinalizações.
+- Próximos itens do plano que não dependem de resposta da CONTAD:
+  - documentos escaneados (N-06);
+  - tela de fechamento do mês;
+  - lote 19 com várias partidas.

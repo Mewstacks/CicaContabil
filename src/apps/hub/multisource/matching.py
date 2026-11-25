@@ -22,14 +22,16 @@ Ordem determinística, sempre com motivo gravado:
 from __future__ import annotations
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
+from difflib import SequenceMatcher
 
 from apps.hub.multisource.client_cashbook import CashbookLine, CashbookSheet, DocumentRef
 from apps.hub.multisource.common import money, names_match
 from apps.hub.multisource.francesinha import CollectionItem, CollectionReport
+from apps.hub.multisource.investment import InvestmentMovement, InvestmentStatement
 from apps.hub.multisource.title_position import (
     PAYABLE,
     RECEIVABLE,
@@ -38,6 +40,7 @@ from apps.hub.multisource.title_position import (
 )
 
 MAX_SUBSET_NODES = 200_000
+NATURE_SIMILARITY = 0.8
 
 # Situações de cada movimento do extrato.
 AUTOMATIC = "baixa_automatica"  # todo o valor explicado por baixa de títulos (+ juros)
@@ -47,7 +50,7 @@ IDENTIFIED = (
 FLAGGED = "sinalizado"
 
 STATUS_LABELS = {
-    AUTOMATIC: "Baixa automática de títulos",
+    AUTOMATIC: "Automático (títulos ou aplicação)",
     IDENTIFIED: "Identificado pelo caixa (sem baixa de título)",
     FLAGGED: "Sinalizado para a contadora",
 }
@@ -115,6 +118,8 @@ class SimulationResult:
     installments: dict[tuple[str, str, str, int], PositionInstallment]
     differences: list[PositionDifference]
     warnings: list[str]
+    investment: InvestmentStatement | None = None
+    investment_unmatched: list[InvestmentMovement] = field(default_factory=list)
 
     def count(self, status: str) -> int:
         return sum(1 for line in self.lines if line.status == status)
@@ -274,12 +279,15 @@ def simulate(
     reference_receivables: TitlePosition | None = None,
     reference_payables: TitlePosition | None = None,
     cash_accounts: Sequence[CashbookSheet] = (),
+    investment: InvestmentStatement | None = None,
 ) -> SimulationResult:
     """Simula o mês. `cash_accounts` são abas do caixa sem extrato (ex.: dinheiro em espécie):
     cada linha da aba é o próprio movimento e baixa títulos com a mesma carteira do extrato."""
     titles = OpenTitles([receivables, payables])
     main = _run_account(bank_lines, collection, cashbook, titles)
     results = list(main.results)
+    investment_unmatched = _apply_investment(main.results, investment) if investment else []
+    _flag_unusual_nature(main.results, cashbook)
     for sheet in cash_accounts:
         own = [
             BankLine(c.row, c.occurred_on, c.amount_cents, c.history, account=sheet.name)
@@ -306,7 +314,82 @@ def simulate(
         dict(titles.items),
         differences,
         warnings,
+        investment,
+        investment_unmatched,
     )
+
+
+def _apply_investment(
+    results: list[LineResult], investment: InvestmentStatement
+) -> list[InvestmentMovement]:
+    """Casa aplicações e resgates do extrato bancário com o extrato da aplicação (D-411).
+
+    No mesmo dia, as linhas do banco que somam exatamente a aplicação (saída) ou o resgate (entrada)
+    viram transferência entre banco e aplicação. Devolve os movimentos da aplicação sem par
+    no banco.
+    """
+    unmatched = []
+    for movement in investment.movements:
+        if movement.kind not in ("application", "redemption"):
+            continue
+        sign = -1 if movement.kind == "application" else 1
+        pool = [
+            r
+            for r in results
+            if r.bank.occurred_on == movement.occurred_on
+            and not r.bank.is_collection
+            and "APLIC" in r.bank.description.upper()
+            and r.bank.amount_cents * sign > 0
+            and not any(p.kind == "investment" for p in r.parts)
+        ]
+        chosen, ambiguous = subset_with_sum(
+            [r.bank.amount_cents for r in pool], sign * movement.amount_cents
+        )
+        if not chosen or ambiguous:
+            unmatched.append(movement)
+            continue
+        label = (
+            "Aplicação financeira (transferência do banco)"
+            if movement.kind == "application"
+            else "Resgate da aplicação (transferência para o banco)"
+        )
+        for index in chosen:
+            line = pool[index]
+            line.parts = [
+                Part("investment", abs(line.bank.amount_cents), label, source="aplicação")
+            ]
+            line.reasons = []
+            line.status = AUTOMATIC
+    return unmatched
+
+
+def _nature_key(label: str) -> str:
+    text = re.sub(r"\(parte\)|\bN[FO]\b|\d+[\d/.,]*", " ", label.upper())
+    return " ".join(text.split())
+
+
+def _flag_unusual_nature(results: list[LineResult], cashbook: CashbookSheet | None) -> None:
+    """R-12: mesmo CPF/CNPJ com natureza habitual no mês e um movimento com outra natureza."""
+    if cashbook is None:
+        return
+    by_tax_id: dict[str, list[LineResult]] = defaultdict(list)
+    for line in results:
+        natures = [p for p in line.parts if p.kind == "nature"]
+        if line.status == IDENTIFIED and line.bank.tax_id and len(natures) == 1:
+            by_tax_id[line.bank.tax_id].append(line)
+    for lines in by_tax_id.values():
+        keys = [_nature_key(line.parts[0].label) for line in lines]
+        habitual, count = Counter(keys).most_common(1)[0]
+        if count < 2:
+            continue
+        for line, key in zip(lines, keys, strict=True):
+            # Grafias diferentes da mesma natureza ("ADIANTAMENTOCLIENTE X") não contam.
+            if SequenceMatcher(None, key, habitual).ratio() < NATURE_SIMILARITY:
+                line.status = FLAGGED
+                line.reasons.append(
+                    f"natureza diferente do habitual para este CPF/CNPJ "
+                    f"(habitual: {habitual}; agora: {key})"
+                )
 
 
 @dataclass(frozen=True)
@@ -594,7 +677,7 @@ def _outside_part(refs: Sequence[DocumentRef], cents: int, source: str) -> Part:
 
 
 def _status(parts: Sequence[Part]) -> str:
-    if parts and all(p.kind in ("receivable", "payable", "interest") for p in parts):
+    if parts and all(p.kind in ("receivable", "payable", "interest", "investment") for p in parts):
         return AUTOMATIC
     return IDENTIFIED
 

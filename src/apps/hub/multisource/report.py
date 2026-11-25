@@ -51,7 +51,8 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
     lines += [
         f"| **Total** | **{total}** | **{money(grand_total)}** |",
         "",
-        f"- Baixa automática de títulos: **{_percent(result.automatic_share)}** dos movimentos.",
+        "- Automático (títulos ou aplicação): "
+        f"**{_percent(result.automatic_share)}** dos movimentos.",
         "- Identificados (títulos ou natureza pelo caixa): "
         f"**{_percent(result.identified_share)}**.",
         "",
@@ -69,6 +70,7 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
         same = [p for p in parts if p.kind == kind]
         lines.append(f"- {label}: {len(same)} · {money(sum(p.amount_cents for p in same))}")
     lines[lines.index("## Títulos baixados na simulação")] = "## Partes identificadas"
+    lines += _investment_section(result)
     lines += ["", "## Sinalizações", ""]
     flagged = [r for r in result.lines if r.status == FLAGGED]
     if not flagged:
@@ -125,6 +127,8 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
 
 
 def _reason_group(reason: str) -> str:
+    if "natureza diferente do habitual" in reason:
+        return "natureza diferente da habitual para o mesmo CPF/CNPJ (R-12)"
     text = reason.split(": ", 1)[-1] if ": " in reason else reason
     if "há título do mesmo nome e valor" in text:
         return "documento citado difere do título aberto de mesmo nome e valor (confirmar)"
@@ -287,3 +291,32 @@ def render_ledger_csv(comparison: LedgerComparison) -> str:
             ]
         )
     return out.getvalue()
+
+
+def _investment_section(result: SimulationResult) -> list[str]:
+    statement = result.investment
+    if statement is None:
+        return []
+    matched = [p for r in result.lines for p in r.parts if p.kind == "investment"]
+    lines = [
+        "",
+        "## Aplicação financeira (D-411)",
+        "",
+        f"- Saldo anterior {money(statement.opening_cents)} → saldo atual "
+        f"{money(statement.closing_cents)} (cadeia conferida).",
+        "- Aplicações e resgates casados com o extrato bancário: "
+        f"{len(matched)} movimentos do banco, "
+        f"{money(sum(p.amount_cents for p in matched))}.",
+        f"- Rendimentos a lançar na conta da aplicação: {money(statement.total('income'))}; "
+        f"IRRF retido: {money(statement.total('income_tax'))}; "
+        f"IOF: {money(statement.total('iof'))} (contas a definir, Q-54).",
+    ]
+    if result.investment_unmatched:
+        lines.append("- Movimentos da aplicação sem par no extrato bancário:")
+        labels = {"application": "aplicação", "redemption": "resgate"}
+        for movement in result.investment_unmatched:
+            lines.append(
+                f"  - {movement.occurred_on:%d/%m/%Y} {labels[movement.kind]} "
+                f"{money(movement.amount_cents)}"
+            )
+    return lines

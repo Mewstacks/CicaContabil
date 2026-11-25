@@ -6391,3 +6391,22 @@ Executor Claude Code. Complementa a D-409 e continua em modo simulação.
 4. Nenhum dado é lido de produção por este comando: o Razão é um arquivo informado por quem executa.
 
 Sem migração, custo, IA, deploy ou mensagem externa.
+
+## D-411 — PC-33, Fase 2 em simulação: aplicação financeira e natureza divergente (24/11/2026)
+
+Origem: responsável, 24/11/2026, “continue o desenvolvimento com base no plano”. Executor Claude Code.
+Continua em modo simulação (D-409): nada é gravado, lançado ou exportado.
+
+1. **Aplicação (R-15):** leitor do “Extrato de Aplicação — Depósito a Prazo” do Sicredi em PDF texto, com a
+   cadeia de saldos conferida (saldo anterior + aplicações − resgates + rendimentos − encargos de IRRF/IOF =
+   saldo atual) e a linha repetida na virada de página descartada. No extrato bancário, as aplicações e os
+   resgates do dia (podem vir em várias linhas) são casados por soma exata com a aplicação ou o resgate do
+   mesmo dia no extrato da aplicação e ficam como transferência entre banco e aplicação. Rendimentos e IRRF
+   não passam pelo banco: são listados “a lançar na conta da aplicação”, sem conta atribuída (Q-54).
+2. **Natureza divergente (R-12):** quando o mesmo CPF/CNPJ do extrato tem uma natureza habitual no caixa do
+   cliente (ao menos 2 ocorrências no mês) e outro movimento dele traz natureza diferente, o movimento é
+   sinalizado (“natureza diferente do habitual”), não identificado.
+3. A situação “baixa automática” passa a se chamar “automático (títulos ou aplicação)”, porque inclui as
+   transferências de aplicação comprovadas pelos dois extratos.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
