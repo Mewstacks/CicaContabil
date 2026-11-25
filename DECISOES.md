@@ -6456,3 +6456,47 @@ Code. Leva para a tela a simulação das D-409 a D-412, sem mudar sua natureza.
    escuro, com dados sintéticos.
 
 Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-414 — PC-33: leitura de guias, valor por extenso e linha digitável tolerante (25/11/2026)
+
+Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano levando em conta o que já foi feito”.
+Executor Claude Code. Fecha as lacunas registradas na V-469 sem mudar a natureza da D-412: modo simulação,
+OCR somente local, sem IA nem serviço externo.
+
+1. **Guias e contas de consumo (linha de 48 dígitos, começa por 8):** a linha é aceita só com os quatro
+   dígitos de bloco e o dígito geral conferidos (módulo 10 ou 11, conforme o identificador de valor). O valor
+   vem da linha quando ela traz valor efetivo; o vencimento continua vindo do texto. O documento passa a ser
+   do tipo “guia” e é procurado no extrato e no caixa como os demais documentos de pagamento.
+2. **Linha digitável do boleto tolerante a separadores lidos errado** (dois-pontos, barra, falta de espaço
+   entre campos). A segurança continua nos dígitos verificadores e na regra de confiança mínima da D-412.
+3. **Valor por extenso** (“a quantia de seiscentos e cinquenta reais”): lido com tolerância a erros de
+   grafia do OCR. Quando confirma o valor em algarismos, a leitura deixa de ser incerta; quando diverge, vale
+   o algarismo e o documento recebe a observação “valor por extenso diferente; confirmar”. O extenso nunca
+   substitui um valor em algarismos sozinho.
+4. **Soma confere:** valor do documento igual à soma de outros dois valores da mesma página (ex.: parcelas
+   de um recibo de ressarcimento) conta como leitura confirmada. O rótulo “Total a pagar” passa a ser lido.
+5. Sem mudança nas regras de casamento (D-412 itens 2 e 3) nem no limite de tempo da tela (D-413 item 4).
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-415 — PC-33: transferências entre contas da própria empresa na simulação (25/11/2026)
+
+Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano levando em conta o que já foi feito”
+(N-05 do plano, transferências Sicredi ↔ Caixa ↔ CEF). Executor Claude Code. Continua em modo simulação
+(D-409): nada é gravado, lançado ou exportado.
+
+1. Um movimento de uma conta da empresa (extrato ou aba do caixa sem extrato) forma par com o movimento de
+   **valor igual e sinal oposto** em **outra** conta da empresa, com até 3 dias de distância, quando os dois
+   lados trazem indício de transferência (TED, transferência, saque, depósito, “recebido de”, o CNPJ da
+   própria empresa ou o nome de uma conta da empresa) e ao menos um deles cita a outra conta pelo nome da
+   aba. Movimentos que já baixaram títulos ou casaram com a aplicação não entram.
+2. Cada movimento forma no máximo um par. Havendo mais de um par possível, nenhum é formado e o caso vira
+   aviso no relatório; não há escolha por proximidade de data entre candidatos empatados.
+3. O par fica como “automático” (transferência entre contas), sem conta contábil atribuída: como lançar a
+   transferência e se o caixa físico e a CEF entram no escopo continuam em aberto (Q-57). O rótulo da
+   situação passa a ser “Automático (títulos, aplicação ou transferência)”.
+4. O relatório lista os pares e os avisos. Na tela de fechamento, muda o rótulo da situação e entra a
+   contagem “Transferências entre contas” junto às demais partes; os números dos cartões ficam alinhados
+   mesmo com rótulos de alturas diferentes.
+
+Sem custo, IA, migração, deploy ou mensagem externa.

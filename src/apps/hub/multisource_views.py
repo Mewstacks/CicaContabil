@@ -241,6 +241,7 @@ def _view_model(output: SimulationOutput) -> dict[str, Any]:
             "document": parts.get("document", 0),
             "nature": parts.get("nature", 0),
             "investment": parts.get("investment", 0),
+            "transfer": parts.get("transfer", 0),
         },
         "unmatched_cashbook": len(result.unmatched_cashbook),
         "positions": positions,

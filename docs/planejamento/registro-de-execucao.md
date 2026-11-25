@@ -1,3 +1,11 @@
+<!-- D414-D415-V471-V472-2026-11-25 -->
+## 25/11/2026 — D-414/V-471 e D-415/V-472: leitura de documentos e transferências (PC-33)
+
+- [x] Guias e contas de consumo (48 dígitos), linha do boleto com separadores lidos errado, valor por extenso e soma conferida.
+- [x] Outubro: documentos de pagamento com valor de 40 para 47, todos com pagamento encontrado; leituras incertas de 11 para 5.
+- [x] Transferências Sicredi → CEF e Sicredi → caixa pareadas; automático de 45,1% para 47,3%.
+- [ ] Publicação — depende de autorização; contas das transferências dependem da Q-57.
+
 <!-- D413-V470-2026-11-25 -->
 ## 25/11/2026 — D-413/V-470: tela de fechamento do mês (PC-33)
 

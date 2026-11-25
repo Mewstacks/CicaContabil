@@ -85,6 +85,8 @@ def test_simulation_shows_result_and_writes_nothing(screen):
     assert response.status_code == 200
     assert "Resultado de 10/2026" in page and "Empresa fictícia · 1 movimentos" in page
     assert "Identificado pelo caixa (sem baixa de título)" in page
+    assert "Automático (títulos, aplicação ou transferência)" in page  # D-415
+    assert "Transferências entre contas" in page
     assert "Nenhuma sinalização" in page
     assert response["Cache-Control"] == "no-store, private"
     assert ReconciliationSourceFile.objects.count() == files_before

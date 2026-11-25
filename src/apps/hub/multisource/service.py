@@ -145,6 +145,7 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
         cash_accounts=cash_accounts,
         investment=investment,
         documents=documents,
+        own_tax_id=sources.tax_id,
     )
     output = SimulationOutput(statement.period_start, result, None)
     output.reports = {

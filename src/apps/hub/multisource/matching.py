@@ -17,6 +17,9 @@ Ordem determinística, sempre com motivo gravado:
 
 5. O que sobra é natureza informada pelo caixa (sem título) ou sinalização. Nada é gravado: o
    resultado é uma simulação com a posição de títulos recalculada.
+
+6. Transferências entre contas da própria empresa (extrato e abas do caixa sem extrato) formam par
+   por valor igual e sinal oposto, com indício de transferência nos dois lados (D-415).
 """
 
 from __future__ import annotations
@@ -51,7 +54,7 @@ IDENTIFIED = (
 FLAGGED = "sinalizado"
 
 STATUS_LABELS = {
-    AUTOMATIC: "Automático (títulos ou aplicação)",
+    AUTOMATIC: "Automático (títulos, aplicação ou transferência)",
     IDENTIFIED: "Identificado pelo caixa (sem baixa de título)",
     FLAGGED: "Sinalizado para a contadora",
 }
@@ -110,6 +113,14 @@ class PositionDifference:
     reference_cents: int
 
 
+@dataclass(frozen=True)
+class TransferPair:
+    outgoing: LineResult
+    incoming: LineResult
+    source_name: str
+    target_name: str
+
+
 @dataclass
 class DocumentMatch:
     document: ScannedDocument
@@ -130,6 +141,7 @@ class SimulationResult:
     investment: InvestmentStatement | None = None
     investment_unmatched: list[InvestmentMovement] = field(default_factory=list)
     documents: list[DocumentMatch] = field(default_factory=list)
+    transfers: list[TransferPair] = field(default_factory=list)
 
     def count(self, status: str) -> int:
         return sum(1 for line in self.lines if line.status == status)
@@ -291,6 +303,7 @@ def simulate(
     cash_accounts: Sequence[CashbookSheet] = (),
     investment: InvestmentStatement | None = None,
     documents: Sequence[ScannedDocument] = (),
+    own_tax_id: str = "",
 ) -> SimulationResult:
     """Simula o mês. `cash_accounts` são abas do caixa sem extrato (ex.: dinheiro em espécie):
     cada linha da aba é o próprio movimento e baixa títulos com a mesma carteira do extrato."""
@@ -305,8 +318,11 @@ def simulate(
             for c in sheet.lines
         ]
         results.extend(_run_account(own, None, sheet, titles).results)
-    document_matches = _match_documents(results, documents, titles)
     warnings: list[str] = []
+    names = {"extrato": cashbook.name if cashbook else "extrato"}
+    names.update({sheet.name: sheet.name for sheet in cash_accounts})
+    transfers = _pair_transfers(results, names, own_tax_id, warnings) if cash_accounts else []
+    document_matches = _match_documents(results, documents, titles)
     differences = _compare(titles, [reference_receivables, reference_payables])
     for source in (
         collection,
@@ -329,6 +345,7 @@ def simulate(
         investment,
         investment_unmatched,
         document_matches,
+        transfers,
     )
 
 
@@ -353,7 +370,12 @@ def _match_documents(
             # OCR fraco costuma errar um dígito (1.388,18 lido como 1.388,08): aceita, com ressalva.
             candidates = _document_candidates(results, document, taken, exact=False)
             if candidates:
-                match.note = "valor lido pelo OCR difere em um dígito; confirmar"
+                match.note = (
+                    "valor do documento (confirmado na página) difere em um dígito do "
+                    "pagamento; confirmar"
+                    if document.corroborated
+                    else "valor lido pelo OCR difere em um dígito; confirmar"
+                )
         if not candidates:
             continue
         line = min(candidates, key=lambda c: c[:4])[4]
@@ -417,6 +439,83 @@ def _settle_with_document(line: LineResult, document: ScannedDocument, titles: O
         line.reasons = []
         line.status = IDENTIFIED
     return False
+
+
+TRANSFER_DAYS = 3
+TRANSFER_WORDS = re.compile(
+    r"\bTRANSF|\bTRANS\b|\bTED\b|\bDOC\b|\bSAQUE|\bDEPOSITO|\bDEPÓSITO|RECEBID[OA] D[AEO]\b"
+    r"|\bRECEBIMENTO\b"
+)
+
+
+def _transfer_text(line: LineResult) -> str:
+    natures = [p.label for p in line.parts if p.kind == "nature"]
+    return " ".join([line.bank.description, *natures]).upper()
+
+
+def _mentions(text: str, name: str) -> bool:
+    return bool(name) and re.search(rf"\b{re.escape(name.upper())}\b", text) is not None
+
+
+def _pair_transfers(
+    results: list[LineResult], names: dict[str, str], own_tax_id: str, warnings: list[str]
+) -> list[TransferPair]:
+    """D-415: pares de transferência entre contas da própria empresa (extrato ↔ abas do caixa).
+
+    Valor igual e sinal oposto em contas diferentes, até 3 dias de distância, indício de
+    transferência nos dois lados e ao menos um lado citando a outra conta. Par ambíguo não é
+    formado (vira aviso)."""
+    account_names = [n for n in names.values() if n]
+
+    def name(line: LineResult) -> str:
+        return names.get(line.bank.account, line.bank.account)
+
+    def eligible(line: LineResult) -> bool:
+        if line.status == AUTOMATIC or any(
+            p.kind in ("receivable", "payable", "investment") for p in line.parts
+        ):
+            return False
+        text = _transfer_text(line)
+        return bool(
+            TRANSFER_WORDS.search(text)
+            or (own_tax_id and own_tax_id in text)
+            or any(_mentions(text, n) for n in account_names if n != name(line))
+        )
+
+    pool = [line for line in results if line.bank.amount_cents and eligible(line)]
+    candidates: dict[int, list[LineResult]] = defaultdict(list)
+    for out in (line for line in pool if line.bank.amount_cents < 0):
+        for inc in pool:
+            if (
+                inc.bank.account != out.bank.account
+                and inc.bank.amount_cents == -out.bank.amount_cents
+                and abs((inc.bank.occurred_on - out.bank.occurred_on).days) <= TRANSFER_DAYS
+                and (
+                    _mentions(_transfer_text(out), name(inc))
+                    or _mentions(_transfer_text(inc), name(out))
+                )
+            ):
+                candidates[id(out)].append(inc)
+                candidates[id(inc)].append(out)
+    pairs: list[TransferPair] = []
+    for out in (line for line in pool if line.bank.amount_cents < 0):
+        options = candidates.get(id(out), [])
+        if not options:
+            continue
+        inc = options[0]
+        if len(options) > 1 or len(candidates[id(inc)]) > 1:
+            warnings.append(
+                f"Transferência entre contas com mais de um par possível: {name(out)} "
+                f"{out.bank.occurred_on:%d/%m/%Y} {money(out.bank.amount_cents)}; confirmar."
+            )
+            continue
+        label = f"Transferência entre contas da empresa: {name(out)} → {name(inc)}"
+        for line, other in ((out, inc), (inc, out)):
+            line.parts = [Part("transfer", abs(line.bank.amount_cents), label, source=name(other))]
+            line.reasons = []
+            line.status = AUTOMATIC
+        pairs.append(TransferPair(out, inc, name(out), name(inc)))
+    return pairs
 
 
 def _apply_investment(

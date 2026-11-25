@@ -17,6 +17,8 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] D-411: aplicação/resgate pelo extrato da aplicação e natureza divergente (R-12) na simulação (V-468).
 - [x] D-412: documentos escaneados por OCR local, cruzados com banco e caixa (R-10/R-11) (V-469).
 - [x] D-413: tela “Fechamento do mês (simulação)”, sem gravar nada (V-470).
+- [x] D-414: guias de 48 dígitos, linha digitável tolerante, valor por extenso e soma conferida nos documentos (V-471).
+- [x] D-415: transferências entre contas da própria empresa pareadas na simulação; contas a definir (Q-57) (V-472).
 - [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

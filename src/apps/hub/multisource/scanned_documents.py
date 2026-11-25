@@ -4,6 +4,10 @@ O OCR roda só na máquina (Tesseract `por`, o mesmo binário da conciliação).
 vencimento vêm da linha digitável, cujos dígitos verificadores (módulo 10 dos campos e módulo 11 do
 código de barras) são conferidos: um dígito lido errado invalida a linha em vez de produzir valor
 errado. Nos demais documentos, valor, CNPJ e número vêm do texto, com a confiança do OCR registrada.
+
+D-414: guias e contas de consumo pela linha de 48 dígitos (dígitos de bloco e geral conferidos),
+linha do boleto tolerante a separadores lidos errado, valor por extenso e soma de valores da página
+como confirmação da leitura. O extenso nunca substitui sozinho o valor em algarismos.
 """
 
 from __future__ import annotations
@@ -11,12 +15,15 @@ from __future__ import annotations
 import re
 import subprocess
 import tempfile
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from difflib import get_close_matches
+from itertools import combinations
 from pathlib import PurePath
 
-from apps.hub.multisource.common import MultisourceError, cents_from_text
+from apps.hub.multisource.common import MultisourceError, cents_from_text, money
 
 LOW_CONFIDENCE = 90
 # Escaneados são imagens: 50 páginas passam fácil de 25 MiB (limite das demais fontes).
@@ -24,8 +31,19 @@ MAX_SCAN_BYTES = 100 * 1024 * 1024
 MAX_PAGES = 300
 # Fator de vencimento: a contagem recomeçou em 1000 em 22/02/2025 (base anterior 07/10/1997).
 FACTOR_BASE = date(2025, 2, 22)
+# Separadores entre campos: o OCR troca o ponto por vírgula ou dois-pontos, cola campos, lê a
+# borda da caixa como barra e gruda ruído no começo ("123793.39704"). A busca é sobreposta
+# (lookahead) para um trecho inválido não esconder a linha que começa dentro dele; os dígitos
+# verificadores decidem se a linha vale (D-414).
+_SEP = r"[\s.,:;|]*"
 LINE_PATTERN = re.compile(
-    r"(\d{5})\s*[.,]?\s*(\d{5})\s+(\d{5})\s*[.,]?\s*(\d{6})\s+(\d{5})\s*[.,]?\s*(\d{6})\s+(\d)\s+(\d{14})"
+    rf"(?=(\d{{5}}){_SEP}(\d{{5}}){_SEP}(\d{{5}}){_SEP}(\d{{6}}){_SEP}(\d{{5}}){_SEP}(\d{{6}})"
+    rf"{_SEP}(\d){_SEP}(\d{{14}}))"
+)
+# Guia de arrecadação e conta de consumo: 4 blocos de 11 dígitos, cada um com seu dígito (D-414).
+_BLOCK = r"(\d{11})[\s-]*(\d)"
+COLLECTION_LINE_PATTERN = re.compile(
+    rf"(?=(8\d{{10}})[\s-]*(\d){_SEP}{_BLOCK}{_SEP}{_BLOCK}{_SEP}{_BLOCK})"
 )
 # CNPJ formatado (00.000.000/0000-00) ou 14 dígitos logo após o rótulo "CNPJ"; dígitos soltos
 # (como o final da linha digitável) não contam.
@@ -38,10 +56,11 @@ MONEY = r"(\d{1,3}(?:\.\d{3})*,\d{2})"
 
 @dataclass(frozen=True)
 class BoletoLine:
-    bank: str
+    bank: str  # código do banco; vazio na guia de arrecadação
     due_on: date | None
     amount_cents: int
     barcode: str
+    kind: str = "boleto"  # boleto | guia
 
 
 @dataclass(frozen=True)
@@ -57,11 +76,13 @@ class ScannedDocument:
     boleto: BoletoLine | None = None
     issuer: str = ""
     refs: tuple[str, ...] = field(default=())
-    corroborated: bool = False  # valor repetido na página (ex.: aluguel, soma e líquido)
+    # Valor confirmado na página: repetido, igual ao extenso ou à soma de outros dois (D-414).
+    corroborated: bool = False
+    note: str = ""
 
     @property
     def is_payment(self) -> bool:
-        return self.kind in ("boleto", "recibo", "fatura") and bool(self.amount_cents)
+        return self.kind in PAYMENT_KINDS and bool(self.amount_cents)
 
     @property
     def uncertain(self) -> bool:
@@ -81,6 +102,9 @@ def _mod10(digits: str) -> int:
         product = int(char) * (2 if index % 2 == 0 else 1)
         total += product // 10 + product % 10
     return (10 - total % 10) % 10
+
+
+PAYMENT_KINDS = ("boleto", "guia", "recibo", "fatura")
 
 
 def _mod11_barcode(digits: str) -> int:
@@ -117,10 +141,111 @@ def parse_boleto_line(text: str) -> BoletoLine | None:
     return None
 
 
+def _mod11_collection(digits: str) -> int:
+    total, weight = 0, 2
+    for char in reversed(digits):
+        total += int(char) * weight
+        weight = 2 if weight == 9 else weight + 1
+    rest = total % 11
+    return 0 if rest in (0, 1) else 11 - rest
+
+
+def parse_collection_line(text: str) -> BoletoLine | None:
+    """Primeira linha válida de guia ou conta de consumo (48 dígitos, começa por 8).
+
+    O identificador de valor (3º dígito) escolhe o módulo: 6 e 7 usam módulo 10; 8 e 9, módulo 11.
+    Só 6 e 8 trazem valor efetivo em reais; 7 e 9 trazem quantidade de referência (sem valor)."""
+    for match in COLLECTION_LINE_PATTERN.finditer(text):
+        blocks = [match[i] for i in (1, 3, 5, 7)]
+        checks = [int(match[i]) for i in (2, 4, 6, 8)]
+        barcode = "".join(blocks)
+        value_id = barcode[2]
+        if value_id not in "6789":
+            continue
+        check = _mod10 if value_id in "67" else _mod11_collection
+        if any(check(block) != dv for block, dv in zip(blocks, checks, strict=True)):
+            continue
+        if check(barcode[:3] + barcode[4:]) != int(barcode[3]):
+            continue
+        value = int(barcode[4:15]) if value_id in "68" else 0
+        return BoletoLine("", None, value, barcode, kind="guia")
+    return None
+
+
+UNITS = {
+    "UM": 1, "UMA": 1, "DOIS": 2, "DUAS": 2, "TRES": 3, "QUATRO": 4, "CINCO": 5, "SEIS": 6,
+    "SETE": 7, "OITO": 8, "NOVE": 9, "DEZ": 10, "ONZE": 11, "DOZE": 12, "TREZE": 13,
+    "QUATORZE": 14, "CATORZE": 14, "QUINZE": 15, "DEZESSEIS": 16, "DEZESSETE": 17, "DEZOITO": 18,
+    "DEZENOVE": 19, "VINTE": 20, "TRINTA": 30, "QUARENTA": 40, "CINQUENTA": 50, "SESSENTA": 60,
+    "SETENTA": 70, "OITENTA": 80, "NOVENTA": 90, "CEM": 100, "CENTO": 100, "DUZENTOS": 200,
+    "DUZENTAS": 200, "TREZENTOS": 300, "TREZENTAS": 300, "QUATROCENTOS": 400,
+    "QUATROCENTAS": 400, "QUINHENTOS": 500, "QUINHENTAS": 500, "SEISCENTOS": 600,
+    "SEISCENTAS": 600, "SETECENTOS": 700, "SETECENTAS": 700, "OITOCENTOS": 800,
+    "OITOCENTAS": 800, "NOVECENTOS": 900, "NOVECENTAS": 900,
+}  # fmt: skip
+SCALES = {"MIL": 1_000, "MILHAO": 1_000_000, "MILHOES": 1_000_000}
+CURRENCY = {"REAL": "reais", "REAIS": "reais", "CENTAVO": "centavos", "CENTAVOS": "centavos"}
+_WORDS = (*UNITS, *SCALES, *CURRENCY)
+
+
+def _word(token: str) -> str:
+    """Palavra do extenso reconhecida, tolerando erro de grafia do OCR em palavras longas."""
+    if token in UNITS or token in SCALES or token in CURRENCY or token in ("E", "DE"):
+        return token
+    if len(token) >= 5:
+        close = get_close_matches(token, _WORDS, n=1, cutoff=0.85)
+        if close:
+            return close[0]
+    return ""
+
+
+def _words_value(words: list[str]) -> int | None:
+    total = current = 0
+    seen = False
+    for word in words:
+        if word in ("E", "DE"):
+            continue
+        if word in UNITS:
+            current += UNITS[word]
+            seen = True
+        elif word in SCALES:
+            total += (current or 1) * SCALES[word]
+            current = 0
+            seen = True
+    return total + current if seen else None
+
+
+def amount_in_words(text: str) -> int | None:
+    """Valor por extenso em centavos ("seiscentos e cinquenta reais e dez centavos")."""
+    plain = unicodedata.normalize("NFKD", text.upper()).encode("ascii", "ignore").decode()
+    tokens = [_word(token) for token in re.findall(r"[A-Z]+", plain)]
+    run: list[str] = []
+    reais: int | None = None
+    for token in tokens:
+        if not token:
+            if reais is not None:
+                return reais * 100
+            run = []
+            continue
+        if CURRENCY.get(token) == "reais":
+            value = _words_value(run)
+            if value is not None:
+                reais = value
+            run = []
+        elif CURRENCY.get(token) == "centavos":
+            cents = _words_value(run)
+            if cents is not None and cents < 100 and (reais is not None or run):
+                return (reais or 0) * 100 + cents
+            run = []
+        else:
+            run.append(token)
+    return reais * 100 if reais is not None else None
+
+
 def _kind(text: str, boleto: BoletoLine | None) -> str:
     upper = text.upper()
     if boleto:
-        return "boleto"
+        return boleto.kind
     # Documento fiscal antes de "recibo": CT-e e DANFE trazem "recibo do sacado/pagador" no rodapé.
     if "DANFE" in upper or "DOCUMENTO AUXILIAR DA NOTA FISCAL" in upper:
         return "danfe"
@@ -130,14 +255,15 @@ def _kind(text: str, boleto: BoletoLine | None) -> str:
         return "boleto"
     if "RECIBO" in upper:
         return "recibo"
-    if "FATURA" in upper:
-        return "fatura"
+    if "FATURA" in upper or re.search(r"TOTAL\s*A\s*PAGAR", upper):
+        return "fatura"  # conta de consumo sem a palavra "fatura" legível (D-414)
     return "outro"
 
 
 AMOUNT_LABELS = (
     "Valor do Documento",
     "Valor Cobrado",
+    r"Total\s*a\s*pagar",
     "Total desta Fatura",
     r"Total (?:da )?fatura",
     "Pagamento Total",
@@ -162,11 +288,17 @@ def _first_amount(text: str, labels: tuple[str, ...]) -> int | None:
     return None
 
 
+def _sum_of_two(amount: int, values: list[int]) -> bool:
+    # Valores repetidos contam: dois sócios com 5.000,00 cada somam o total de 10.000,00.
+    others = [v for v in values if 0 < v < amount][:200]
+    return any(a + b == amount for a, b in combinations(others, 2))
+
+
 def extract_document(
     text: str, *, source: str, page: int, confidence: int, own_tax_id: str = ""
 ) -> ScannedDocument:
     """Interpreta o texto de uma página. Não lança erro: campos não lidos ficam vazios."""
-    boleto = parse_boleto_line(text)
+    boleto = parse_boleto_line(text) or parse_collection_line(text)
     tax_ids = []
     for match in CNPJ_PATTERN.finditer(text):
         digits = "".join(g for g in match.groups() if g)
@@ -212,7 +344,16 @@ def extract_document(
     issuer_match = re.search(r"Benefici[áa]rio\s*[:\n]?\s*([A-ZÀ-Ú0-9 .&-]{4,60})", text)
     if issuer_match:
         issuer = " ".join(issuer_match[1].split())
-    corroborated = bool(amount) and _money_values(text).count(amount or 0) >= 2
+    values = _money_values(text)
+    words = amount_in_words(text)
+    note = ""
+    if amount is None and words is not None and words in values:
+        amount = words  # algarismo confirmado pelo extenso
+    corroborated = bool(amount) and (
+        values.count(amount or 0) >= 2 or words == amount or _sum_of_two(amount or 0, values)
+    )
+    if amount and words is not None and words != amount:
+        note = f"valor por extenso diferente ({money(words)}); confirmar"
     return ScannedDocument(
         source,
         page,
@@ -226,6 +367,7 @@ def extract_document(
         issuer,
         refs,
         corroborated,
+        note,
     )
 
 

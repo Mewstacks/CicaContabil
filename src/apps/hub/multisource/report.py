@@ -51,7 +51,7 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
     lines += [
         f"| **Total** | **{total}** | **{money(grand_total)}** |",
         "",
-        "- Automático (títulos ou aplicação): "
+        "- Automático (títulos, aplicação ou transferência): "
         f"**{_percent(result.automatic_share)}** dos movimentos.",
         "- Identificados (títulos ou natureza pelo caixa): "
         f"**{_percent(result.identified_share)}**.",
@@ -66,11 +66,13 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
         ("interest", "Juros/multa recebidos — a classificar (Q-53)"),
         ("document", "Notas citadas no caixa e fora da posição de abertura (sem baixa)"),
         ("nature", "Natureza informada pelo caixa, sem título (conta pelo DE-PARA)"),
+        ("transfer", "Transferências entre contas da empresa — contas a definir (Q-57)"),
     ):
         same = [p for p in parts if p.kind == kind]
         lines.append(f"- {label}: {len(same)} · {money(sum(p.amount_cents for p in same))}")
     lines[lines.index("## Títulos baixados na simulação")] = "## Partes identificadas"
     lines += _investment_section(result)
+    lines += _transfers_section(result)
     lines += _documents_section(result)
     lines += ["", "## Sinalizações", ""]
     flagged = [r for r in result.lines if r.status == FLAGGED]
@@ -294,6 +296,20 @@ def render_ledger_csv(comparison: LedgerComparison) -> str:
     return out.getvalue()
 
 
+def _transfers_section(result: SimulationResult) -> list[str]:
+    if not result.transfers:
+        return []
+    lines = ["", "## Transferências entre contas da empresa (D-415)", ""]
+    for pair in result.transfers:
+        out, inc = pair.outgoing.bank, pair.incoming.bank
+        lines.append(
+            f"- {out.occurred_on:%d/%m/%Y} {pair.source_name} → {inc.occurred_on:%d/%m/%Y} "
+            f"{pair.target_name}: {money(inc.amount_cents)}"
+        )
+    lines.append("- Como lançar e quais contas usar: a definir com a contabilidade (Q-57).")
+    return lines
+
+
 def _investment_section(result: SimulationResult) -> list[str]:
     statement = result.investment
     if statement is None:
@@ -344,6 +360,8 @@ def _documents_section(result: SimulationResult) -> list[str]:
         f"{len(found)} (" + ", ".join(f"{a} {n}" for a, n in by_account.most_common()) + ").",
         f"- Casados com valor lido diferente em um dígito (confirmar): "
         f"{sum(1 for m in found if m.note)}.",
+        f"- Valor por extenso diferente do valor em algarismos (confirmar): "
+        f"{sum(1 for m in matches if m.document.note)}.",
         f"- Títulos baixados pelo documento, sem linha no caixa (R-10): "
         f"{sum(1 for m in found if m.settled)}.",
         "- Pagamentos identificados só pelo documento, sem título na posição (R-10): "
@@ -401,7 +419,7 @@ def render_documents_csv(result: SimulationResult) -> str:
                 "sim" if document.boleto else "não",
                 payment,
                 "sim" if match.settled else "",
-                match.note,
+                "; ".join(n for n in (document.note, match.note) if n),
             ]
         )
     return out.getvalue()

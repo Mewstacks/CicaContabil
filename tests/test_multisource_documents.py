@@ -14,8 +14,11 @@ from apps.hub.multisource.report import render_documents_csv, render_summary
 from apps.hub.multisource.scanned_documents import (
     _mod10,
     _mod11_barcode,
+    _mod11_collection,
+    amount_in_words,
     extract_document,
     parse_boleto_line,
+    parse_collection_line,
     read_scanned_pdf,
 )
 from apps.hub.multisource.title_position import PAYABLE, PositionInstallment, TitlePosition
@@ -217,3 +220,116 @@ def test_weak_ocr_amount_one_digit_off_links_with_a_note():
     result = simulate([], cash_accounts=[caixa], documents=[receipt])
     match = result.documents[0]
     assert match.line is not None and "um dígito" in match.note and not match.settled
+
+
+# D-414 — guias, linha tolerante, valor por extenso e soma conferida.
+
+
+def collection_line(
+    *, value_id="6", cents=18692, segment="4", free="01231234567890123456789012345"
+):
+    """Linha de guia/conta de consumo sintética (48 dígitos) com dígitos corretos."""
+    check = _mod10 if value_id in "67" else _mod11_collection
+    body = f"8{segment}{value_id}" + f"{cents:011d}" + free[:29]
+    general = check(body)
+    barcode = body[:3] + str(general) + body[3:]
+    blocks = [barcode[i : i + 11] for i in range(0, 44, 11)]
+    return " ".join(f"{block}-{check(block)}" for block in blocks)
+
+
+@pytest.mark.parametrize("value_id", ["6", "8"])
+def test_collection_line_gives_amount_and_rejects_misread_digit(value_id):
+    line = collection_line(value_id=value_id)
+    parsed = parse_collection_line(f"Conta de consumo\n{line}\n")
+    assert parsed is not None and (parsed.kind, parsed.amount_cents) == ("guia", 18692)
+    digits = list(line)
+    digits[20] = str((int(digits[20]) + 1) % 10)
+    assert parse_collection_line("".join(digits)) is None
+    # Quantidade de referência (7 e 9) não é valor em reais.
+    reference = parse_collection_line(collection_line(value_id="7"))
+    assert reference is not None and reference.amount_cents == 0
+
+
+def test_collection_document_is_a_payment_matched_with_the_bank():
+    text = (
+        "Fatura de serviços\nVencimento 15/10/2026\nCNPJ 33.333.333/0001-33\n"
+        f"Total a pagar R$ 186,92\n{collection_line()}"
+    )
+    document = extract_document(text, source="s.pdf", page=1, confidence=70)
+    assert (document.kind, document.amount_cents, document.due_on) == (
+        "guia",
+        18692,
+        date(2026, 10, 15),
+    )
+    assert document.is_payment and not document.uncertain
+    bank = [BankLine(1, date(2026, 10, 15), -18692, "PAGAMENTO CONVENIO TELEFONIA")]
+    result = simulate(bank, documents=[document])
+    assert result.documents[0].line is result.lines[0]
+    assert "s.pdf;1;guia;186,92;15/10/2026" in render_documents_csv(result)
+
+
+def test_utility_bill_with_total_to_pay_is_a_payment():
+    bill = extract_document(
+        "Período de uso\nVencimento 15/10/2026\nTotala pagar\nR$186,92\nPlano R$186,16",
+        source="s.pdf",
+        page=1,
+        confidence=95,
+    )
+    assert (bill.kind, bill.amount_cents, bill.is_payment) == ("fatura", 18692, True)
+
+
+def test_boleto_line_with_misread_separators_still_validates():
+    line = boleto_line(bank="001", cents=94243)
+    glued = line.replace(" ", "", 1).replace(
+        ".", ":", 2
+    )  # campo 1 colado ao 2; ponto lido como ":"
+    tail_glued = line[: line.rfind(" ")] + line[line.rfind(" ") + 1 :]  # DV colado ao fator
+    for text in (glued, tail_glued, f"|{line}|"):
+        parsed = parse_boleto_line(text)
+        assert parsed is not None and parsed.amount_cents == 94243, text
+
+
+def test_amount_in_words_tolerates_ocr_misspelling():
+    assert amount_in_words("A quantia de SEISSENTOS E CINQUENTA REAIS referente") == 65000
+    assert amount_in_words("(mil trezentos e oitenta e oito reais e dezoito centavos)") == 138818
+    assert amount_in_words("dois milhões e duzentos mil reais") == 220000000
+    assert amount_in_words("cinquenta centavos") == 50
+    assert amount_in_words("SEM VALORES EXPRESSOS EM REAIS") is None
+    assert amount_in_words("Recibo de aluguel 650,00") is None
+
+
+def test_amount_in_words_confirms_or_questions_the_figure():
+    confirmed = extract_document(
+        "Recibo de aluguel\nLíquido 650,00\nA quantia de SEISSENTOS E CINQUENTA REAIS",
+        source="s.pdf",
+        page=1,
+        confidence=80,
+    )
+    assert confirmed.amount_cents == 65000 and not confirmed.uncertain and not confirmed.note
+    divergent = extract_document(
+        "Recibo\nLíquido 650,00\na quantia de seiscentos e sessenta reais",
+        source="s.pdf",
+        page=1,
+        confidence=95,
+    )
+    assert divergent.amount_cents == 65000  # vale o algarismo
+    assert divergent.note == "valor por extenso diferente (660,00); confirmar"
+    alone = extract_document(
+        "Recibo\na quantia de seiscentos reais", source="s.pdf", page=1, confidence=95
+    )
+    assert alone.amount_cents is None  # o extenso sozinho não cria valor
+    figure_and_words = extract_document(
+        "Recibo\nRecebi R$ 600,00 (seiscentos reais)", source="s.pdf", page=1, confidence=95
+    )
+    assert figure_and_words.amount_cents == 60000 and figure_and_words.corroborated
+
+
+def test_sum_of_two_values_on_the_page_confirms_the_amount():
+    text = "RECIBO DE RESSARCIMENTO\nR$1.388,08\nR$ 158,89\n1.229,19\n1.388,08 p"
+    receipt = extract_document(text, source="s.pdf", page=1, confidence=80)
+    assert receipt.amount_cents == 138808 and receipt.corroborated and not receipt.uncertain
+    caixa = CashbookSheet("CAIXA", 0, (cash(1, date(2026, 10, 20), "PAGTO AGUA/LUZ", -138818),), ())
+    result = simulate([], cash_accounts=[caixa], documents=[receipt])
+    assert "confirmado na página" in result.documents[0].note
+    shares = "RECIBO DE DISTRIBUIÇÃO\nSócio A R$ 5.000,00\nSócio B R$ 5.000,00\nTOTAL R$ 10.000,00"
+    assert not extract_document(shares, source="s.pdf", page=1, confidence=80).uncertain

@@ -13369,3 +13369,50 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, 
 
 Não verificado: uso com arquivos reais pela tela (só pelo comando); tempo de resposta em produção com
 arquivos grandes; documentos escaneados ficam fora da tela (D-413 item 4).
+
+## V-471 — D-414: guias, valor por extenso e linha digitável tolerante nos documentos escaneados (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy, IA ou serviço externo;
+OCR local.
+
+- `multisource/scanned_documents.py`: linha de guia/conta de consumo (48 dígitos, módulo 10 ou 11 pelo
+  identificador de valor, dígitos de bloco e geral conferidos); linha do boleto com separadores lidos errado
+  e ruído colado, com busca sobreposta; valor por extenso com tolerância a erro de grafia (corte 0,85, só em
+  palavras de 5 letras ou mais); soma de dois valores da página; rótulo “Total a pagar” e conta de consumo
+  sem a palavra “fatura”.
+- Conferência independente do leitor de guias: duas linhas de exemplo públicas (uma de módulo 10, outra de
+  módulo 11) foram aceitas com o valor esperado; os testes usam linhas sintéticas.
+- Testes: 9 novos em `tests/test_multisource_documents.py` (guia válida e com dígito trocado, referência sem
+  valor, guia casada com o banco, separadores, extenso que confirma, que diverge e que sozinho não cria valor,
+  soma conferida inclusive com valores repetidos, conta de consumo).
+- Outubro da SURIA (arquivos reais fora do repositório, scans já baixados na sessão anterior): documentos de
+  pagamento com valor de 40 para 47, todos com pagamento encontrado (45 no extrato, 2 no caixa em dinheiro);
+  leituras incertas de 11 para 5; recibo de aluguel confirmado pelo extenso; recibo de ressarcimento
+  confirmado pela soma (a diferença de um dígito agora aponta para o pagamento, não para o OCR). Nenhum
+  documento novo ficou “sem pagamento”.
+
+Não verificado: guia real lida por OCR com a linha completa (a única conta de consumo de outubro foi lida
+pelo “Total a pagar”, com a linha incompleta no scan); valor por extenso com centavos em documento real.
+
+## V-472 — D-415: transferências entre contas da própria empresa na simulação (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `multisource/matching.py` (`_pair_transfers`), `report.py` (seção própria e contagem), `service.py` (CNPJ
+  da empresa), tela: rótulo “Automático (títulos, aplicação ou transferência)”, contagem “Transferências entre
+  contas” e números dos cartões alinhados.
+- Testes: 4 novos em `tests/test_multisource_transfers.py` (banco → caixa e banco → outro banco; saque de
+  distribuição de lucros sem par; mesmo valor sem indício não pareia; dois pares possíveis viram aviso) e
+  asserções na tela.
+- Outubro da SURIA: exatamente os 2 pares esperados (Sicredi → CEF 5.000,00 em 07/10; Sicredi → caixa
+  30.000,00 em 29/10); o saque de 30.000,00 de 16/10 (distribuição de lucros) ficou fora. Automático de 45,1%
+  para 47,3%; identificados 96,2% e 7 sinalizações, sem mudança.
+- Regressão: `uv run pytest -q` 5810 passaram, 59 ignorados; `ruff check .` limpo; `manage.py check` e
+  `makemigrations --check` sem pendência.
+- Navegador (servidor descartável, dados sintéticos, arquivos temporários removidos): 1366 px claro e escuro
+  e 375 px escuro; sem rolagem horizontal; sem erro no console. Corrigido na verificação: em 375 px o rótulo
+  novo ocupava 4 linhas e desalinhava os números dos cartões.
+- Protocolo de UI: Watermelon e web-design-guidelines indisponíveis nesta sessão (mesmo limite da V-470).
+
+Não verificado: contas e forma de lançamento das transferências (Q-57); rodada `--ds=config.settings.test_postgresql`
+(fica para o CI).

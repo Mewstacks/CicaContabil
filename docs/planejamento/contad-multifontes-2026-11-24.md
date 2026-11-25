@@ -548,3 +548,18 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   - lançamento real e exportação (decisão própria; conflito com a D-393);
   - documentos escaneados na tela, por fila;
   - itens que dependem das respostas Q-50 a Q-66.
+
+## 19. Leitura de documentos e transferências entre contas (D-414/V-471, D-415/V-472)
+
+- Documentos escaneados: guias e contas de consumo pela linha de 48 dígitos; linha do boleto aceita mesmo
+  com separadores lidos errado; valor por extenso e soma de valores da página confirmam a leitura (o
+  extenso nunca substitui o algarismo sozinho).
+- Outubro: documentos de pagamento com valor passaram de 40 para 47, todos com pagamento encontrado;
+  leituras incertas caíram de 11 para 5.
+- Transferências entre contas da empresa (extrato e abas do caixa) viram par automático, sem conta
+  atribuída (Q-57). Outubro: Sicredi → CEF 5.000,00 e Sicredi → caixa 30.000,00; automático de 45,1% para
+  47,3%, com as mesmas 7 sinalizações.
+- Itens restantes do plano:
+  - lançamento real e exportação (decisão própria; conflito com a D-393);
+  - documentos escaneados na tela, por fila (exige decisão sobre guardar os arquivos no servidor);
+  - itens que dependem das respostas Q-50 a Q-66.

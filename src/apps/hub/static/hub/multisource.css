@@ -3,6 +3,8 @@
 .multisource-form .field small.field-help{display:block}
 .multisource-form input[type=file]{padding:8px 10px;cursor:pointer}
 .multisource-metrics{padding:18px 22px 0}
+/* D-415: rótulos de altura diferente não desalinham os números dos cartões. */
+.multisource-metrics article{display:flex;flex-direction:column}.multisource-metrics article>span:first-child{flex:1 0 auto}
 .multisource-reason{display:block;line-height:1.5}.multisource-reason+.multisource-reason{margin-top:6px}
 .multisource-list{margin:0;padding:0 22px 18px 40px;line-height:1.6}.multisource-list li+li{margin-top:4px}
 .titles-source-details .multisource-list{padding:8px 0 0 18px}

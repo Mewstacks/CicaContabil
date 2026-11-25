@@ -291,7 +291,7 @@ def test_reports_render_without_touching_database():
     summary = render_summary(result, title="Teste")
     assert (
         "Simulação (D-409)" in summary
-        and "| Automático (títulos ou aplicação) | 1 | 1.411,20 |" in summary
+        and "| Automático (títulos, aplicação ou transferência) | 1 | 1.411,20 |" in summary
     )
     assert "01/10/2026;1.411,20" in render_lines_csv(result)
     assert (
