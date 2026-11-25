@@ -1,0 +1,93 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'mcpgateway/connector.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel mcp-panel" aria-labelledby="mcp-state">
+  <header class="workspace-panel-head"><h2 id="mcp-state">Estado</h2></header>
+  <div class="mcp-row">
+    <span class="mcp-chip {% if mcp_enabled and gateway_available %}is-on{% endif %}">{% if not gateway_available %}Indisponível{% elif mcp_enabled %}Ligado{% else %}Desligado{% endif %}</span>
+    {% if gateway_available %}
+    <form method="post">{% csrf_token %}
+      {% if mcp_enabled %}<button class="button button-quiet" type="submit" name="action" value="desligar">Desligar</button>
+      {% else %}<button class="button" type="submit" name="action" value="ligar">Ligar</button>{% endif %}
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="workspace-panel mcp-panel" aria-labelledby="mcp-pc">
+  <header class="workspace-panel-head">
+    <h2 id="mcp-pc">Computador</h2>
+    <form method="post">{% csrf_token %}<button class="button{% if agents %} button-quiet{% endif %}" type="submit" name="action" value="parear">Gerar código</button></form>
+  </header>
+  {% if enrollment_code %}
+  <div class="mcp-code" role="status">
+    <dl class="mcp-facts"><dt>Código</dt><dd><code translate="no">{{ enrollment_code }}</code></dd><dt>Comando</dt><dd><code class="mcp-command" translate="no">{{ install_command }}</code></dd></dl>
+  </div>
+  {% endif %}
+  {% if agents %}
+  <table class="mcp-table">
+    <thead><tr><th scope="col">Nome</th><th scope="col">Estado</th><th scope="col">Visto</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+    <tbody>
+    {% for row in agents %}
+      <tr>
+        <td>{{ row.agent.label }}</td>
+        <td><span class="mcp-chip {% if row.online %}is-on{% endif %}">{% if row.online %}Online{% else %}Offline{% endif %}</span></td>
+        <td>{% if row.agent.last_seen_at %}{{ row.agent.last_seen_at|date:"d/m H:i" }}{% else %}—{% endif %}</td>
+        <td class="mcp-actions"><form method="post">{% csrf_token %}<input type="hidden" name="id" value="{{ row.agent.id }}"><button class="button button-quiet" type="submit" name="action" value="revogar-agente">Desconectar</button></form></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="mcp-empty">Nenhum computador pareado</p>
+  {% endif %}
+</section>
+
+{% if connector_url %}
+<section class="workspace-panel mcp-panel" aria-labelledby="mcp-link">
+  <header class="workspace-panel-head"><h2 id="mcp-link">Conexão</h2></header>
+  <div class="field mcp-field">
+    <label for="mcp-url">Endereço</label>
+    <input id="mcp-url" type="text" readonly value="{{ connector_url }}" translate="no" onfocus="this.select()">
+  </div>
+</section>
+{% endif %}
+
+<section class="workspace-panel mcp-panel" aria-labelledby="mcp-clients">
+  <header class="workspace-panel-head"><h2 id="mcp-clients">Acessos</h2></header>
+  {% if consents %}
+  <table class="mcp-table">
+    <thead><tr><th scope="col">Pessoa</th><th scope="col">Cliente</th><th scope="col">Desde</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+    <tbody>
+    {% for consent in consents %}
+      <tr>
+        <td>{{ consent.user.full_name|default:consent.user.email }}</td>
+        <td>{{ consent.application.name|default:"Cliente MCP" }}</td>
+        <td>{{ consent.created_at|date:"d/m/Y" }}</td>
+        <td class="mcp-actions"><form method="post">{% csrf_token %}<input type="hidden" name="id" value="{{ consent.pk }}"><button class="button button-quiet" type="submit" name="action" value="revogar-cliente">Revogar</button></form></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="mcp-empty">Nenhum cliente conectado</p>
+  {% endif %}
+</section>
+
+<section class="workspace-panel mcp-panel" aria-labelledby="mcp-jobs">
+  <header class="workspace-panel-head"><h2 id="mcp-jobs">Consultas</h2></header>
+  {% if recent_jobs %}
+  <table class="mcp-table">
+    <thead><tr><th scope="col">Ferramenta</th><th scope="col">Estado</th><th scope="col">Quando</th></tr></thead>
+    <tbody>
+    {% for job in recent_jobs %}
+      <tr><td><code translate="no">{{ job.tool }}</code></td><td>{{ job.get_status_display }}{% if job.error_code %} · {{ job.error_code }}{% endif %}</td><td>{{ job.created_at|date:"d/m H:i" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="mcp-empty">Nenhuma consulta</p>
+  {% endif %}
+</section>
+{% endblock %}

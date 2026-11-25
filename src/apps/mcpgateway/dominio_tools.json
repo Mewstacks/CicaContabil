@@ -1,0 +1,733 @@
+[
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Analises prontas da CARTEIRA INTEIRA em uma chamada (so leitura, da mais grave).\n\n        notas_sem_contabilizacao(inicio,fim): notas sem lancamento contabil por empresa.\n        faturamento_e_limite(fim): faturamento, acumulado 12 meses e % do limite do Simples\n        (percentual_minimo filtra). sem_movimento(inicio,fim): empresas sem nota na janela\n        (so_com_historico=1 esconde as que nunca movimentaram). variacao_faturamento(mes):\n        queda ou salto contra a media dos 3 meses anteriores (variacao_minima, base_minima).\n        cadastro(): regime, CNAE e pendencias de parametrizacao (so_pendencias=1).\n        lancamentos_contabeis(inicio,fim): empresas com contabilidade sem lancamento (so_zeradas=1).\n        notas_canceladas(inicio,fim): taxa de cancelamento. numeracao(documento=saidas|servicos,\n        inicio,fim): lacunas e duplicidades. Janela de ate 13 meses, datas AAAA-MM-DD. Use\n        `deslocamento` (linhas ja recebidas) para a proxima pagina. Todo numero e diagnostico a\n        conferir no Dominio; nunca conclua sozinho.\n        ",
+  "inputSchema": {
+   "properties": {
+    "analise": {
+     "enum": [
+      "notas_sem_contabilizacao",
+      "faturamento_e_limite",
+      "sem_movimento",
+      "variacao_faturamento",
+      "cadastro",
+      "lancamentos_contabeis",
+      "notas_canceladas",
+      "numeracao"
+     ],
+     "title": "Analise",
+     "type": "string"
+    },
+    "base_minima": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Base Minima"
+    },
+    "codi_emp": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Codi Emp"
+    },
+    "deslocamento": {
+     "default": 0,
+     "title": "Deslocamento",
+     "type": "integer"
+    },
+    "documento": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Documento"
+    },
+    "documentos_minimos": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Documentos Minimos"
+    },
+    "fim": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Fim"
+    },
+    "inicio": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Inicio"
+    },
+    "lacuna_maxima": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Lacuna Maxima"
+    },
+    "limite": {
+     "default": 100,
+     "title": "Limite",
+     "type": "integer"
+    },
+    "mes": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Mes"
+    },
+    "meses_minimos": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Meses Minimos"
+    },
+    "percentual_minimo": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Percentual Minimo"
+    },
+    "situacao": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Situacao"
+    },
+    "so_com_historico": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "So Com Historico"
+    },
+    "so_pendencias": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "So Pendencias"
+    },
+    "so_zeradas": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "So Zeradas"
+    },
+    "variacao_minima": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Variacao Minima"
+    }
+   },
+   "required": [
+    "analise"
+   ],
+   "title": "analise_da_carteiraArguments",
+   "type": "object"
+  },
+  "name": "analise_da_carteira"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Acha tabelas pelo assunto em português (ex.: 'notas fiscais de saída'). Até 8 cartões.",
+  "inputSchema": {
+   "properties": {
+    "consulta": {
+     "title": "Consulta",
+     "type": "string"
+    },
+    "limite": {
+     "default": 8,
+     "title": "Limite",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "consulta"
+   ],
+   "title": "buscar_esquemaArguments",
+   "type": "object"
+  },
+  "name": "buscar_esquema"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Mostra a junção por chave estrangeira declarada entre duas tabelas (até 4 saltos).",
+  "inputSchema": {
+   "properties": {
+    "destino": {
+     "title": "Destino",
+     "type": "string"
+    },
+    "origem": {
+     "title": "Origem",
+     "type": "string"
+    }
+   },
+   "required": [
+    "origem",
+    "destino"
+   ],
+   "title": "caminho_entre_tabelasArguments",
+   "type": "object"
+  },
+  "name": "caminho_entre_tabelas"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Lacunas e duplicidades na numeração de notas emitidas (saidas ou servicos).",
+  "inputSchema": {
+   "properties": {
+    "codi_emp": {
+     "title": "Codi Emp",
+     "type": "integer"
+    },
+    "documento": {
+     "title": "Documento",
+     "type": "string"
+    },
+    "fim": {
+     "title": "Fim",
+     "type": "string"
+    },
+    "inicio": {
+     "title": "Inicio",
+     "type": "string"
+    },
+    "limite": {
+     "default": 100,
+     "title": "Limite",
+     "type": "integer"
+    },
+    "serie": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Serie"
+    }
+   },
+   "required": [
+    "codi_emp",
+    "documento",
+    "inicio",
+    "fim"
+   ],
+   "title": "conferir_numeracaoArguments",
+   "type": "object"
+  },
+  "name": "conferir_numeracao"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Consulta em JSON (tabela, colunas, filtros, agrupamento, agregação, junção por FK).",
+  "inputSchema": {
+   "$defs": {
+    "Agregacao": {
+     "additionalProperties": false,
+     "properties": {
+      "alias": {
+       "description": "nome da coluna no resultado (letras, numeros e _)",
+       "maxLength": 200,
+       "title": "Alias",
+       "type": "string"
+      },
+      "coluna": {
+       "description": "coluna, ou * so com count",
+       "maxLength": 200,
+       "title": "Coluna",
+       "type": "string"
+      },
+      "funcao": {
+       "enum": [
+        "count",
+        "sum",
+        "avg",
+        "min",
+        "max",
+        "count_distinct"
+       ],
+       "title": "Funcao",
+       "type": "string"
+      }
+     },
+     "required": [
+      "funcao",
+      "coluna",
+      "alias"
+     ],
+     "title": "Agregacao",
+     "type": "object"
+    },
+    "ConsultaEstruturada": {
+     "additionalProperties": false,
+     "properties": {
+      "agregacoes": {
+       "items": {
+        "$ref": "#/$defs/Agregacao"
+       },
+       "maxItems": 10,
+       "title": "Agregacoes",
+       "type": "array"
+      },
+      "agrupar_por": {
+       "items": {
+        "maxLength": 200,
+        "type": "string"
+       },
+       "maxItems": 10,
+       "title": "Agrupar Por",
+       "type": "array"
+      },
+      "colunas": {
+       "items": {
+        "maxLength": 200,
+        "type": "string"
+       },
+       "maxItems": 40,
+       "title": "Colunas",
+       "type": "array"
+      },
+      "deslocamento": {
+       "default": 0,
+       "minimum": 0,
+       "title": "Deslocamento",
+       "type": "integer"
+      },
+      "distinto": {
+       "default": false,
+       "title": "Distinto",
+       "type": "boolean"
+      },
+      "filtros": {
+       "items": {
+        "$ref": "#/$defs/Filtro"
+       },
+       "maxItems": 20,
+       "title": "Filtros",
+       "type": "array"
+      },
+      "juntar": {
+       "items": {
+        "$ref": "#/$defs/Juncao"
+       },
+       "maxItems": 2,
+       "title": "Juntar",
+       "type": "array"
+      },
+      "limite": {
+       "anyOf": [
+        {
+         "minimum": 1,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": null,
+       "title": "Limite"
+      },
+      "ordenar_por": {
+       "items": {
+        "$ref": "#/$defs/Ordem"
+       },
+       "maxItems": 5,
+       "title": "Ordenar Por",
+       "type": "array"
+      },
+      "tabela": {
+       "maxLength": 200,
+       "title": "Tabela",
+       "type": "string"
+      }
+     },
+     "required": [
+      "tabela"
+     ],
+     "title": "ConsultaEstruturada",
+     "type": "object"
+    },
+    "Filtro": {
+     "additionalProperties": false,
+     "properties": {
+      "coluna": {
+       "description": "coluna da tabela base ou apelido.coluna",
+       "maxLength": 200,
+       "title": "Coluna",
+       "type": "string"
+      },
+      "op": {
+       "enum": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "in",
+        "between",
+        "prefix",
+        "contains",
+        "is_null",
+        "not_null"
+       ],
+       "title": "Op",
+       "type": "string"
+      },
+      "valor": {
+       "default": null,
+       "description": "escalar, lista (in) ou par [de, ate] (between)",
+       "title": "Valor"
+      }
+     },
+     "required": [
+      "coluna",
+      "op"
+     ],
+     "title": "Filtro",
+     "type": "object"
+    },
+    "Juncao": {
+     "additionalProperties": false,
+     "properties": {
+      "apelido": {
+       "anyOf": [
+        {
+         "maxLength": 200,
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "default": null,
+       "title": "Apelido"
+      },
+      "tabela": {
+       "maxLength": 200,
+       "title": "Tabela",
+       "type": "string"
+      }
+     },
+     "required": [
+      "tabela"
+     ],
+     "title": "Juncao",
+     "type": "object"
+    },
+    "Ordem": {
+     "additionalProperties": false,
+     "properties": {
+      "coluna": {
+       "description": "coluna do resultado, apelido de agregacao ou coluna",
+       "maxLength": 200,
+       "title": "Coluna",
+       "type": "string"
+      },
+      "ordem": {
+       "default": "asc",
+       "enum": [
+        "asc",
+        "desc"
+       ],
+       "title": "Ordem",
+       "type": "string"
+      }
+     },
+     "required": [
+      "coluna"
+     ],
+     "title": "Ordem",
+     "type": "object"
+    }
+   },
+   "properties": {
+    "consulta": {
+     "$ref": "#/$defs/ConsultaEstruturada"
+    }
+   },
+   "required": [
+    "consulta"
+   ],
+   "title": "consulta_estruturadaArguments",
+   "type": "object"
+  },
+  "name": "consulta_estruturada"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Descreve uma tabela: chaves, FKs, índices e colunas (40 por página) com classe.",
+  "inputSchema": {
+   "properties": {
+    "pagina": {
+     "default": 1,
+     "title": "Pagina",
+     "type": "integer"
+    },
+    "tabela": {
+     "title": "Tabela",
+     "type": "string"
+    }
+   },
+   "required": [
+    "tabela"
+   ],
+   "title": "descrever_tabelaArguments",
+   "type": "object"
+  },
+  "name": "descrever_tabela"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Perfil de uma empresa: cadastro, regime e volume dos últimos 12 meses.",
+  "inputSchema": {
+   "properties": {
+    "codi_emp": {
+     "title": "Codi Emp",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "codi_emp"
+   ],
+   "title": "empresa_perfilArguments",
+   "type": "object"
+  },
+  "name": "empresa_perfil"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Carteira de empresas: código, razão social, CNPJ, situação e regime vigente.",
+  "inputSchema": {
+   "properties": {
+    "codi_emp": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Codi Emp"
+    },
+    "limite": {
+     "default": 50,
+     "title": "Limite",
+     "type": "integer"
+    },
+    "situacao": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Situacao"
+    }
+   },
+   "title": "empresasArguments",
+   "type": "object"
+  },
+  "name": "empresas"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Visão geral do banco do Domínio: módulos, tabelas centrais e convenções (até 3 KB).",
+  "inputSchema": {
+   "properties": {},
+   "title": "mapa_do_bancoArguments",
+   "type": "object"
+  },
+  "name": "mapa_do_banco"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Totais mensais de saídas, entradas e serviços de uma empresa (janela de até 13 meses).",
+  "inputSchema": {
+   "properties": {
+    "codi_emp": {
+     "title": "Codi Emp",
+     "type": "integer"
+    },
+    "fim": {
+     "title": "Fim",
+     "type": "string"
+    },
+    "inicio": {
+     "title": "Inicio",
+     "type": "string"
+    },
+    "limite": {
+     "default": 100,
+     "title": "Limite",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "codi_emp",
+    "inicio",
+    "fim"
+   ],
+   "title": "movimento_fiscalArguments",
+   "type": "object"
+  },
+  "name": "movimento_fiscal"
+ },
+ {
+  "annotations": {
+   "destructiveHint": false,
+   "readOnlyHint": true
+  },
+  "description": "Legenda dos valores de uma coluna (comentário do banco ou overlay), sem ler dados.",
+  "inputSchema": {
+   "properties": {
+    "coluna": {
+     "title": "Coluna",
+     "type": "string"
+    },
+    "tabela": {
+     "title": "Tabela",
+     "type": "string"
+    }
+   },
+   "required": [
+    "tabela",
+    "coluna"
+   ],
+   "title": "valores_do_campoArguments",
+   "type": "object"
+  },
+  "name": "valores_do_campo"
+ }
+]
