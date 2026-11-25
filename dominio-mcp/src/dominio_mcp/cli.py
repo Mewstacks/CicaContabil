@@ -28,6 +28,7 @@ from typing import Any
 
 from dominio_mcp import __version__
 from dominio_mcp import buildpack as buildpack_cli
+from dominio_mcp.agent import AgentError
 from dominio_mcp.budget import quarantine_for
 from dominio_mcp.catalog import CatalogError
 from dominio_mcp.config import ConfigError, Profile, Settings, load_settings
@@ -241,6 +242,56 @@ def cmd_relay_job(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _agent_home() -> Any:
+    import os
+
+    from dominio_mcp.config import default_home
+
+    return default_home(os.environ)
+
+
+def cmd_agent_enroll(args: argparse.Namespace) -> int:
+    """Troca o codigo do CICA pela identidade deste computador e guarda protegida."""
+    from dominio_mcp.agent import enroll, save_config
+
+    config = enroll(
+        hub_url=args.hub,
+        code=args.codigo,
+        label=args.nome,
+        client_cert=args.cert,
+        client_key=args.chave,
+        ca_file=args.ca,
+    )
+    path = save_config(_agent_home(), config)
+    print(f"pareado: agente {config.agent_id} em {config.hub_url} ({path})")
+    return 0
+
+
+def cmd_agent_run(_args: argparse.Namespace) -> int:
+    """Laco do agente em primeiro plano (o servico do Windows usa o mesmo laco)."""
+    import threading
+
+    from dominio_mcp.agent import Agent, load_config, relay_runner
+
+    config = load_config(_agent_home())
+    stop = threading.Event()
+    agent = Agent(config, relay_runner(), log=lambda m: print(f"agente: {m}", file=sys.stderr))
+    print(f"agente: conectado a {config.hub_url}; Ctrl+C encerra", file=sys.stderr)
+    try:
+        agent.run(stop)
+    except KeyboardInterrupt:
+        stop.set()
+    return 0
+
+
+def cmd_agent_status(_args: argparse.Namespace) -> int:
+    from dominio_mcp.agent import load_config
+
+    config = load_config(_agent_home())
+    print(f"agente {config.agent_id} -> {config.hub_url}")
+    return 0
+
+
 def cmd_version(_args: argparse.Namespace) -> int:
     print(__version__)
     return 0
@@ -278,6 +329,20 @@ def build_parser() -> argparse.ArgumentParser:
         "relay-job", help="executa um trabalho do gateway (JSON no stdin, JSON no stdout)"
     )
     relay.set_defaults(func=cmd_relay_job)
+    enroll_cmd = sub.add_parser("agent-enroll", help="pareia este computador com o CICA")
+    enroll_cmd.add_argument("--hub", required=True, help="endereco https do CICA")
+    enroll_cmd.add_argument("--codigo", required=True, help="codigo gerado na tela Conector MCP")
+    enroll_cmd.add_argument("--nome", default="", help="nome deste computador na tela do CICA")
+    enroll_cmd.add_argument(
+        "--cert", default="", help="certificado de cliente (so se o Hub exigir)"
+    )
+    enroll_cmd.add_argument("--chave", default="", help="chave do certificado de cliente")
+    enroll_cmd.add_argument("--ca", default="", help="CA do Hub (so se o Hub exigir)")
+    enroll_cmd.set_defaults(func=cmd_agent_enroll)
+    run_cmd = sub.add_parser("agent-run", help="roda o agente em primeiro plano")
+    run_cmd.set_defaults(func=cmd_agent_run)
+    status_cmd = sub.add_parser("agent-status", help="mostra o pareamento (sem segredo)")
+    status_cmd.set_defaults(func=cmd_agent_status)
     version = sub.add_parser("version", help="mostra a versao")
     version.set_defaults(func=cmd_version)
     return parser
@@ -291,6 +356,7 @@ _EXPECTED = (
     CatalogError,
     PackError,
     PackStale,
+    AgentError,
 )
 
 

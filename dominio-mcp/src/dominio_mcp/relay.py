@@ -7,7 +7,7 @@ processo**, no perfil `remote`, e devolve o resultado ja moldado (politica, masc
 
 O que este caminho garante, cada item com teste (`tests/test_relay.py`):
 
-- so as dez ferramentas L0, L1 e L2; L3 (`sql_somente_leitura`) nao existe aqui, nem com
+- so as onze ferramentas L0, L1 e L2; L3 (`sql_somente_leitura`) nao existe aqui, nem com
   `raw_sql` ligado e perfil `local` no arquivo de configuracao: o perfil e fixo em `remote`;
 - o trabalho nao tem campo de SQL: chave desconhecida e recusada (`extra=forbid`);
 - contrato de outra versao, `id` fora do formato, argumentos grandes demais ou aninhados
@@ -44,6 +44,7 @@ ToolName = Literal[
     "empresa_perfil",
     "movimento_fiscal",
     "conferir_numeracao",
+    "analise_da_carteira",
     "consulta_estruturada",
 ]
 assert set(ToolName.__args__) == set(TOOL_NAMES)  # type: ignore[attr-defined]

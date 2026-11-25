@@ -1,0 +1,138 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="value-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="value-heading">Valor por colaborador</h2>
+  </div>
+  {% if valor %}<span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{{ valor.linhas|length }} pessoa{{ valor.linhas|length|pluralize }}</span>{% endif %}
+</section>
+
+{% if not competencia %}
+<section class="workspace-panel"><header class="workspace-panel-head"><div><h2>Sem competência</h2></div></header></section>
+{% else %}
+
+<section class="workspace-panel" aria-labelledby="value-list-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">COMPETÊNCIA {{ competencia }}</p><h2 id="value-list-heading">Valor gerado</h2></div>
+    {% include 'profitability/_periodo.html' %}
+  </header>
+
+  <dl class="profitability-totals">
+    <div><dt>Receita</dt><dd class="tnum">{{ valor.receita|floatformat:2 }}</dd></div>
+    <div><dt>Atribuída</dt><dd class="tnum">{{ valor.atribuido|floatformat:2 }}</dd></div>
+    <div><dt>Sem responsável</dt><dd class="tnum">{{ valor.sem_dono|floatformat:2 }}</dd></div>
+  </dl>
+
+  {% if valor.linhas %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Valor gerado por colaborador na competência {{ competencia }}</caption>
+    <thead><tr><th scope="col">Colaborador</th><th scope="col">Departamento</th><th scope="col" class="tnum">Empresas</th><th scope="col" class="tnum">Valor</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
+    <tbody>
+      {% for linha in valor.linhas %}
+      <tr>
+        <th scope="row"><a href="{% url 'profitability:collaborator-detail' linha.colaborador.id %}?competencia={{ competencia|urlencode }}">{{ linha.colaborador.nome }}</a></th>
+        <td>{{ linha.colaborador.get_departamento_display }}</td>
+        <td class="tnum">{{ linha.empresas }}</td>
+        <td class="tnum">{{ linha.valor|floatformat:2 }}</td>
+        {% if linha.custo is None %}
+        <td class="tnum" colspan="3"><span class="profitability-band is-incompleta">Sem salário</span></td>
+        {% else %}
+        <td class="tnum">{{ linha.custo|floatformat:2 }}</td>
+        <td class="tnum">{{ linha.resultado|floatformat:2 }}</td>
+        <td class="tnum">{{ linha.margem|percentual }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum valor atribuído</h3></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="value-weights-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">PESO</p><h2 id="value-weights-heading">Departamentos</h2></div></header>
+  {% if valor.departamentos %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Peso de cada departamento</caption>
+    <thead><tr><th scope="col">Departamento</th><th scope="col" class="tnum">Pessoas</th><th scope="col" class="tnum">Capacidade</th><th scope="col" class="tnum">Peso</th></tr></thead>
+    <tbody>{% for item in valor.departamentos %}<tr><th scope="row">{{ item.rotulo }}</th><td class="tnum">{{ item.pessoas }}</td><td class="tnum">{{ item.capacidade_horas|floatformat:0 }} h</td><td class="tnum">{{ item.peso|percentual }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}
+  <div class="module-clean-empty"><h3>Sem departamento definido</h3></div>
+  {% endif %}
+</section>
+
+{% if valor.sem_departamento %}
+<section class="workspace-panel" aria-labelledby="value-nodept-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">PENDENTE</p><h2 id="value-nodept-heading">Sem departamento</h2></div></header>
+  <table class="profitability-table">
+    <caption class="visually-hidden">Colaboradores sem departamento</caption>
+    <thead><tr><th scope="col">Colaborador</th><th scope="col">Departamento</th></tr></thead>
+    <tbody>
+      {% for pessoa in valor.sem_departamento %}
+      <tr>
+        <th scope="row">{{ pessoa.nome }}</th>
+        <td>
+          <form method="post" class="profitability-inline">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="departamento">
+            <input type="hidden" name="colaborador" value="{{ pessoa.id }}">
+            <label class="visually-hidden" for="dept-{{ pessoa.id }}">Departamento de {{ pessoa.nome }}</label>
+            <select id="dept-{{ pessoa.id }}" name="departamento" required>
+              <option value="">Escolher</option>
+              {% for chave, rotulo in departamentos %}<option value="{{ chave }}">{{ rotulo }}</option>{% endfor %}
+            </select>
+            <button class="button button-secondary" type="submit">Guardar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if valor.sem_responsavel %}
+<section class="workspace-panel" aria-labelledby="value-noowner-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">PENDENTE</p><h2 id="value-noowner-heading">Sem responsável</h2></div></header>
+  <table class="profitability-table">
+    <caption class="visually-hidden">Empresas sem responsável em nenhum departamento</caption>
+    <thead><tr><th scope="col">Empresa</th><th scope="col" class="tnum">Mensalidade</th><th scope="col">Atribuir</th></tr></thead>
+    <tbody>
+      {% for item in valor.sem_responsavel %}
+      <tr>
+        <th scope="row">{{ item.empresa.name }}</th>
+        <td class="tnum">{{ item.mensalidade|floatformat:2 }}</td>
+        <td>
+          <form method="post" class="profitability-inline">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="atribuir">
+            <input type="hidden" name="empresa" value="{{ item.empresa.id }}">
+            <label class="visually-hidden" for="atr-d-{{ item.empresa.id }}">Departamento</label>
+            <select id="atr-d-{{ item.empresa.id }}" name="departamento" required>
+              <option value="">Departamento</option>
+              {% for chave, rotulo in departamentos %}<option value="{{ chave }}">{{ rotulo }}</option>{% endfor %}
+            </select>
+            <label class="visually-hidden" for="atr-p-{{ item.empresa.id }}">Colaborador</label>
+            <select id="atr-p-{{ item.empresa.id }}" name="colaborador" required>
+              <option value="">Colaborador</option>
+              {% for pessoa in equipe %}<option value="{{ pessoa.id }}">{{ pessoa.nome }}</option>{% endfor %}
+            </select>
+            <button class="button button-secondary" type="submit">Guardar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% endif %}
+{% endblock %}

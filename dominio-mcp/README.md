@@ -23,11 +23,16 @@ uv run dominio-mcp serve
 - `build-pack` lê o catálogo do banco (≈ 33 s no banco real) e gera o pack local. **Sem `--aceitar`** as colunas que nenhuma regra classificou ficam bloqueadas; aceitar o catálogo é decisão do dono (ver o guia).
 - `serve` fala MCP por stdio. É o comando que Claude Desktop, Claude Code e o túnel do ChatGPT executam.
 - `serve --http` fala o mesmo MCP em `http://127.0.0.1:8765/mcp` com token (`http-token`): só loopback, sempre perfil `remote`.
-- `relay-job` (stdin JSON, stdout JSON) é o repasse do gateway pelo agente: só as dez ferramentas L0 a L2, perfil `remote`, sem SQL.
+- `relay-job` (stdin JSON, stdout JSON) é o repasse do gateway pelo agente: só as onze ferramentas L0 a L2, perfil `remote`, sem SQL.
+- `analise_da_carteira` roda oito análises da carteira inteira (notas sem lançamento, faturamento e limite do Simples, empresas sem movimento, variação, cadastro, lançamentos contábeis, cancelamentos, numeração) e o roteiro `briefing_da_carteira` resume o mês: [pesquisa e escopo](../docs/specs/dominio-mcp-carteira.md), [validação](reports/carteira.md).
 - L3 (`sql_somente_leitura`) só existe com `serve --profile local` e `raw_sql = true`: é SQL em gramática mínima convertido em consulta L2, com a mesma política.
 - `scripts/build_mcpb.py` monta `dist/dominio-mcp-<versão>.mcpb` (Windows x64, Python 3.12) e `scripts/prove_mcpb.py` o instala numa pasta nova com venv vazio e conversa com ele. O teste no Claude Desktop em perfil limpo ainda é manual.
 
 Cada cliente tem o seu passo a passo no guia. **Nenhum cliente real foi testado ainda** (só o cliente do SDK `mcp` por stdio): veja [reports/clientes.md](reports/clientes.md).
+
+## Serviço para o CICA
+
+`dominio-mcp agent-enroll`, `agent-run` e `agent-status` pareiam o computador com o CICA e respondem aos pedidos do escritório (só conexão de saída, mesmo `relay-job`). Como serviço do Windows: `python scripts/build_instalador.py` e o `instalar-servico.ps1` do pacote. Manual de uma página: [reports/manual-instalacao-uso.pdf](reports/manual-instalacao-uso.pdf); detalhes em [docs/dominio-mcp.md](../docs/dominio-mcp.md).
 
 ## Verificação do pacote
 

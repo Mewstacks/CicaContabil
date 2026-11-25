@@ -77,3 +77,19 @@ Três pontos sobre o commit `0c9ab04f`, conferidos antes de decidir: agregado pe
 - Revisor automático (23/11): o teto de tentativas do HTTP deixava um processo local travar o cliente legítimo; agora só o token errado conta (D-331).
 - Fase 2, peça 3 (lado do pacote, D-332): `relay.py` e `dominio-mcp relay-job` (trabalho JSON no stdin, envelope no stdout), 29 testes; L3 e SQL não existem nesse caminho. Falta a fila no Hub, o agente em C# e o teste com o agente real.
 - Pendente: teste manual do `.mcpb` no Claude Desktop em perfil limpo; cliente HTTP real (só o SDK foi testado).
+
+## Carteira inteira (24/11/2026, DC-1 a DC-4)
+
+- Pesquisa de dores reais de contadores que usam o Domínio ([docs/specs/dominio-mcp-carteira.md](../../docs/specs/dominio-mcp-carteira.md)): o índice oficial de 239 relatórios `.bgr` da Central de Soluções é a lista de pedidos que o sistema não atende em tela. Dez perguntas ranqueadas com fonte; oito viraram consulta.
+- `analise_da_carteira` (11ª ferramenta) com oito análises fixas, paginação por `deslocamento`, orçamento de custo por consulta com teto duro e o roteiro `briefing_da_carteira`. 951 testes com o ODBC real (30 vivos da carteira), `.mcpb` provado em venv vazio: [carteira.md](carteira.md).
+- Revisão independente achou 10 defeitos (1 alto: cancelamento por situação do documento; 2 médios: nota contada como linha e briefing com mês inválido; 4 médio/baixos de limite do Simples, datas e orçamentos); todos corrigidos, exceto a razão social de empresário individual, que é política antiga e está dita no guia.
+- A conferência derrubou uma hipótese que parecia certa (`ndoc_lan` = número da nota) e achou o orçamento que fazia `conferir_numeracao` recusar empresa grande.
+- Pendente: conferência contra o relatório oficial (contadora), perguntas 9 e 10, ensaio de carga T4.9, `.mcpb` no Claude Desktop e cliente real.
+
+## Conector pelo CICA (24/11/2026)
+
+- Fase 2, peça 3 fechada no código: fila de trabalhos por escritório no Hub (`McpJob`, `McpSetting`, migração 0002 aditiva), pontos do agente (`claim`/`result`, HMAC, long-poll), ferramentas do Domínio no `/mcp` quando a chave está ligada e há computador pareado.
+- Tela "Conector MCP" no CICA (ligar, código de pareamento, computador Online/Offline, endereço, acessos com revogação, últimas consultas), testada a 375 px e no desktop, claro e escuro.
+- Agente e serviço do Windows no pacote (`agent.py`, `service.py`, subcomandos `agent-enroll|agent-run|agent-status`), instalador `instalar-servico.ps1` (+ `-SomenteConferir`, desinstalador) e `scripts/build_instalador.py`. Manual de uma página em PDF.
+- Prova: cadeia completa com o ODBC real (`/mcp` → fila → agente → Domínio), incluindo recusa de SQL; pacote instalado em venv limpo falou com um Hub falso que confere a assinatura.
+- Pendente: instalar o serviço de verdade (exige Administrador), mTLS em produção, cliente real pelo OAuth, e `MCP_GATEWAY_ENABLED` segue desligado.

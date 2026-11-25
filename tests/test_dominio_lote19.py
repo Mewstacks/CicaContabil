@@ -133,16 +133,16 @@ def test_equal_pairs_become_separate_x_lotes_and_other_compositions_are_refused(
     split = entry(company, [("8", "debit", 1000), ("41", "credit", 800), ("42", "credit", 200)])
     split_rows = [row for row in records(render_dominio_lote19([split])) if row[:2] == "03"]
     assert [(field(r, 10, 16), field(r, 17, 23), field(r, 24, 38)) for r in split_rows] == [
-        ("0000008", "0000041", "000000000000800"),
         ("0000008", "0000042", "000000000000200"),
+        ("0000008", "0000041", "000000000000800"),
     ]
     loan = entry(
         company, [("117", "debit", 885094), ("231", "debit", 12239), ("8", "credit", 897333)]
     )
     loan_rows = [row for row in records(render_dominio_lote19([loan])) if row[:2] == "03"]
     assert [(field(r, 10, 16), field(r, 17, 23)) for r in loan_rows] == [
+        ("0000231", "0000008"),  # ordem crescente de valor, como os pares iguais
         ("0000117", "0000008"),
-        ("0000231", "0000008"),
     ]
     mixed = entry(
         company,
@@ -161,6 +161,20 @@ def test_equal_pairs_are_matched_by_value_whatever_the_line_order(company):
     )
     rows = records(render_dominio_lote19([shuffled]))
     assert [row[:2] for row in rows] == ["01", "02", "03", "02", "03", "99"]
+
+
+def test_pairing_does_not_depend_on_the_order_the_database_returns_lines(company):
+    # Débitos 500/300 e créditos 300/500 gravados nesta ordem: pareados por posição dariam
+    # 500 com 300 e o export recusaria um lançamento válido (ordem física do Postgres).
+    crossed = entry(
+        company,
+        [("8", "debit", 500), ("9", "debit", 300), ("42", "credit", 300), ("41", "credit", 500)],
+    )
+    rows = records(render_dominio_lote19([crossed]))
+    amounts = [field(row, 24, 38) for row in rows if row[:2] == "03"]
+    assert amounts == ["000000000000300", "000000000000500"]
+    pairs = [(field(row, 10, 16), field(row, 17, 23)) for row in rows if row[:2] == "03"]
+    assert pairs == [("0000009", "0000042"), ("0000008", "0000041")]
 
 
 @pytest.mark.parametrize("code", ["1.1", "ABC", "12345678"])

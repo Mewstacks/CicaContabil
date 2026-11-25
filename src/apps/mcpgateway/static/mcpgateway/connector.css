@@ -1,0 +1,28 @@
+/* Tela do conector MCP: so tokens do Hub (claro e escuro vem de theme.css). */
+.mcp-panel { margin-bottom: 16px; }
+.mcp-panel .workspace-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.mcp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.mcp-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-subtle); color: var(--ink); font-size: 13px; font-weight: 600; }
+.mcp-chip.is-on { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+.mcp-chip.is-on::before { content: ""; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: currentColor; }
+.mcp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.mcp-table th { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 600; text-align: left; }
+.mcp-table td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; vertical-align: middle; }
+.mcp-table tr:last-child td { border-bottom: 0; }
+.mcp-actions { text-align: right; white-space: nowrap; }
+.mcp-empty { margin: 0; color: var(--muted); }
+.mcp-code { margin: 0 0 16px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-subtle); }
+.mcp-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+.mcp-facts dt { color: var(--muted); font-weight: 600; }
+.mcp-facts dd { margin: 0; min-width: 0; }
+.mcp-command { display: block; padding: 8px 10px; border-radius: 6px; background: var(--surface); overflow-wrap: anywhere; white-space: pre-wrap; user-select: all; }
+.mcp-field input { width: 100%; max-width: 640px; }
+@media (max-width: 600px) {
+  .mcp-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .mcp-table, .mcp-table tbody, .mcp-table tr, .mcp-table td { display: block; width: 100%; }
+  .mcp-table tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .mcp-table td { padding: 4px 0; border: 0; }
+  .mcp-actions { text-align: left; }
+  .mcp-panel .button { min-height: 44px; }
+  .mcp-facts { grid-template-columns: 1fr; }
+}

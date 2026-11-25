@@ -2077,11 +2077,12 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
     ]
     sequence = 0
     for entry in sorted(entries, key=lambda item: (item.occurred_on, str(item.pk))):
-        # The database returns lines in no guaranteed order (PostgreSQL differs from SQLite);
-        # pairing by value and account keeps equal debit/credit pairs together everywhere.
+        # Ordem do banco não é contrato: sem ORDER BY o Postgres devolve as linhas na ordem
+        # física, que muda com o estado da tabela. Ordenar pelo valor e pela conta faz pares
+        # iguais sempre coincidirem e torna a ordem do arquivo estável.
         parts = sorted(
             entry.lines.all(),
-            key=lambda line: (-line.amount_cents, line.account_code, str(line.pk)),
+            key=lambda line: (line.amount_cents, line.account_code, str(line.pk)),
         )
         for debit_code, credit_code, amount in _lote19_pairs(parts):
             if amount <= 0:

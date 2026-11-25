@@ -226,3 +226,81 @@ def custo_anual_colaborador(
         valor_hora=valor_hora(total, horas),
         valor_hora_produtivo=valor_hora(total, produtivas),
     )
+
+
+# --- Valor gerado por colaborador -------------------------------------------
+#
+# Sem tempo apontado. A mensalidade de cada empresa se reparte entre os
+# departamentos que a atendem, na proporção da capacidade de cada um (pessoas x
+# horas produtivas) e não da folha: peso por salário faria o departamento mais
+# caro "gerar" mais só por pagar mais. Departamento que a empresa não usa sai da
+# conta e os pesos dos demais se renormalizam. A fatia de um departamento vai
+# para quem o atende, em partes iguais.
+#
+# Propriedade que os testes cobram: a soma do valor das pessoas, mais o que não
+# achou dono, fecha exatamente com a soma das mensalidades.
+
+
+@dataclass(frozen=True)
+class EmpresaAtendida:
+    """Uma empresa, sua mensalidade e quem a atende em cada departamento."""
+
+    empresa: str
+    mensalidade: Decimal
+    atendimento: dict[str, tuple[str, ...]]
+
+
+@dataclass(frozen=True)
+class ValorDaEquipe:
+    por_colaborador: dict[str, Decimal]
+    # (colaborador, empresa) -> valor, para a ficha mostrar de onde veio o número.
+    por_colaborador_empresa: dict[tuple[str, str], Decimal]
+    # empresa -> mensalidade que nenhum departamento com capacidade atendeu.
+    sem_responsavel: dict[str, Decimal]
+    pesos: dict[str, Decimal]
+
+
+def pesos_dos_departamentos(capacidade: dict[str, Decimal]) -> dict[str, Decimal]:
+    """capacidade do departamento / capacidade do escritório; zero fica de fora."""
+
+    positivos = {depto: valor for depto, valor in capacidade.items() if valor > 0}
+    total = sum(positivos.values(), Decimal(0))
+    if total <= 0:
+        return {}
+    return {depto: valor / total for depto, valor in positivos.items()}
+
+
+def valor_por_colaborador(
+    capacidade: dict[str, Decimal], empresas: list[EmpresaAtendida]
+) -> ValorDaEquipe:
+    pesos = pesos_dos_departamentos(capacidade)
+    por_colaborador: dict[str, Decimal] = {}
+    por_par: dict[tuple[str, str], Decimal] = {}
+    sem_responsavel: dict[str, Decimal] = {}
+
+    for item in empresas:
+        if item.mensalidade <= 0:
+            continue
+        atendidos = {
+            depto: tuple(dict.fromkeys(pessoas))
+            for depto, pessoas in item.atendimento.items()
+            if pessoas and depto in pesos
+        }
+        soma = sum((pesos[depto] for depto in atendidos), Decimal(0))
+        if not atendidos or soma <= 0:
+            sem_responsavel[item.empresa] = item.mensalidade
+            continue
+        for depto, pessoas in atendidos.items():
+            fatia = item.mensalidade * pesos[depto] / soma
+            parte = fatia / Decimal(len(pessoas))
+            for pessoa in pessoas:
+                por_colaborador[pessoa] = por_colaborador.get(pessoa, Decimal(0)) + parte
+                chave = (pessoa, item.empresa)
+                por_par[chave] = por_par.get(chave, Decimal(0)) + parte
+
+    return ValorDaEquipe(
+        por_colaborador=por_colaborador,
+        por_colaborador_empresa=por_par,
+        sem_responsavel=sem_responsavel,
+        pesos=pesos,
+    )

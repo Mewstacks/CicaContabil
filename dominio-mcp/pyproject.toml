@@ -15,6 +15,9 @@ dependencies = [
   "pyodbc==5.3.0",
 ]
 
+[project.optional-dependencies]
+servico = ["pywin32>=306; sys_platform == 'win32'"]
+
 [project.scripts]
 dominio-mcp = "dominio_mcp.cli:main"
 
@@ -57,3 +60,7 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["servicemanager", "win32event", "win32service", "win32serviceutil"]
+ignore_missing_imports = true

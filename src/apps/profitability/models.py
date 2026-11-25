@@ -99,6 +99,32 @@ class PapelEmpresa(models.TextChoices):
     PAYROLL_SOURCE = "payroll_source", "Fonte de folha"
 
 
+class Departamento(models.TextChoices):
+    """Os departamentos entre os quais a mensalidade de uma empresa se reparte.
+
+    Vive aqui e não em `ActivityTemplate.Area` de propósito: acrescentar valor a
+    um `choices` do hub é um `AlterField` em tabela de produção, que a guarda de
+    migração barra. As áreas do hub (contábil, fiscal, folha, geral) entram por
+    `DEPARTAMENTO_DA_AREA`; Societário e Outros só existem neste módulo.
+    """
+
+    CONTABIL = "contabil", "Contábil"
+    FISCAL = "fiscal", "Fiscal"
+    FOLHA = "folha", "Folha"
+    SOCIETARIO = "societario", "Societário"
+    OUTROS = "outros", "Outros"
+
+
+# Como cada área do hub vira departamento. "Geral" não é um departamento de
+# trabalho — é a área sem dono específico — então cai em Outros.
+DEPARTAMENTO_DA_AREA = {
+    "accounting": Departamento.CONTABIL,
+    "fiscal": Departamento.FISCAL,
+    "payroll": Departamento.FOLHA,
+    "general": Departamento.OUTROS,
+}
+
+
 class FonteReceita(models.TextChoices):
     """Os contratos que podem alimentar a mensalidade. São mutuamente exclusivos."""
 
@@ -171,6 +197,20 @@ class Colaborador(OrganizationScopedModel):
     nome = EncryptedTextField()
     nome_bi = models.CharField(max_length=64, db_index=True)
     cargo = models.CharField(max_length=80, blank=True)
+    # Em qual departamento a pessoa trabalha. É o que entra na capacidade do
+    # departamento (peso do valor gerado) — vazio deixa a pessoa de fora do peso.
+    departamento = models.CharField(
+        max_length=12, choices=Departamento.choices, blank=True, default="", db_default=""
+    )
+    # A conta de acesso da pessoa no CICA. Liga quem aparece como responsável de
+    # área na carteira (`hub.CompanyAreaResponsible.user`) ao colaborador da folha.
+    usuario = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="profitability_colaboradores",
+    )
     ativo = models.BooleanField(default=True)
     origem = models.CharField(max_length=8, choices=Origem.choices, default=Origem.MANUAL)
     # De qual empresa de folha vieram os salários, e o id do empregado dentro
@@ -237,6 +277,45 @@ class Colaborador(OrganizationScopedModel):
             using=using,
             update_fields=update_fields,
         )
+
+
+class AtribuicaoDepartamento(OrganizationScopedModel):
+    """Quem atende uma empresa em um departamento.
+
+    É o que decide para quem vai a fatia da mensalidade. Duas pessoas no mesmo
+    departamento e empresa dividem a fatia em partes iguais. Para Contábil,
+    Fiscal e Folha, na falta de linha aqui vale o responsável de área já
+    cadastrado na carteira; Societário e Outros só existem por esta tabela.
+    """
+
+    empresa = models.ForeignKey(
+        "hub.ClientCompany",
+        on_delete=models.CASCADE,
+        related_name="profitability_atribuicoes",
+    )
+    departamento = models.CharField(max_length=12, choices=Departamento.choices)
+    colaborador = models.ForeignKey(
+        Colaborador, on_delete=models.CASCADE, related_name="atribuicoes"
+    )
+
+    class Meta:
+        ordering = ("empresa_id", "departamento")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("empresa", "departamento", "colaborador"),
+                name="profitability_unique_atribuicao",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.empresa_id} {self.departamento}"
+
+    def clean(self) -> None:
+        super().clean()
+        if self.empresa_id and self.empresa.organization_id != self.organization_id:
+            raise ValidationError({"empresa": "A empresa deve pertencer à organização."})
+        if self.colaborador_id and self.colaborador.organization_id != self.organization_id:
+            raise ValidationError({"colaborador": "O colaborador deve pertencer à organização."})
 
 
 class CompanyErpProfile(OrganizationScopedModel):

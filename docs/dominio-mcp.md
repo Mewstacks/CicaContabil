@@ -11,11 +11,30 @@ Um servidor MCP que roda **no computador do escritório**, lê o banco do Domín
 | Camada | Ferramentas | De onde vem a resposta |
 |---|---|---|
 | L0 conhecimento | `mapa_do_banco`, `buscar_esquema`, `descrever_tabela`, `caminho_entre_tabelas`, `valores_do_campo` | Só do pack local (um SQLite gerado do catálogo do banco). Não consulta dado de negócio. |
-| L1 rotinas verificadas | `empresas`, `empresa_perfil`, `movimento_fiscal`, `conferir_numeracao` | SQL fixo e revisado, em YAML dentro do pacote. |
+| L1 rotinas verificadas | `empresas`, `empresa_perfil`, `movimento_fiscal`, `conferir_numeracao`, `analise_da_carteira` | SQL fixo e revisado, em YAML dentro do pacote. |
 | L2 consulta estruturada | `consulta_estruturada` | A IA manda JSON (tabela, colunas, filtros, agrupamento, agregação, junção por chave estrangeira); o programa valida e monta o SQL parametrizado. |
 | L3 SQL de leitura (só local, desligado por padrão) | `sql_somente_leitura` | Um `SELECT` em gramática mínima, **traduzido** para L2: vale a mesma política de dados. Só existe no perfil `local` com `raw_sql` ligado (abaixo). |
 
-Também expõe os recursos `dominio://mapa` e `dominio://glossario` e os roteiros `conferir_empresa` e `explorar_assunto`.
+Também expõe os recursos `dominio://mapa` e `dominio://glossario` e os roteiros `conferir_empresa`, `briefing_da_carteira` e `explorar_assunto`.
+
+### Carteira inteira em uma chamada (`analise_da_carteira`)
+
+É a parte que o Domínio não entrega como tela: o contador baixa e importa à mão um relatório `.bgr` para cada uma destas perguntas ([pesquisa](specs/dominio-mcp-carteira.md)). A ferramenta roda oito análises fixas sobre todas as empresas ativas, ordenadas da mais grave para baixo, com paginação por `deslocamento`:
+
+| Análise | Responde | Pede |
+|---|---|---|
+| `notas_sem_contabilizacao` | quais empresas têm nota sem lançamento contábil: notas distintas lançadas, lançadas em parte e sem lançamento, e o valor das que não têm | `inicio`, `fim` |
+| `faturamento_e_limite` | faturamento do mês, acumulado de 12 meses e do ano, e % do limite (R$ 4,8 milhões; R$ 81 mil no MEI), do sublimite e do limite proporcional no ano de início, para as optantes do Simples | `fim` (qualquer dia do mês), `percentual_minimo` opcional |
+| `sem_movimento` | empresas sem nota nenhuma na janela e a data do último movimento | `inicio`, `fim`; `so_com_historico=1` esconde as que nunca movimentaram |
+| `variacao_faturamento` | queda ou salto contra a média dos 3 meses anteriores (empresa sem histórico não entra) | `mes`; `variacao_minima`, `base_minima`, `meses_minimos` (1 a 3) |
+| `cadastro` | regime vigente, CNAE, módulos e pendências (`sem_regime`, `sem_cnae`, `inativa_com_modulo`) | `so_pendencias=1` opcional |
+| `lancamentos_contabeis` | empresas com contabilidade sem lançamento na janela | `inicio`, `fim`; `so_zeradas=1` |
+| `notas_canceladas` | taxa de notas canceladas, denegadas ou inutilizadas por empresa e segmento (saídas, entradas, serviços) | `inicio`, `fim`; `percentual_minimo`, `documentos_minimos` |
+| `numeracao` | lacunas e duplicidades de numeração por empresa e série | `documento` (`saidas` ou `servicos`), `inicio`, `fim` |
+
+O roteiro `briefing_da_carteira` (aparece no Claude como atalho) roda as seis mais úteis para um mês e resume por gravidade. Como tudo é diagnóstico, a IA recebe a instrução de não concluir desenquadramento nem erro sozinha. Cada análise declara o próprio orçamento de custo (medido na janela mais larga, cerca de 4 vezes o custo, com teto duro de 50 mil, que o cliente nunca escolhe); o timeout de 30 s com cancelamento continua valendo. A unidade é a nota (espécie, série e número), não a linha do segmento. Datas fora de 1990 a 2100 são recusadas.
+
+**Privacidade:** `razao_emp` de empresário individual é nome de pessoa e as análises devolvem centenas de empresas por chamada. A política trata a razão social como texto livre desde a ferramenta `empresas`; ela não é mascarada. Se for colar o resultado em outro serviço, decida antes.
 
 - **Nenhum texto SQL de terceiro chega ao banco.** Em L1 o SQL é fixo; em L2 o programa monta o SQL de um JSON validado; em L3 o SQL escrito pela IA é lido por uma gramática mínima e **convertido** em consulta L2, nunca repassado. O que a gramática não reconhece é recusado (`sql_recusado`).
 - Toda ferramenta declara `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`. Isso é dica para o cliente, não autorização: a autorização real é a do despacho.
@@ -80,7 +99,7 @@ Menu do Claude na barra do sistema, **Settings…**, aba **Developer**, **Edit C
 }
 ```
 
-Salve, **feche o Claude Desktop por completo** e abra de novo. Logs: `%APPDATA%\Claude\logs\mcp.log` (conexão) e `mcp-server-dominio.log` (o stderr do servidor, que mostra a versão do pack e o perfil).
+Salve, **feche o Claude Desktop por completo** e abra de novo. A versão da Microsoft Store guarda a config em `%LOCALAPPDATA%\Claude-Data\claude_<id>\claude_desktop_config.json` (e não em `%APPDATA%`); neste computador o servidor foi gravado ali em 24/11/2026, apontando para o Python do `.venv` (`...\dominio-mcp\.venv\Scripts\python.exe -m dominio_mcp serve`), sem depender do `uv` no PATH do aplicativo. Logs: `%APPDATA%\Claude\logs\mcp.log` (conexão) e `mcp-server-dominio.log` (o stderr do servidor, que mostra a versão do pack e o perfil).
 
 ### Claude Code
 
@@ -170,6 +189,18 @@ Só é declarado como compatível o cliente com linha "testado em <data e versã
 | Claude Code | não testado |
 | ChatGPT (túnel) | não testado |
 
+## Pelo CICA: o escritório liga e configura o próprio conector
+
+Três peças: a chave e a tela no **CICA** (Configurações › Conector MCP), um **serviço do Windows** no computador onde está o ODBC do Domínio e a **IA** do escritório (Claude) apontando para o endereço do conector. Manual de uma página: [dominio-mcp/reports/manual-instalacao-uso.pdf](../dominio-mcp/reports/manual-instalacao-uso.pdf).
+
+- **Tela** (dono ou administrador): ligar e desligar a chave do escritório; gerar o código de pareamento (uso único, 30 minutos, reaproveita `issue_enrollment`); ver o computador (Online quando puxou trabalho nos últimos 2 minutos) e desconectar; copiar o endereço do conector; ver quem autorizou e revogar (revoga os tokens na hora); últimas consultas. Com `MCP_GATEWAY_ENABLED` desligado a tela mostra "Indisponível" e nada responde.
+- **Fila** (`apps/mcpgateway/jobs.py`): a IA chama uma das 11 ferramentas no `/mcp`; o Hub vira um trabalho `{contrato, id, ferramenta, argumentos}` (sem campo de SQL), espera até 25 s e devolve o resultado. Até 5 trabalhos abertos por escritório; parado 60 s na fila ou 120 s em execução expira; argumentos até 16 KB e 8 níveis. As ferramentas do Domínio só aparecem com a chave ligada **e** um computador pareado.
+- **Serviço** (`dominio_mcp/agent.py` e `service.py`): só conexão de saída. Puxa a fila do próprio escritório (`/api/agent/mcp/claim`, long-poll de 10 s), executa no `relay-job` (perfil remote fixo) e devolve (`/api/agent/mcp/result`). Mesma identidade e assinatura HMAC do agente de sincronização; o segredo fica em `C:\ProgramData\HubContador\dominio-mcp\agent.json`, protegido pelo DPAPI (escopo da máquina) e por ACL só para SYSTEM e Administradores.
+- **Instalar**: `python scripts/build_instalador.py` gera `dist/dominio-mcp-servico-<versão>.zip`; no computador do Domínio, PowerShell como Administrador: `.\instalar-servico.ps1 -Hub https://SEU-CICA -Codigo CODIGO` (antes, `-SomenteConferir` confere Python, DSN de sistema e pacote sem gastar o código). O instalador lê o catálogo e roda o `doctor` **antes** de gastar o código, instala o serviço `DominioMcpAgent` em início automático com reinício sozinho. O DSN tem de ser **de sistema** (o serviço roda como SYSTEM). Se o Hub exigir mTLS (`EDGE_AGENT_MTLS_REQUIRED`, ligado em produção), passe `-Cert`, `-Chave` e `-Ca`.
+- **Ferramentas anunciadas**: `src/apps/mcpgateway/dominio_tools.json` é gerado do servidor (`python scripts/export_tools.py`) e um teste do `dominio-mcp` falha se divergir.
+
+Provado: 35 testes do Hub (fila, agente, tela, isolamento entre escritórios), 17 do agente, e a cadeia inteira com o Domínio real (`tests/test_mcp_connector_live.py`: `/mcp` → fila → agente em processo separado → ODBC → resposta). Não provado: instalação do serviço no Windows (exige Administrador: só o `-SomenteConferir` e o pacote em venv limpo foram exercitados), mTLS de ponta a ponta, e um cliente real (Claude ou ChatGPT) pelo OAuth.
+
 ## Privacidade: o que sai do computador
 
 **Sai** tudo o que uma ferramenta devolve (no máximo 12 KB por chamada): razão social, CNPJ, totais mensais, nomes de tabela e coluna, comentários do dicionário do Domínio. Isso passa a fazer parte da conversa e é processado pelo provedor do cliente (Anthropic ou OpenAI), nas condições do plano e das configurações de dados da conta usada. **Conferir essas condições é decisão do dono**, que também responde pelos dados dos clientes do escritório.
@@ -211,7 +242,7 @@ Valores padrão e teto duro (a configuração recusa valor acima do teto):
 | Tempo por consulta | 30 s (depois cancela) | 30 s |
 | Confirmação de cancelamento | 10 s | 60 s |
 | Consultas por minuto | 20 | 120 |
-| Custo estimado pelo banco (`PLAN`) | 10 | 100 |
+| Custo estimado pelo banco (`PLAN`) | 10 (as consultas da carteira declaram o próprio, até 50.000) | 100 |
 | Linhas estimadas pelo banco | 1.000.000 | 10.000.000 |
 
 Os limites de custo e frequência são **provisórios**: só serão calibrados depois do ensaio de carga, que precisa de janela autorizada pelo dono e aviso a quem usa o Domínio ([reports/carga.md](../dominio-mcp/reports/carga.md)).

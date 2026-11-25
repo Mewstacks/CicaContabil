@@ -27,3 +27,6 @@ agent-windows/inspect-contad-chart-discovery.ps1 text eol=lf
 agent-windows/test-contad-chart-discovery.ps1 text eol=lf
 agent-windows/inspect-contad-branch-accounts.ps1 text eol=lf
 agent-windows/test-contad-branch-accounts.ps1 text eol=lf
+
+# PDFs are binary: no EOL or text conversion.
+*.pdf binary
