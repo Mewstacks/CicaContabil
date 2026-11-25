@@ -1,3 +1,19 @@
+<!-- D423-V480-2026-11-25 -->
+## 25/11/2026 — D-423/V-480: OCR no navegador validado localmente (PC-33)
+
+- [x] `tesseract.js` com o mesmo modelo `por`, nas 57 páginas de outubro: 46 pagamentos encontrados (nativo 47).
+- [x] Navegador do app: ~0,9 s por página fictícia, tudo servido localmente (5,8 MB, sem CDN).
+- [ ] Tempo num computador comum de escritório e leitura do PDF no navegador — não verificados.
+- [ ] Escolha da opção para os scans na tela — do responsável.
+
+<!-- D422-V479-2026-11-25 -->
+## 25/11/2026 — D-422/V-479: OCR medido na máquina web de produção (PC-33)
+
+- [x] Página sintética no formato dos scans, calibrada localmente (1,6 s na M5, como os scans reais).
+- [x] Produção: ~6 s por passada, ~12 s com as duas; 75 MB de pico; arquivos de teste apagados.
+- [x] Análise atualizada: por página cabe nos 30 s, mas o mês inteiro esgota a cota de CPU da máquina web.
+- [ ] Escolha da opção para os scans na tela — do responsável.
+
 <!-- D421-V478-2026-11-25 -->
 ## 25/11/2026 — D-421/V-478: desenho do lançamento real e do lote 19 (PC-33, grupo 1)
 

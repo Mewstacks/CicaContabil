@@ -6664,3 +6664,30 @@ revogá-la. Nada é lançado nesta decisão: o lançamento real continua bloquea
    dados pessoais e possível custo, que são do responsável.
 
 Sem migração, custo, IA, deploy ou mensagem externa.
+
+## D-422 — PC-33: medição do OCR na máquina web de produção (25/11/2026)
+
+Origem: responsável, 25/11/2026, “pode medir o OCR em produção”, autorizando o passo 1 da análise de documentos
+escaneados (D-421 item 7). Executor Claude Code.
+
+1. **Escopo autorizado:** uma página **sintética** (boleto e DANFE fictícios, no formato dos scans reais: A4,
+   JPEG colorido 2448×3456 a 300 dpi), enviada por `fly ssh sftp` para `/tmp` da máquina `web` e medida com o
+   mesmo caminho de `ocr_pdf_pages` (pypdfium2 `scale=3`, Tesseract `por`, psm 4 e psm 6). Nenhum dado da
+   cliente saiu da máquina local; nenhum deploy, mudança de configuração, escala de máquina ou custo. Os
+   arquivos de teste foram apagados ao terminar.
+2. **Não decide a opção** para os scans na tela: o resultado (V-479) e a análise atualizada voltam ao
+   responsável, porque as opções restantes envolvem custo de máquina ou mudança de onde o OCR roda.
+
+## D-423 — PC-33: validação local do OCR no navegador (opção D) (25/11/2026)
+
+Origem: responsável, 25/11/2026, “Sim, validar a D”, sobre o passo 2 da análise de documentos escaneados
+(D-422). Executor Claude Code.
+
+1. **Escopo autorizado:** instalar `tesseract.js` 7.0.0 (Apache-2.0, npm, `--ignore-scripts`) numa pasta
+   temporária fora do repositório e ler os scans de outubro **na máquina local**, com o mesmo modelo `por` do
+   Tesseract nativo, comparando com a simulação nativa. Uma página fictícia foi lida também num navegador
+   (Chromium do app), servida por um servidor local temporário. Nenhum dado da cliente saiu da máquina; nada
+   entra no repositório nem em produção; sem custo.
+2. **Não implementa nem escolhe a opção:** o resultado (V-480) volta ao responsável. Se a D for escolhida, a
+   implementação exige decisão própria (bibliotecas servidas pelo CICA, leitura do PDF no navegador e tela).
+

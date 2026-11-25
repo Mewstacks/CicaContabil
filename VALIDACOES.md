@@ -13569,3 +13569,51 @@ lançado nem exportado.
 
 Não verificado: importação real de um lote com pares gerados de um lançamento composto (V-428 continua
 pendente); tempo de OCR na máquina de produção.
+
+## V-479 — D-422: tempo e memória do OCR na máquina web de produção (PC-33)
+
+Executor Claude Code, 25/11/2026. Máquina `web` `891e63ef665e58` (release 134, `shared-cpu-1x`, 1 vCPU AMD EPYC,
+472 MB, 208 MB livres na hora), Tesseract 5.3.0 `por`. Página sintética de 1,19 MB; scripts e página no
+scratchpad da sessão, fora do repositório.
+
+- **Calibração local (Apple M5, Tesseract 5.5.3):** psm 4 em 1,56 a 1,96 s por página, próximo do 1,5 s medido
+  nos scans reais de outubro — a página sintética representa os scans.
+- **Produção, 3 execuções:** render 0,37 a 0,59 s; psm 4 5,41 a 5,56 s; psm 6 5,82 a 6,28 s; **total por página
+  11,6 a 12,2 s** com as duas passadas (a segunda só ocorre em página cujo valor a primeira não leu). Cerca de
+  3,5× mais lento que a M5. Cabe nos 30 s da requisição com folga de ~2,5×.
+- **Memória:** pico de 75 MB no Python (render) e 75 MB no Tesseract — cabe nos 208 MB livres.
+- **Limite que a medição revelou:** a `shared-cpu-1x` tem cota de CPU de 6,25% com saldo de rajada (máximo
+  500 s, 5 s ao ligar após deploy; documentação da Fly, “CPU performance”). As 57 páginas de outubro custam
+  ~340 s de CPU só na primeira passada; isso esgota o saldo típico da máquina web, e então ela é limitada a
+  6,25%: a página passaria de ~6 s para ~90 s (estourando os 30 s) e **todo o site** ficaria lento para os
+  demais escritórios. As 3 execuções (~36 s de CPU) não chegaram a esse ponto; um teste prolongado em produção
+  não foi feito, por afetar os usuários.
+- Arquivos de teste removidos de `/tmp` da máquina; `fly status` com web e worker saudáveis depois.
+
+Não verificado: saldo de CPU real da máquina web ao longo do dia (painel do Grafana da Fly); OCR no navegador
+(opção D da análise).
+
+## V-480 — D-423: OCR no navegador (`tesseract.js`) com os scans de outubro (PC-33)
+
+Executor Claude Code, 25/11/2026, Apple M5. `tesseract.js` 7.0.0 com `tesseract.js-core` 7.0.0 e o mesmo
+`por.traineddata` (1,9 MB) do Tesseract nativo 5.5.3. As 57 páginas foram convertidas em imagem pelo mesmo
+caminho do código (pypdfium2 `scale=3`, cinza); o texto do `tesseract.js` substituiu `ocr_pdf_pages` numa
+execução local de `simular_multifontes` com as fontes reais de outubro (fora do repositório).
+
+- **Resultado da simulação:** movimentos idênticos (184; 47,3% automático; 96,2% identificados). Documentos:
+  nativo lê valor em 47 documentos de pagamento e casa os 47; `tesseract.js` lê valor em **46** e casa os
+  46 — 56 documentos lidos e a mesma classificação nos dois. Dois boletos (páginas 22 e 38 do scan de 50 páginas) ficaram sem valor no
+  `tesseract.js` por dígitos da linha digitável lidos errado; um boleto (página 16) que o nativo não lia passou
+  a ser lido e casado. Leitura incerta: 7 contra 5. Os dois motores erram dígitos em páginas diferentes —
+  variação de versão, não falha do caminho. Documento sem valor aparece como “sem pagamento encontrado” para
+  conferência, como hoje.
+- **Tempo, Node (WASM):** psm 4 mediana 2,27 s (142 s nas 57 páginas); psm 6 mediana 1,82 s.
+- **Tempo, navegador (Chromium do app, mesma máquina), página fictícia:** worker pronto em 0,07 s; psm 4 0,85 a
+  0,94 s; psm 6 0,83 a 0,85 s (núcleo `relaxedsimd`). Tudo servido localmente, sem CDN: script, worker, núcleo
+  WASM e modelo somam 5,8 MB, baixados uma vez.
+- Servidor local parado e `.claude/launch.json` do checkout principal restaurado.
+
+Não verificado: tempo num computador comum de escritório (sem `relaxedsimd`, mais lento que a M5); conversão
+do PDF em imagem dentro do navegador (pdf.js), que pode diferir da do pypdfium2; uso de memória do navegador
+com 50 páginas.
+
