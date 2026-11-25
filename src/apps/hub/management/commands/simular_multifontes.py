@@ -16,13 +16,13 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from apps.hub.multisource.common import MAX_SOURCE_BYTES, MultisourceError
 
 
-def _read(path: Path | None) -> bytes | None:
+def _read(path: Path | None, limit: int = MAX_SOURCE_BYTES) -> bytes | None:
     if path is None:
         return None
     if not path.is_file():
         raise CommandError(f"Arquivo não encontrado: {path}")
-    if path.stat().st_size > MAX_SOURCE_BYTES:
-        raise CommandError(f"Arquivo maior que 25 MiB: {path.name}")
+    if path.stat().st_size > limit:
+        raise CommandError(f"Arquivo maior que {limit // (1024 * 1024)} MiB: {path.name}")
     return path.read_bytes()
 
 
@@ -41,6 +41,13 @@ class Command(BaseCommand):
         parser.add_argument("--caixa", type=Path, help="Caixa do cliente (.xlsx).")
         parser.add_argument(
             "--aba", default="SICREDI", help="Aba do caixa que corresponde ao extrato."
+        )
+        parser.add_argument(
+            "--documentos",
+            type=Path,
+            action="append",
+            default=[],
+            help="PDF escaneado com boletos, recibos, DANFE ou CT-e (OCR local); pode repetir.",
         )
         parser.add_argument("--aplicacao", type=Path, help="Extrato de aplicação Sicredi (PDF).")
         parser.add_argument(
@@ -79,12 +86,14 @@ class Command(BaseCommand):
         from apps.hub.multisource.matching import BankLine, simulate
         from apps.hub.multisource.report import (
             render_differences_csv,
+            render_documents_csv,
             render_ledger_csv,
             render_ledger_summary,
             render_lines_csv,
             render_position_csv,
             render_summary,
         )
+        from apps.hub.multisource.scanned_documents import MAX_SCAN_BYTES, read_scanned_pdf
         from apps.hub.multisource.title_position import PAYABLE, RECEIVABLE, read_title_position_xls
         from apps.hub.reconciliation_service import ReconciliationError
 
@@ -129,6 +138,13 @@ class Command(BaseCommand):
                 raise CommandError("--aba-sem-extrato exige --caixa.")
             if options["razao_pdf"] and options["razao_csv"]:
                 raise CommandError("Informe o Razão em PDF ou em CSV, não os dois.")
+            documents = []
+            for path in options["documentos"]:
+                content = _read(path, MAX_SCAN_BYTES)
+                assert content is not None
+                documents.extend(
+                    read_scanned_pdf(content, source=path.name, own_tax_id=options["cnpj"] or "")
+                )
             investment = None
             if content := _read(options["aplicacao"]):
                 investment = read_investment_pdf(content)
@@ -155,6 +171,7 @@ class Command(BaseCommand):
             reference_payables=positions.get("pagar_referencia"),
             cash_accounts=cash_accounts,
             investment=investment,
+            documents=documents,
         )
         output: Path = options["saida"]
         output.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -165,6 +182,8 @@ class Command(BaseCommand):
             "posicao.csv": render_position_csv(result),
             "diferencas-posicao.csv": render_differences_csv(result),
         }
+        if documents:
+            files["documentos.csv"] = render_documents_csv(result)
         if ledger_movements is not None:
             comparison = compare_with_ledger(result, ledger_movements)
             files["resumo.md"] += render_ledger_summary(comparison)

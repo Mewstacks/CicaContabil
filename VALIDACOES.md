@@ -13321,3 +13321,30 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Somente simulaç
   `ruff check .` limpo.
 
 Não verificado: contas de rendimento/IRRF (Q-54); o critério de semelhança da R-12 com outros clientes.
+
+## V-469 — D-412: documentos escaneados na simulação de outubro (PC-33, R-10/R-11)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Download dos dois scans autorizado pelo
+responsável na sessão (Skybox, 5,8 MB e 41,6 MB), guardados em pasta temporária privada, fora do
+repositório; OCR só local (Tesseract `por`), sem IA.
+
+- Novo `src/apps/hub/multisource/scanned_documents.py` e opção `--documentos` (limite próprio de 100 MiB).
+  Boleto: valor e vencimento pela linha digitável com dígitos verificadores conferidos; com OCR abaixo de 75 o
+  valor precisa aparecer no texto. Recibos: total ou valor repetido na página (percentuais ignorados). CT-e
+  e DANFE não contam como pagamento; fatura de várias páginas conta uma vez. Segunda passada de OCR (psm 6)
+  só nas páginas sem valor.
+- 57 páginas em cerca de 1 min: 56 documentos (40 boletos, 8 recibos, 4 outros, 2 CT-e, 2 faturas).
+  **Os 40 documentos de pagamento com valor foram encontrados**: 38 no extrato e 2 na aba CAIXA — o recibo
+  de aluguel pago em dinheiro (caso R-11 da reunião) e um recibo cujo valor o OCR leu com um dígito trocado,
+  casado com ressalva. 11 leituras incertas ficam listadas.
+- Falhas achadas e corrigidas antes do commit, cada uma com teste: linha digitável lida errada que passou no
+  dígito verificador por acaso (OCR 54); “50,00%” da participação dos sócios lido como valor do recibo de
+  distribuição; limite do cartão lido como total da fatura; CT-e com “recibo do sacado” classificado como
+  recibo; fatura repetida em duas páginas.
+- Outubro com caixa: sem mudança (45,1% automático, 96,2% identificado). Sem o caixa do cliente: os
+  documentos identificam 12 pagamentos e o identificado sobe de 44,0% para 51,2% (R-10); nenhuma baixa nova,
+  porque os boletos pagos em outubro são de notas do próprio mês, fora da posição de setembro.
+- Testes: 11 novos em `tests/test_multisource_documents.py` (inclui OCR de ponta a ponta, pulado sem
+  Tesseract `por`); 60 aprovados nos arquivos multifontes; `ruff check .` limpo.
+
+Não verificado: leitura de guias de arrecadação (linha de 48 dígitos); valor dos recibos por extenso.

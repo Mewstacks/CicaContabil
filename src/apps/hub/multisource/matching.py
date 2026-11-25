@@ -32,6 +32,7 @@ from apps.hub.multisource.client_cashbook import CashbookLine, CashbookSheet, Do
 from apps.hub.multisource.common import money, names_match
 from apps.hub.multisource.francesinha import CollectionItem, CollectionReport
 from apps.hub.multisource.investment import InvestmentMovement, InvestmentStatement
+from apps.hub.multisource.scanned_documents import LOW_CONFIDENCE, ScannedDocument
 from apps.hub.multisource.title_position import (
     PAYABLE,
     RECEIVABLE,
@@ -110,6 +111,14 @@ class PositionDifference:
 
 
 @dataclass
+class DocumentMatch:
+    document: ScannedDocument
+    line: LineResult | None = None
+    settled: bool = False
+    note: str = ""
+
+
+@dataclass
 class SimulationResult:
     lines: list[LineResult]
     unmatched_cashbook: list[CashbookLine]
@@ -120,6 +129,7 @@ class SimulationResult:
     warnings: list[str]
     investment: InvestmentStatement | None = None
     investment_unmatched: list[InvestmentMovement] = field(default_factory=list)
+    documents: list[DocumentMatch] = field(default_factory=list)
 
     def count(self, status: str) -> int:
         return sum(1 for line in self.lines if line.status == status)
@@ -280,6 +290,7 @@ def simulate(
     reference_payables: TitlePosition | None = None,
     cash_accounts: Sequence[CashbookSheet] = (),
     investment: InvestmentStatement | None = None,
+    documents: Sequence[ScannedDocument] = (),
 ) -> SimulationResult:
     """Simula o mês. `cash_accounts` são abas do caixa sem extrato (ex.: dinheiro em espécie):
     cada linha da aba é o próprio movimento e baixa títulos com a mesma carteira do extrato."""
@@ -294,6 +305,7 @@ def simulate(
             for c in sheet.lines
         ]
         results.extend(_run_account(own, None, sheet, titles).results)
+    document_matches = _match_documents(results, documents, titles)
     warnings: list[str] = []
     differences = _compare(titles, [reference_receivables, reference_payables])
     for source in (
@@ -316,7 +328,95 @@ def simulate(
         warnings,
         investment,
         investment_unmatched,
+        document_matches,
     )
+
+
+DOCUMENT_DAYS_BEFORE = 15
+DOCUMENT_DAYS_AFTER = 5
+
+
+def _match_documents(
+    results: list[LineResult], documents: Sequence[ScannedDocument], titles: OpenTitles
+) -> list[DocumentMatch]:
+    """D-412: liga cada documento de pagamento a uma saída do banco ou do caixa (R-11) e, se o
+    movimento não tinha linha no caixa do cliente, usa o documento para baixar o título (R-10)."""
+    matches: list[DocumentMatch] = []
+    taken: set[int] = set()
+    for document in documents:
+        match = DocumentMatch(document)
+        matches.append(match)
+        if not document.is_payment or document.uncertain:
+            continue
+        candidates = _document_candidates(results, document, taken, exact=True)
+        if not candidates and document.confidence < LOW_CONFIDENCE:
+            # OCR fraco costuma errar um dígito (1.388,18 lido como 1.388,08): aceita, com ressalva.
+            candidates = _document_candidates(results, document, taken, exact=False)
+            if candidates:
+                match.note = "valor lido pelo OCR difere em um dígito; confirmar"
+        if not candidates:
+            continue
+        line = min(candidates, key=lambda c: c[:4])[4]
+        taken.add(id(line))
+        match.line = line
+        match.settled = not match.note and _settle_with_document(line, document, titles)
+    return matches
+
+
+def _one_digit_apart(a: int, b: int) -> bool:
+    left, right = str(a), str(b)
+    return len(left) == len(right) and sum(x != y for x, y in zip(left, right, strict=True)) == 1
+
+
+def _document_candidates(
+    results: list[LineResult], document: ScannedDocument, taken: set[int], *, exact: bool
+) -> list[tuple[bool, int, str, int, LineResult]]:
+    amount = document.amount_cents or 0
+    candidates = []
+    for line in results:
+        paid = -line.bank.amount_cents
+        if id(line) in taken or paid <= 0:
+            continue
+        if (paid != amount) if exact else not _one_digit_apart(paid, amount):
+            continue
+        gap = (line.bank.occurred_on - document.due_on).days if document.due_on else 0
+        if not -DOCUMENT_DAYS_BEFORE <= gap <= DOCUMENT_DAYS_AFTER:
+            continue
+        same_tax_id = bool(line.bank.tax_id) and line.bank.tax_id in document.tax_ids
+        candidates.append((not same_tax_id, abs(gap), line.bank.account, line.bank.index, line))
+    return candidates
+
+
+def _settle_with_document(line: LineResult, document: ScannedDocument, titles: OpenTitles) -> bool:
+    if line.status != FLAGGED or line.cashbook_rows or line.parts:
+        return False
+    number = re.sub(r"/\d{1,3}$", "", document.number).lstrip("0")
+    refs = [DocumentRef("nf", n) for n in dict.fromkeys([number, *document.refs]) if n]
+    name = line.bank.counterparty or document.issuer
+    source = f"documento {document.source} p. {document.page}"
+    parts, reason = _settle_receipt(
+        titles, PAYABLE, abs(line.bank.amount_cents), refs, name, source
+    )
+    if reason == OUTSIDE or (reason and refs):
+        parts, reason = _settle_receipt(
+            titles, PAYABLE, abs(line.bank.amount_cents), [], name, source
+        )
+    if not reason:
+        line.parts = parts
+        line.reasons = []
+        line.status = AUTOMATIC
+        return True
+    if reason == OUTSIDE or reason.startswith("nenhum título"):
+        # R-10: sem título na posição, o documento basta para identificar o pagamento
+        # (fornecedor, CNPJ e número); a baixa fica para quando o título existir.
+        who = document.issuer or (document.tax_ids[0] if document.tax_ids else "")
+        label = f"{document.kind} nº {document.number or '?'} {who} (documento escaneado)"
+        line.parts = [
+            Part("document", abs(line.bank.amount_cents), " ".join(label.split()), source=source)
+        ]
+        line.reasons = []
+        line.status = IDENTIFIED
+    return False
 
 
 def _apply_investment(

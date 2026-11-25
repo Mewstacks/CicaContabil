@@ -1,3 +1,10 @@
+<!-- D412-V469-2026-11-24 -->
+## 24/11/2026 — D-412/V-469: documentos escaneados (PC-33, R-10/R-11)
+
+- [x] OCR local dos scans, linha digitável validada, recibos, faturas, CT-e e DANFE.
+- [x] Outubro: 40 de 40 documentos de pagamento encontrados (38 no extrato, 2 no caixa em dinheiro).
+- [x] Sem o caixa do cliente, os documentos identificam 12 pagamentos (R-10).
+
 <!-- D411-V468-2026-11-24 -->
 ## 24/11/2026 — D-411/V-468: aplicação financeira e natureza divergente (PC-33, Fase 2)
 

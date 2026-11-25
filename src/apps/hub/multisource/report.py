@@ -71,6 +71,7 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
         lines.append(f"- {label}: {len(same)} · {money(sum(p.amount_cents for p in same))}")
     lines[lines.index("## Títulos baixados na simulação")] = "## Partes identificadas"
     lines += _investment_section(result)
+    lines += _documents_section(result)
     lines += ["", "## Sinalizações", ""]
     flagged = [r for r in result.lines if r.status == FLAGGED]
     if not flagged:
@@ -320,3 +321,94 @@ def _investment_section(result: SimulationResult) -> list[str]:
                 f"{money(movement.amount_cents)}"
             )
     return lines
+
+
+def _documents_section(result: SimulationResult) -> list[str]:
+    matches = result.documents
+    if not matches:
+        return []
+    kinds = Counter(m.document.kind for m in matches)
+    payments = [m for m in matches if m.document.is_payment and not m.document.uncertain]
+    found = [m for m in payments if m.line is not None]
+    by_account = Counter(m.line.bank.account for m in found if m.line is not None)
+    missing = [m for m in payments if m.line is None]
+    uncertain = [m for m in matches if m.document.uncertain and m.document.kind != "outro"]
+    lines = [
+        "",
+        "## Documentos escaneados (D-412)",
+        "",
+        f"- Documentos lidos: {len(matches)} ("
+        + ", ".join(f"{kind} {n}" for kind, n in kinds.most_common())
+        + ").",
+        f"- Documentos de pagamento com valor: {len(payments)}; com pagamento encontrado: "
+        f"{len(found)} (" + ", ".join(f"{a} {n}" for a, n in by_account.most_common()) + ").",
+        f"- Casados com valor lido diferente em um dígito (confirmar): "
+        f"{sum(1 for m in found if m.note)}.",
+        f"- Títulos baixados pelo documento, sem linha no caixa (R-10): "
+        f"{sum(1 for m in found if m.settled)}.",
+        "- Pagamentos identificados só pelo documento, sem título na posição (R-10): "
+        f"{sum(1 for m in found if m.line and not m.settled and _by_document(m))}.",
+        "- Leitura incerta (confiança do OCR abaixo de 90, sem linha digitável): "
+        f"{len(uncertain)}.",
+    ]
+    if missing:
+        lines.append(
+            "- Sem pagamento identificado — pode ter sido pago em dinheiro "
+            "ou ser ressarcimento (R-11):"
+        )
+        for match in missing:
+            document = match.document
+            due = f" venc. {document.due_on:%d/%m/%Y}" if document.due_on else ""
+            lines.append(f"  - {document.label}: {money(document.amount_cents or 0)}{due}")
+    return lines
+
+
+def render_documents_csv(result: SimulationResult) -> str:
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";")
+    writer.writerow(
+        [
+            "arquivo",
+            "pagina",
+            "tipo",
+            "valor",
+            "vencimento",
+            "cnpj",
+            "numero",
+            "confianca_ocr",
+            "linha_digitavel_valida",
+            "pagamento",
+            "baixa_pelo_documento",
+            "observacao",
+        ]
+    )
+    for match in result.documents:
+        document = match.document
+        payment = ""
+        if match.line is not None:
+            bank = match.line.bank
+            payment = f"{bank.account} {bank.occurred_on:%d/%m/%Y} {money(bank.amount_cents)}"
+        writer.writerow(
+            [
+                document.source,
+                document.page,
+                document.kind,
+                money(document.amount_cents) if document.amount_cents else "",
+                document.due_on.strftime("%d/%m/%Y") if document.due_on else "",
+                ",".join(document.tax_ids),
+                document.number,
+                document.confidence,
+                "sim" if document.boleto else "não",
+                payment,
+                "sim" if match.settled else "",
+                match.note,
+            ]
+        )
+    return out.getvalue()
+
+
+def _by_document(match: object) -> bool:
+    line = getattr(match, "line", None)
+    return bool(line) and any(
+        p.kind == "document" and p.source.startswith("documento ") for p in line.parts
+    )

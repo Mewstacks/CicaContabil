@@ -15,6 +15,7 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] D-410: agente sem mudança (já aceita outubro); comparação simulação × Razão no comando, em PDF ou ledger-csv-v1 (V-467).
 - [ ] Obter o Razão de outubro da SURIA (tela ou exportação da CONTAD) e rodar a comparação.
 - [x] D-411: aplicação/resgate pelo extrato da aplicação e natureza divergente (R-12) na simulação (V-468).
+- [x] D-412: documentos escaneados por OCR local, cruzados com banco e caixa (R-10/R-11) (V-469).
 - [ ] Tela de fechamento do mês (protocolo de UI).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

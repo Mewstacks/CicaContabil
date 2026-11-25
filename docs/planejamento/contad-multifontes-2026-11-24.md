@@ -524,3 +524,17 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   - documentos escaneados (N-06);
   - tela de fechamento do mês;
   - lote 19 com várias partidas.
+
+## 17. Documentos escaneados (D-412, V-469)
+
+- `--documentos scan.pdf` (pode repetir) faz o OCR local de cada página. O boleto vale pela linha
+  digitável validada; recibos, faturas, CT-e e DANFE são lidos do texto.
+- Cada documento de pagamento é procurado no extrato e no caixa em dinheiro. O que não for encontrado vira
+  "sem pagamento identificado" (R-11). Sem o caixa do cliente, o documento identifica o pagamento ou baixa o
+  título (R-10).
+- Outubro: os 40 documentos de pagamento com valor foram encontrados, incluindo o aluguel pago em dinheiro.
+  Ficaram 11 leituras incertas, listadas para conferência.
+- Itens restantes do plano:
+  - tela de fechamento do mês (protocolo de UI);
+  - lote 19 com várias partidas (depende da importação real, V-428);
+  - itens que dependem das respostas Q-50 a Q-66.

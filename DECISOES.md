@@ -6410,3 +6410,24 @@ Continua em modo simulação (D-409): nada é gravado, lançado ou exportado.
    transferências de aplicação comprovadas pelos dois extratos.
 
 Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-412 — PC-33: documentos escaneados na simulação (R-10, R-11) (24/11/2026)
+
+Origem: responsável, 24/11/2026, “Documentos escaneados”, ao escolher o próximo item do plano. Executor
+Claude Code. Continua em modo simulação (D-409); OCR somente local (Tesseract `por`, já usado pelo sistema),
+sem IA nem serviço externo.
+
+1. O comando `simular_multifontes` aceita PDFs escaneados (`--documentos`, pode repetir). Cada página passa
+   por OCR local; o boleto é identificado pela linha digitável, cujos dígitos verificadores são conferidos —
+   valor e vencimento vêm dela, não do texto livre. Recibos, DANFE e CT-e têm valor, CNPJ e número lidos do
+   texto, com a confiança do OCR registrada; leitura abaixo de 90 fica “leitura incerta”.
+2. Cada documento de pagamento (boleto, recibo, fatura) é procurado no extrato e nas abas do caixa sem
+   extrato: mesmo valor, data entre 15 dias antes e 5 dias depois do vencimento, e, quando houver, mesmo
+   CNPJ. Documento sem pagamento vira sinalização “pode ter sido pago em dinheiro ou ser ressarcimento”
+   (R-11).
+3. R-10: um pagamento do extrato sem linha no caixa do cliente, mas com documento casado, usa o número do
+   documento e o nome do beneficiário para baixar o título aberto, pelas mesmas regras da D-409.
+4. O CNPJ da própria empresa (`--cnpj`) é ignorado na leitura do beneficiário. Arquivos escaneados da
+   cliente não entram no repositório; os testes usam documentos sintéticos.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
