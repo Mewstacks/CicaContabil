@@ -1,3 +1,10 @@
+<!-- D413-V470-2026-11-25 -->
+## 25/11/2026 — D-413/V-470: tela de fechamento do mês (PC-33)
+
+- [x] Página de simulação a partir da Conciliação bancária; serviço compartilhado com o comando.
+- [x] Testes de permissão, “nada gravado”, `.zip` e erros; navegador em 1366/375, claro e escuro.
+- [ ] Publicação — depende de autorização; documentos escaneados na tela exigem fila.
+
 <!-- D412-V469-2026-11-24 -->
 ## 24/11/2026 — D-412/V-469: documentos escaneados (PC-33, R-10/R-11)
 

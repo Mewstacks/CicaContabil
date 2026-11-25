@@ -13348,3 +13348,24 @@ repositório; OCR só local (Tesseract `por`), sem IA.
   Tesseract `por`); 60 aprovados nos arquivos multifontes; `ruff check .` limpo.
 
 Não verificado: leitura de guias de arrecadação (linha de 48 dígitos); valor dos recibos por extenso.
+
+## V-470 — D-413: tela “Fechamento do mês (simulação)” (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou dado real.
+
+- Nova página `app/conciliacao/fechamento/` (`src/apps/hub/multisource_views.py`,
+  `templates/hub/reconciliation_multisource.html`, `static/hub/multisource.css` e `.js`), com links a partir
+  da Conciliação bancária. A lógica do comando foi extraída para `multisource/service.py`; o comando e a tela
+  rodam a mesma simulação (outubro real pelo comando continua com 45,1% automático e 96,2% identificado).
+- Testes: 6 novos em `tests/test_multisource_screen.py` — abertura pela Conciliação, simulação sem gravar
+  nenhum arquivo ou movimento, resposta `no-store`, `.zip` com os relatórios, erros de formato e de leiaute,
+  empresa de outro escritório recusada, perfil auditor sem envio (403).
+- Navegador (servidor descartável com dados sintéticos, `.tmp` removido ao final): 1366 px tema claro e
+  escuro e 375 px; sem rolagem horizontal; tabela de sinalizações em cartões no celular; sem erro no console.
+  Corrigidos na verificação: data e valor quebrando no meio, resultado fora da tela depois do envio (agora
+  foco e rolagem vão ao resultado), separador sobrando nos indicadores, dois-pontos nos rótulos.
+- Protocolo de UI: diretrizes do ui-ux-pro-max consultadas; Watermelon e web-design-guidelines indisponíveis
+  nesta sessão.
+
+Não verificado: uso com arquivos reais pela tela (só pelo comando); tempo de resposta em produção com
+arquivos grandes; documentos escaneados ficam fora da tela (D-413 item 4).

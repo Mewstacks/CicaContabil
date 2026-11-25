@@ -16,7 +16,8 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [ ] Obter o Razão de outubro da SURIA (tela ou exportação da CONTAD) e rodar a comparação.
 - [x] D-411: aplicação/resgate pelo extrato da aplicação e natureza divergente (R-12) na simulação (V-468).
 - [x] D-412: documentos escaneados por OCR local, cruzados com banco e caixa (R-10/R-11) (V-469).
-- [ ] Tela de fechamento do mês (protocolo de UI).
+- [x] D-413: tela “Fechamento do mês (simulação)”, sem gravar nada (V-470).
+- [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->
 **17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**

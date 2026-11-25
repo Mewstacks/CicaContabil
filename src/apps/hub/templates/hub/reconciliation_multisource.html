@@ -1,0 +1,96 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><link rel="stylesheet" href="{% static 'hub/multisource.css' %}"><script src="{% static 'hub/multisource.js' %}" defer></script>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-heading">Fontes do mês</h2></div><a class="button button-quiet" href="{{ multisource_back_url }}">Conciliação bancária</a></header>
+  <p class="titles-notice">Simulação: o sistema cruza o extrato com as demais fontes e mostra o que conseguiria baixar, identificar ou precisaria de você. Nada é lançado nem guardado; os arquivos são descartados ao terminar.</p>
+  {% if multisource_can_write %}
+  <form method="post" action="{{ multisource_url }}#multisource-result" enctype="multipart/form-data" class="titles-form multisource-form">
+    {% csrf_token %}
+    {% if multisource_form.errors %}<div class="form-errors" role="alert" tabindex="-1"><strong>Confira os campos indicados.</strong>{{ multisource_form.non_field_errors }}</div>{% endif %}
+    <fieldset class="multisource-group"><legend>Empresa e banco</legend>
+      <div class="titles-fields">
+        <div class="field">{{ multisource_form.company.label_tag }}{{ multisource_form.company }}{{ multisource_form.company.errors }}</div>
+        <div class="field">{{ multisource_form.statement.label_tag }}{{ multisource_form.statement }}{{ multisource_form.statement.errors }}<small class="field-help">Obrigatório. PDF de texto exportado do internet banking.</small></div>
+        <div class="field">{{ multisource_form.collection.label_tag }}{{ multisource_form.collection }}{{ multisource_form.collection.errors }}<small class="field-help">Decompõe a cobrança do extrato por título.</small></div>
+        <div class="field">{{ multisource_form.investment.label_tag }}{{ multisource_form.investment }}{{ multisource_form.investment.errors }}</div>
+      </div>
+    </fieldset>
+    <fieldset class="multisource-group"><legend>Títulos do Domínio</legend>
+      <div class="titles-fields">
+        <div class="field">{{ multisource_form.receivables.label_tag }}{{ multisource_form.receivables }}{{ multisource_form.receivables.errors }}</div>
+        <div class="field">{{ multisource_form.payables.label_tag }}{{ multisource_form.payables }}{{ multisource_form.payables.errors }}</div>
+        <div class="field">{{ multisource_form.reference_receivables.label_tag }}{{ multisource_form.reference_receivables }}{{ multisource_form.reference_receivables.errors }}</div>
+        <div class="field">{{ multisource_form.reference_payables.label_tag }}{{ multisource_form.reference_payables }}{{ multisource_form.reference_payables.errors }}</div>
+      </div>
+      <p class="field-help">A posição do mês anterior é a abertura; a do próprio mês só serve para comparar o resultado.</p>
+    </fieldset>
+    <fieldset class="multisource-group"><legend>Caixa do cliente e Razão</legend>
+      <div class="titles-fields">
+        <div class="field">{{ multisource_form.cashbook.label_tag }}{{ multisource_form.cashbook }}{{ multisource_form.cashbook.errors }}</div>
+        <div class="field">{{ multisource_form.cashbook_sheet.label_tag }}{{ multisource_form.cashbook_sheet }}{{ multisource_form.cashbook_sheet.errors }}</div>
+        <div class="field">{{ multisource_form.cash_sheets.label_tag }}{{ multisource_form.cash_sheets }}{{ multisource_form.cash_sheets.errors }}<small class="field-help">{{ multisource_form.cash_sheets.help_text }}</small></div>
+        <div class="field">{{ multisource_form.ledger.label_tag }}{{ multisource_form.ledger }}{{ multisource_form.ledger.errors }}<small class="field-help">Compara com o que já foi lançado à mão.</small></div>
+      </div>
+    </fieldset>
+    <p class="field-help">Documentos escaneados (boletos e recibos) ainda são lidos pelo comando de simulação, porque a leitura leva cerca de 1 segundo por página.</p>
+    <div class="titles-actions"><button class="button" type="submit" name="action" value="simulate" data-busy-label="Simulando…">Simular o mês</button><button class="button button-quiet" type="submit" name="action" value="zip" data-busy-label="Gerando relatórios…">Simular e baixar relatórios (.zip)</button></div>
+  </form>
+  {% else %}<div class="empty-block"><strong>Acesso de consulta</strong><span>Seu perfil não permite enviar arquivos da conciliação.</span></div>{% endif %}
+</section>
+{% if multisource %}
+<section class="workspace-panel titles-panel" id="multisource-result" aria-labelledby="multisource-result-heading" tabindex="-1">
+  <header class="workspace-panel-head"><div><h2 id="multisource-result-heading">Resultado de {{ multisource.period }}</h2><p class="table-muted">{{ multisource_company.name }} · {{ multisource.total }} movimentos</p></div></header>
+  <div class="metric-strip multisource-metrics" aria-label="Situação dos movimentos">
+    {% for item in multisource.statuses %}<article><span>{{ item.label }}</span><strong>{{ item.count }}</strong><small><span class="status-badge {{ item.tone }}">{{ item.share }}%</span> R$ {{ item.amount }}</small></article>{% endfor %}
+  </div>
+  <dl class="titles-data">
+    <div><dt>Recebimentos baixados</dt><dd>{{ multisource.parts.receivable }}</dd></div>
+    <div><dt>Pagamentos baixados</dt><dd>{{ multisource.parts.payable }}</dd></div>
+    <div><dt>Juros/multa a classificar</dt><dd>{{ multisource.parts.interest }}</dd></div>
+    <div><dt>Aplicações e resgates</dt><dd>{{ multisource.parts.investment }}</dd></div>
+    <div><dt>Notas do mês (fora da posição)</dt><dd>{{ multisource.parts.document }}</dd></div>
+    <div><dt>Natureza pelo caixa</dt><dd>{{ multisource.parts.nature }}</dd></div>
+  </dl>
+</section>
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-flags-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-flags-heading">Para você decidir ({{ multisource.flagged|length }})</h2></div></header>
+  {% if multisource.flagged %}
+  <div class="data-table-wrap titles-table-wrap"><table class="operational-table titles-table"><caption class="sr-only">Movimentos sinalizados e o motivo</caption><thead><tr><th scope="col" class="multisource-nowrap">Data</th><th scope="col" class="multisource-nowrap">Valor</th><th scope="col">Histórico</th><th scope="col">Motivo</th></tr></thead><tbody>
+    {% for row in multisource.flagged %}<tr><td data-label="Data" class="multisource-nowrap">{{ row.date|date:'d/m/Y' }}{% if row.account != 'extrato' %}<small>{{ row.account }}</small>{% endif %}</td><td data-label="Valor" class="multisource-nowrap titles-money">R$ {{ row.amount }}</td><td data-label="Histórico">{{ row.description }}</td><td data-label="Motivo">{% for reason in row.reasons %}<span class="multisource-reason">{{ reason }}</span>{% endfor %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-block"><strong>Nenhuma sinalização</strong><span>Todos os movimentos foram baixados ou identificados.</span></div>{% endif %}
+  {% if multisource.unmatched_cashbook %}<p class="titles-notice">{{ multisource.unmatched_cashbook }} linha{{ multisource.unmatched_cashbook|pluralize }} do caixa do cliente sem movimento no extrato.</p>{% endif %}
+</section>
+{% if multisource.investment %}
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-investment-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-investment-heading">Aplicação financeira</h2></div></header>
+  <dl class="titles-data"><div><dt>Saldo anterior</dt><dd>R$ {{ multisource.investment.opening }}</dd></div><div><dt>Saldo atual</dt><dd>R$ {{ multisource.investment.closing }}</dd></div><div><dt>Aplicações e resgates casados</dt><dd>{{ multisource.investment.matched }}</dd></div><div><dt>Rendimentos a lançar</dt><dd>R$ {{ multisource.investment.income }}</dd></div><div><dt>IRRF retido</dt><dd>R$ {{ multisource.investment.income_tax }}</dd></div></dl>
+  {% if multisource.investment.unmatched %}<p class="titles-notice">Sem par no extrato bancário: {{ multisource.investment.unmatched|join:'; ' }}.</p>{% endif %}
+</section>
+{% endif %}
+{% if multisource.positions %}
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-positions-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-positions-heading">Títulos em aberto</h2></div></header>
+  <div class="data-table-wrap titles-table-wrap"><table class="operational-table titles-table"><caption class="sr-only">Posição de títulos antes e depois do mês</caption><thead><tr><th scope="col">Tipo</th><th scope="col">Saldo na abertura</th><th scope="col">Baixado no mês</th><th scope="col">Saldo final</th></tr></thead><tbody>
+    {% for row in multisource.positions %}<tr><td data-label="Tipo">{{ row.label }}</td><td data-label="Saldo na abertura">R$ {{ row.opening }}</td><td data-label="Baixado no mês">R$ {{ row.settled }}</td><td data-label="Saldo final">R$ {{ row.closing }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if multisource.differences %}<details class="titles-source-details"><summary>Comparação com a posição do Domínio do mês</summary><p class="field-help">A posição do Domínio pode já ter baixas posteriores ao mês; cada diferença precisa de explicação, não é erro por si.</p><ul class="multisource-list">{% for row in multisource.differences %}<li>{{ row.kind }} · {{ row.outcome }}: {{ row.count }}</li>{% endfor %}</ul></details>{% endif %}
+</section>
+{% endif %}
+{% if multisource.comparison %}
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-ledger-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-ledger-heading">Comparação com o Razão lançado</h2></div></header>
+  <dl class="titles-data">{% for label, count in multisource.comparison.rows %}<div><dt>{{ label|capfirst }}</dt><dd>{{ count }}</dd></div>{% endfor %}<div><dt>Só no Razão</dt><dd>{{ multisource.comparison.only_ledger }}</dd></div></dl>
+  {% if multisource.comparison.accounts %}<details class="titles-source-details"><summary>Contas de contrapartida usadas no Razão</summary><ul class="multisource-list">{% for group, accounts in multisource.comparison.accounts %}<li><strong>{{ group }}</strong>: {{ accounts }}</li>{% endfor %}</ul></details>{% endif %}
+</section>
+{% endif %}
+{% if multisource.warnings %}
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-warnings-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-warnings-heading">Avisos das fontes</h2></div></header>
+  <ul class="multisource-list">{% for warning in multisource.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

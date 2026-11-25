@@ -6431,3 +6431,28 @@ sem IA nem serviço externo.
    cliente não entram no repositório; os testes usam documentos sintéticos.
 
 Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-413 — PC-33: tela “Fechamento do mês (simulação)” (24/11/2026)
+
+Origem: responsável, 24/11/2026, “Tela de fechamento”, ao escolher o próximo item do plano. Executor Claude
+Code. Leva para a tela a simulação das D-409 a D-412, sem mudar sua natureza.
+
+1. Nova página `app/conciliacao/fechamento/`, a partir da Conciliação bancária, para quem pode operar a
+   conciliação no escritório (mesma regra das demais telas; perfil de consulta e demonstração não enviam).
+2. A pessoa escolhe a empresa e envia as fontes do mês: extrato Sicredi (obrigatório), francesinha, posição a
+   receber e a pagar do mês anterior, caixa do cliente (aba do banco e abas sem extrato), extrato da aplicação,
+   posição do mês para comparação e Razão da conta (PDF ou CSV). A simulação roda na própria requisição e o
+   resultado aparece na mesma página: situação dos movimentos, sinalizações com motivo, aplicação, posição de
+   títulos e comparação com o Razão. Um segundo botão devolve os mesmos relatórios em `.zip`.
+3. **Nada é guardado:** os arquivos são lidos em memória (ou no arquivo temporário do próprio upload) e
+   descartados ao fim da requisição; não há modelo, migração, lançamento, regra nem exportação. A resposta é
+   privada (`no-store`). O CNPJ das posições precisa ser o da empresa escolhida, quando ela tiver CNPJ.
+4. Documentos escaneados ficam fora da tela nesta etapa: o OCR leva cerca de 1 s por página e a requisição
+   web tem limite de 30 s. Continuam pelo comando `simular_multifontes --documentos`; levar para a tela exige
+   processamento em fila (decisão própria).
+5. Protocolo de UI do AGENTS.md: diretrizes do ui-ux-pro-max consultadas (rótulos, retorno ao enviar, tabela
+   em cartões no celular, indicação de espera); Watermelon e web-design-guidelines não estão disponíveis nesta
+   sessão (mesmo limite registrado em V-441 e seguintes); verificação no navegador em 1366/375 px, claro e
+   escuro, com dados sintéticos.
+
+Sem custo, IA, migração, deploy ou mensagem externa.

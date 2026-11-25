@@ -1,0 +1,10 @@
+/* Fechamento do mês (simulação, D-413): reaproveita os padrões de títulos e baixas. */
+.multisource-form fieldset .titles-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.multisource-form .field small.field-help{display:block}
+.multisource-form input[type=file]{padding:8px 10px;cursor:pointer}
+.multisource-metrics{padding:18px 22px 0}
+.multisource-reason{display:block;line-height:1.5}.multisource-reason+.multisource-reason{margin-top:6px}
+.multisource-list{margin:0;padding:0 22px 18px 40px;line-height:1.6}.multisource-list li+li{margin-top:4px}
+.titles-source-details .multisource-list{padding:8px 0 0 18px}
+@media(max-width:760px){.multisource-form fieldset .titles-fields{grid-template-columns:1fr}.multisource-metrics{padding:16px 16px 0}.multisource-list{padding:0 16px 16px 32px}}
+.titles-table :is(th,td).multisource-nowrap{white-space:nowrap;overflow-wrap:normal;word-break:keep-all}

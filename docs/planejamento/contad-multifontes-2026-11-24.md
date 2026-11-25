@@ -538,3 +538,13 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   - tela de fechamento do mês (protocolo de UI);
   - lote 19 com várias partidas (depende da importação real, V-428);
   - itens que dependem das respostas Q-50 a Q-66.
+
+## 18. Tela de fechamento do mês (D-413, V-470)
+
+- Conciliação bancária → **Fechamento do mês (simulação)**. A pessoa escolhe a empresa, envia as fontes e vê
+  o resultado na mesma página. Também pode baixar os relatórios em `.zip`. Nada é gravado.
+- Os documentos escaneados continuam pelo comando: o OCR passa do limite de 30 s da requisição.
+- Itens restantes do plano:
+  - lançamento real e exportação (decisão própria; conflito com a D-393);
+  - documentos escaneados na tela, por fila;
+  - itens que dependem das respostas Q-50 a Q-66.

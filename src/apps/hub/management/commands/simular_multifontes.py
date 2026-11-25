@@ -74,125 +74,48 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        from apps.hub.bank_evidence import read_sicredi_pdf
-        from apps.hub.multisource.client_cashbook import read_client_cashbook_xlsx
-        from apps.hub.multisource.francesinha import read_francesinha_pdf
-        from apps.hub.multisource.investment import read_investment_pdf
-        from apps.hub.multisource.ledger_comparison import (
-            compare_with_ledger,
-            movements_from_ledger_csv,
-            movements_from_pdf,
-        )
-        from apps.hub.multisource.matching import BankLine, simulate
-        from apps.hub.multisource.report import (
-            render_differences_csv,
-            render_documents_csv,
-            render_ledger_csv,
-            render_ledger_summary,
-            render_lines_csv,
-            render_position_csv,
-            render_summary,
-        )
-        from apps.hub.multisource.scanned_documents import MAX_SCAN_BYTES, read_scanned_pdf
-        from apps.hub.multisource.title_position import PAYABLE, RECEIVABLE, read_title_position_xls
-        from apps.hub.reconciliation_service import ReconciliationError
+        from apps.hub.multisource.scanned_documents import MAX_SCAN_BYTES
+        from apps.hub.multisource.service import SimulationSources, run_simulation
 
-        try:
-            statement_bytes = _read(options["extrato"])
-            assert statement_bytes is not None
-            statement = read_sicredi_pdf(statement_bytes)
-            if statement is None:
-                raise CommandError("Extrato fora do leiaute Sicredi suportado.")
-            bank_lines = [
-                BankLine(i, line.occurred_on, line.amount_cents, line.description, line.document)
-                for i, line in enumerate(statement.lines, 1)
-            ]
-            collection = None
-            if content := _read(options["francesinha"]):
-                collection = read_francesinha_pdf(content)
-            positions = {}
-            for option, kind in (
-                ("receber", RECEIVABLE),
-                ("pagar", PAYABLE),
-                ("receber_referencia", RECEIVABLE),
-                ("pagar_referencia", PAYABLE),
-            ):
-                if content := _read(options[option]):
-                    position = read_title_position_xls(content)
-                    if position.kind != kind:
-                        raise CommandError(
-                            f"--{option.replace('_', '-')}: o arquivo é da posição errada."
-                        )
-                    if options["cnpj"] and position.company_cnpj != options["cnpj"]:
-                        raise CommandError(
-                            f"--{option.replace('_', '-')}: CNPJ do relatório difere do informado."
-                        )
-                    positions[option] = position
-            cashbook = None
-            cash_accounts = []
-            if content := _read(options["caixa"]):
-                workbook = read_client_cashbook_xlsx(content)
-                cashbook = workbook.sheet(options["aba"])
-                cash_accounts = [workbook.sheet(name) for name in options["aba_sem_extrato"]]
-            elif options["aba_sem_extrato"]:
-                raise CommandError("--aba-sem-extrato exige --caixa.")
-            if options["razao_pdf"] and options["razao_csv"]:
-                raise CommandError("Informe o Razão em PDF ou em CSV, não os dois.")
-            documents = []
-            for path in options["documentos"]:
-                content = _read(path, MAX_SCAN_BYTES)
-                assert content is not None
-                documents.extend(
-                    read_scanned_pdf(content, source=path.name, own_tax_id=options["cnpj"] or "")
-                )
-            investment = None
-            if content := _read(options["aplicacao"]):
-                investment = read_investment_pdf(content)
-            ledger_movements = None
-            if content := _read(options["razao_pdf"]):
-                from apps.hub.ledger_evidence import LedgerEvidenceError, read_dominio_ledger_pdf
-
-                try:
-                    ledger_movements = movements_from_pdf(read_dominio_ledger_pdf(content))
-                except LedgerEvidenceError as exc:
-                    raise MultisourceError(str(exc)) from exc
-            if content := _read(options["razao_csv"]):
-                ledger_movements = movements_from_ledger_csv(content)
-        except (MultisourceError, ReconciliationError) as exc:
-            raise CommandError(str(exc)) from exc
-
-        result = simulate(
-            bank_lines,
-            collection=collection,
-            receivables=positions.get("receber"),
-            payables=positions.get("pagar"),
-            cashbook=cashbook,
-            reference_receivables=positions.get("receber_referencia"),
-            reference_payables=positions.get("pagar_referencia"),
-            cash_accounts=cash_accounts,
-            investment=investment,
+        statement = _read(options["extrato"])
+        assert statement is not None
+        if options["razao_pdf"] and options["razao_csv"]:
+            raise CommandError("Informe o Razão em PDF ou em CSV, não os dois.")
+        if options["aba_sem_extrato"] and not options["caixa"]:
+            raise CommandError("--aba-sem-extrato exige --caixa.")
+        documents = []
+        for path in options["documentos"]:
+            content = _read(path, MAX_SCAN_BYTES)
+            assert content is not None
+            documents.append((path.name, content))
+        sources = SimulationSources(
+            statement=statement,
+            collection=_read(options["francesinha"]),
+            receivables=_read(options["receber"]),
+            payables=_read(options["pagar"]),
+            cashbook=_read(options["caixa"]),
+            cashbook_sheet=options["aba"],
+            cash_sheets=options["aba_sem_extrato"],
+            reference_receivables=_read(options["receber_referencia"]),
+            reference_payables=_read(options["pagar_referencia"]),
+            investment=_read(options["aplicacao"]),
+            ledger_pdf=_read(options["razao_pdf"]),
+            ledger_csv=_read(options["razao_csv"]),
             documents=documents,
+            tax_id=options["cnpj"] or "",
         )
-        output: Path = options["saida"]
-        output.mkdir(parents=True, exist_ok=True, mode=0o700)
-        period = f"{statement.period_start:%m/%Y}"
-        files = {
-            "resumo.md": render_summary(result, title=f"Simulação multifontes — {period}"),
-            "movimentos.csv": render_lines_csv(result),
-            "posicao.csv": render_position_csv(result),
-            "diferencas-posicao.csv": render_differences_csv(result),
-        }
-        if documents:
-            files["documentos.csv"] = render_documents_csv(result)
-        if ledger_movements is not None:
-            comparison = compare_with_ledger(result, ledger_movements)
-            files["resumo.md"] += render_ledger_summary(comparison)
-            files["comparacao-razao.csv"] = render_ledger_csv(comparison)
-        for name, text in files.items():
-            target = output / name
+        try:
+            output = run_simulation(sources)
+        except MultisourceError as exc:
+            raise CommandError(str(exc)) from exc
+        target_dir: Path = options["saida"]
+        target_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        for name, text in output.reports.items():
+            target = target_dir / name
             target.write_text(text, encoding="utf-8")
             target.chmod(0o600)
+        result = output.result
         self.stdout.write(
             f"{len(result.lines)} movimentos: {result.automatic_share:.1%} automático, "
-            f"{result.identified_share:.1%} identificados. Relatórios em {output}"
+            f"{result.identified_share:.1%} identificados. Relatórios em {target_dir}"
         )
