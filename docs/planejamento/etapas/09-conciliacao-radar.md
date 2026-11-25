@@ -22,6 +22,8 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] Correções C-02 a C-08 do plano mapeadas: já no `main` (D-396 a D-399), exceto C-05.
 - [x] D-416 (C-05): extrato da mesma conta em dois arquivos não gera movimento em dobro (V-473).
 - [x] D-417: posição de títulos por NF em `.xlsx` (R-07) e detalhe de cada movimento na tela de fechamento (V-474).
+- [x] D-418: empréstimo e fatura do cartão identificam o débito na simulação; juros/principal e despesas seguem Q-55/Q-56 (V-475).
+- [x] D-419: resultado do extrato sem estourar “Não comparável” no celular e ignorados fora dos “não conferidos” (V-476).
 - [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

@@ -32,6 +32,8 @@ class SimulationSources:
     ledger_csv: bytes | None = None
     documents: Sequence[tuple[str, bytes]] = ()  # (nome do arquivo, conteúdo)
     tax_id: str = ""
+    loans: Sequence[bytes] = ()  # D-418: consulta de parcelas do empréstimo
+    cards: Sequence[bytes] = ()  # D-418: fatura do cartão
 
 
 @dataclass
@@ -121,6 +123,10 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
     if sources.ledger_pdf and sources.ledger_csv:
         raise MultisourceError("Envie o Razão em PDF ou em CSV, não os dois.")
     investment = read_investment_pdf(sources.investment) if sources.investment else None
+    from apps.hub.multisource.credit import read_card_pdf, read_loan_pdf
+
+    loans = [read_loan_pdf(content) for content in sources.loans]
+    cards = [read_card_pdf(content) for content in sources.cards]
     documents = []
     for name, content in sources.documents:
         documents.extend(read_scanned_pdf(content, source=name, own_tax_id=sources.tax_id))
@@ -147,6 +153,8 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
         investment=investment,
         documents=documents,
         own_tax_id=sources.tax_id,
+        loans=loans,
+        cards=cards,
     )
     output = SimulationOutput(statement.period_start, result, None)
     output.reports = {

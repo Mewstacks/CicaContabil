@@ -51,6 +51,20 @@ class Command(BaseCommand):
         )
         parser.add_argument("--aplicacao", type=Path, help="Extrato de aplicação Sicredi (PDF).")
         parser.add_argument(
+            "--emprestimo",
+            type=Path,
+            action="append",
+            default=[],
+            help="Consulta de parcelas do empréstimo Sicredi (PDF); pode repetir.",
+        )
+        parser.add_argument(
+            "--fatura-cartao",
+            type=Path,
+            action="append",
+            default=[],
+            help="Fatura do cartão Sicredi (PDF); pode repetir.",
+        )
+        parser.add_argument(
             "--razao-pdf", type=Path, help="Razão da conta bancária (PDF do Domínio)."
         )
         parser.add_argument(
@@ -103,6 +117,8 @@ class Command(BaseCommand):
             ledger_csv=_read(options["razao_csv"]),
             documents=documents,
             tax_id=options["cnpj"] or "",
+            loans=[_read(path) or b"" for path in options["emprestimo"]],
+            cards=[_read(path) or b"" for path in options["fatura_cartao"]],
         )
         try:
             output = run_simulation(sources)

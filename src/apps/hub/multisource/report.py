@@ -67,12 +67,15 @@ def render_summary(result: SimulationResult, *, title: str) -> str:
         ("document", "Notas citadas no caixa e fora da posição de abertura (sem baixa)"),
         ("nature", "Natureza informada pelo caixa, sem título (conta pelo DE-PARA)"),
         ("transfer", "Transferências entre contas da empresa — contas a definir (Q-57)"),
+        ("loan", "Parcelas de empréstimo — juros e principal a separar (Q-55)"),
+        ("card", "Faturas do cartão — total ou por despesa a definir (Q-56)"),
     ):
         same = [p for p in parts if p.kind == kind]
         lines.append(f"- {label}: {len(same)} · {money(sum(p.amount_cents for p in same))}")
     lines[lines.index("## Títulos baixados na simulação")] = "## Partes identificadas"
     lines += _investment_section(result)
     lines += _transfers_section(result)
+    lines += _credit_section(result)
     lines += _documents_section(result)
     lines += ["", "## Sinalizações", ""]
     flagged = [r for r in result.lines if r.status == FLAGGED]
@@ -294,6 +297,49 @@ def render_ledger_csv(comparison: LedgerComparison) -> str:
             ]
         )
     return out.getvalue()
+
+
+def _credit_section(result: SimulationResult) -> list[str]:
+    if not result.loans and not result.cards:
+        return []
+    lines = ["", "## Empréstimo e cartão (D-418)", ""]
+    last = max((r.bank.occurred_on for r in result.lines), default=None)
+    for loan in result.loans:
+        paid = [
+            p
+            for p in result.lines
+            for part in p.parts
+            if part.source == f"empréstimo {loan.contract}"
+        ]
+        lines.append(
+            f"- Empréstimo {loan.contract}: {loan.count} parcelas; {len(paid)} paga(s) no mês "
+            "identificada(s) no extrato"
+            + (
+                f"; parcelas a vencer depois de {last:%d/%m/%Y}: {money(loan.open_after(last))}"
+                if last
+                else ""
+            )
+            + "."
+        )
+    for loan, item in result.loan_unmatched:
+        lines.append(
+            f"  - Parcela {item.number:03d} de {loan.contract} paga em "
+            f"{item.paid_on:%d/%m/%Y} ({money(item.amount_cents)}) sem débito no extrato."
+        )
+    for card in result.cards:
+        state = "sem débito no extrato" if card in result.cards_unmatched else "débito identificado"
+        lines.append(
+            f"- Fatura do cartão final {card.card}, venc. {card.due_on:%d/%m/%Y}: "
+            f"{money(card.total_cents)} ({state})."
+        )
+        for item in card.expenses:
+            lines.append(
+                f"  - {item.occurred_on:%d/%m/%Y} {item.description}: {money(item.amount_cents)}"
+            )
+    lines.append(
+        "- Juros e principal (Q-55) e lançamento da fatura (Q-56): a definir com a contabilidade."
+    )
+    return lines
 
 
 def _transfers_section(result: SimulationResult) -> list[str]:

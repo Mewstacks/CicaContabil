@@ -154,3 +154,23 @@ def test_movement_page_explains_the_repetition(setup, settings, direct_use):  # 
     assert page.status_code == 200
     content = page.content.decode()
     assert "Repetido de outro extrato" in content and "a.ofx" in content
+
+
+def test_result_page_counts_ignored_apart_and_keeps_the_indicator_small(setup, settings):  # noqa: F811
+    """D-419: ignorados saem dos "não conferidos"; "Não comparável" usa texto menor."""
+    from django.urls import reverse
+
+    settings.CICA_DIRECT_USE_ORGANIZATION_IDS = [str(setup["org"].pk)]
+    load(setup, "a.ofx", ofx([("20261016", "PIX", -700), ("20261016", "TED", -800)], "a").encode())
+    second, _ = load(
+        setup,
+        "b.ofx",
+        ofx(
+            [("20261016", "PIX", -700), ("20261016", "TED", -800), ("20261017", "X", 90)], "b"
+        ).encode(),
+    )
+    page = setup["client"].get(reverse("hub:reconciliation-source-review", args=[second.pk]))
+    content = page.content.decode()
+    assert page.status_code == 200
+    assert "1 não conferido · 2 ignorados" in content
+    assert '<strong class="metric-text">Não comparável</strong>' in content

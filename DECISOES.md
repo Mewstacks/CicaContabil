@@ -6546,3 +6546,40 @@ plano). Executor Claude Code. Continua em modo simulação (D-409): nada é grav
 3. Protocolo de UI do AGENTS.md na mudança de tela.
 
 Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-418 — PC-33: empréstimo e fatura do cartão identificam o pagamento na simulação (25/11/2026)
+
+Origem: responsável, 25/11/2026, “faça o 3 e o 4”, ao escolher ler o cronograma do empréstimo e a fatura do
+cartão (F4 e F5 do plano) só para identificar o pagamento. Executor Claude Code. Continua em modo simulação
+(D-409): nada é gravado, lançado ou exportado.
+
+1. **Empréstimo Sicredi (“Consulta de Empréstimos — Parcelas do Título”, PDF texto):** lê número do título,
+   data de liberação e cada parcela (número, situação, vencimento, pagamento e valor). A débito do extrato de
+   **mesmo valor** de uma parcela liquidada, com data até 3 dias da data de pagamento, fica identificado como
+   “Empréstimo nº · parcela n/total”. Juros e principal **não** são separados: o cronograma só traz o total
+   (Q-55). O relatório lista as parcelas pagas no mês sem débito no extrato e o saldo das parcelas a vencer.
+2. **Fatura do cartão Sicredi (PDF texto):** lê cartão (final), vencimento, total da fatura e as transações.
+   O débito do extrato com o total da fatura, até 3 dias do vencimento, fica identificado como “Fatura do
+   cartão final … (venc. …)”. As despesas da fatura são listadas no relatório; lançar o total ou cada despesa
+   continua em aberto (Q-56).
+3. Os dois documentos só **identificam**: o movimento fica “identificado”, nunca “automático”, e nenhuma
+   conta é atribuída. Se o caixa do cliente já descreveu o movimento, a descrição do caixa é mantida ao lado.
+4. Comando (`--emprestimo`, `--fatura-cartao`, podem repetir) e tela de fechamento (dois campos opcionais).
+   O empréstimo da CEF fica como está, sem cronograma.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-419 — Resultado do extrato: indicador sem estourar no celular e ignorados fora dos “não conferidos” (25/11/2026)
+
+Origem: responsável, 25/11/2026, “faça o 3 e o 4”, para dois problemas vistos na V-473 na tela “Resultado do
+extrato”. Executor Claude Code, com a delegação da D-393 (apresentação no uso direto, como D-398/D-399).
+
+1. Em 375 px, “Não comparável” passava da largura do cartão “Diferença nas variações”: texto no lugar de
+   número passa a usar tamanho menor e quebra normal.
+2. No uso direto, o cartão “Movimentos conferidos” passa a dizer “N não conferidos · M ignorados”: os
+   movimentos ignorados (inclusive os repetidos de outro extrato, D-416) saem da contagem de não conferidos.
+   A **variação do extrato não muda**: ela compara o arquivo inteiro com o Razão do período, e os movimentos
+   ignorados também são movimentos do banco nesse período (a observação da V-473 sobre a variação não
+   procede). O relatório da conferência (`reconciliation-conference-v1`) e o CSV continuam iguais.
+
+Sem migração, custo, IA ou mensagem externa; publicação só com autorização.

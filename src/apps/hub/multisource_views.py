@@ -33,6 +33,8 @@ FILE_FIELDS = {
     "statement": (".pdf", "Extrato bancário Sicredi (PDF)"),
     "collection": (".pdf", "Francesinha Sicredi (PDF)"),
     "investment": (".pdf", "Extrato da aplicação Sicredi (PDF)"),
+    "loan": (".pdf", "Parcelas do empréstimo Sicredi (PDF)"),
+    "card": (".pdf", "Fatura do cartão Sicredi (PDF)"),
     "receivables": (".xls", "Contas a receber do mês anterior (.xls do Domínio)"),
     "payables": (".xls", "Contas a pagar do mês anterior (.xls do Domínio)"),
     "reference_receivables": (".xls", "Contas a receber do próprio mês (para comparar)"),
@@ -49,6 +51,8 @@ class MultisourceCloseForm(forms.Form):
     statement = forms.FileField(label=FILE_FIELDS["statement"][1])
     collection = forms.FileField(label=FILE_FIELDS["collection"][1], required=False)
     investment = forms.FileField(label=FILE_FIELDS["investment"][1], required=False)
+    loan = forms.FileField(label=FILE_FIELDS["loan"][1], required=False)
+    card = forms.FileField(label=FILE_FIELDS["card"][1], required=False)
     receivables = forms.FileField(label=FILE_FIELDS["receivables"][1], required=False)
     payables = forms.FileField(label=FILE_FIELDS["payables"][1], required=False)
     reference_receivables = forms.FileField(
@@ -147,6 +151,8 @@ def _sources(form: MultisourceCloseForm) -> SimulationSources:
         reference_receivables=_read(data.get("reference_receivables")),
         reference_payables=_read(data.get("reference_payables")),
         investment=_read(data.get("investment")),
+        loans=[content for content in [_read(data.get("loan"))] if content],
+        cards=[content for content in [_read(data.get("card"))] if content],
         ledger_pdf=None if is_csv else ledger_bytes,
         ledger_csv=ledger_bytes if is_csv else None,
         tax_id=_tax_id(data["company"]),
@@ -161,6 +167,8 @@ PART_LABELS = {
     "document": "Nota/documento",
     "investment": "Aplicação",
     "transfer": "Transferência",
+    "loan": "Empréstimo",
+    "card": "Fatura do cartão",
 }
 STATUS_FILTERS = {AUTOMATIC: "automatic", IDENTIFIED: "identified", FLAGGED: "flagged"}
 FILTER_LABELS = {AUTOMATIC: "Automáticos", IDENTIFIED: "Identificados", FLAGGED: "Sinalizados"}
@@ -294,6 +302,7 @@ def _view_model(output: SimulationOutput) -> dict[str, Any]:
             "nature": parts.get("nature", 0),
             "investment": parts.get("investment", 0),
             "transfer": parts.get("transfer", 0),
+            "credit": parts.get("loan", 0) + parts.get("card", 0),
         },
         "unmatched_cashbook": len(result.unmatched_cashbook),
         "positions": positions,

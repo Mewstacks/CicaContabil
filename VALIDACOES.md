@@ -13474,3 +13474,36 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, 
 
 Não verificado: tela com os arquivos reais (só pelo comando); planilha aberta no Excel (conferida com openpyxl);
 rodada `--ds=config.settings.test_postgresql` (fica para o CI).
+
+## V-475 — D-418: empréstimo e fatura do cartão identificam o débito na simulação (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `multisource/credit.py` (novo): consulta de parcelas do empréstimo Sicredi e fatura do cartão Sicredi em PDF
+  texto. `matching.py` (`_apply_credit`): débito de mesmo valor, até 3 dias da data de pagamento ou do
+  vencimento; mais de um débito possível não liga nada e vira aviso. Fica “identificado”, nunca
+  “automático”; a descrição do caixa do cliente é mantida no rótulo. Relatório com seção própria, parcelas
+  pagas sem débito, saldo a vencer e despesas da fatura. Comando e tela de fechamento com os novos arquivos.
+- Testes: 3 em `tests/test_multisource_credit.py` (leitura, identificação sem “automático”, débito
+  ambíguo e ausente).
+- Outubro da SURIA (arquivos reais fora do repositório): parcela 003/035 do empréstimo (8.654,61 em 13/10)
+  e fatura do cartão (210,42 em 23/10) identificadas; 183.464,65 em parcelas a vencer; automático e
+  identificados sem mudança (47,3% e 96,2%), porque os dois débitos já estavam identificados pelo caixa.
+- Navegador: os dois campos novos na tela de fechamento em 375 px, sem rolagem horizontal.
+
+Não verificado: empréstimo com mais de uma parcela no mês ou parcela paga com atraso e encargos; fatura com
+encargos ou compras parceladas (só há uma fatura simples de outubro).
+
+## V-476 — D-419: resultado do extrato no celular e ignorados fora dos “não conferidos”
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `reconciliation_source_review.html`, `reconciliation-conference.css` e `views.py`: “Não comparável” com
+  texto de 20 px (antes 31 px, passava da largura do cartão em 375 px); no uso direto, “N não conferidos ·
+  M ignorados”. Relatório `reconciliation-conference-v1`, CSV e variação do extrato sem mudança.
+- Teste em `tests/test_statement_repeated_files.py`: “1 não conferido · 2 ignorados” e o indicador menor.
+- Navegador (servidor descartável com dois extratos fictícios, temporários removidos, `launch.json`
+  restaurado): 375 px escuro, texto de 119 px num cartão de 149 px, sem rolagem horizontal; 1366 px claro.
+- Regressão (D-418 e D-419 juntas): `uv run pytest -q` 5823 passaram, 59 ignorados; `ruff check .` limpo.
+
+Não verificado: rodada `--ds=config.settings.test_postgresql` (fica para o CI).

@@ -33,6 +33,7 @@ from difflib import SequenceMatcher
 
 from apps.hub.multisource.client_cashbook import CashbookLine, CashbookSheet, DocumentRef
 from apps.hub.multisource.common import money, names_match
+from apps.hub.multisource.credit import CardInvoice, LoanInstallment, LoanSchedule
 from apps.hub.multisource.francesinha import CollectionItem, CollectionReport
 from apps.hub.multisource.investment import InvestmentMovement, InvestmentStatement
 from apps.hub.multisource.scanned_documents import LOW_CONFIDENCE, ScannedDocument
@@ -142,6 +143,10 @@ class SimulationResult:
     investment_unmatched: list[InvestmentMovement] = field(default_factory=list)
     documents: list[DocumentMatch] = field(default_factory=list)
     transfers: list[TransferPair] = field(default_factory=list)
+    loans: list[LoanSchedule] = field(default_factory=list)
+    cards: list[CardInvoice] = field(default_factory=list)
+    loan_unmatched: list[tuple[LoanSchedule, LoanInstallment]] = field(default_factory=list)
+    cards_unmatched: list[CardInvoice] = field(default_factory=list)
 
     def count(self, status: str) -> int:
         return sum(1 for line in self.lines if line.status == status)
@@ -304,6 +309,8 @@ def simulate(
     investment: InvestmentStatement | None = None,
     documents: Sequence[ScannedDocument] = (),
     own_tax_id: str = "",
+    loans: Sequence[LoanSchedule] = (),
+    cards: Sequence[CardInvoice] = (),
 ) -> SimulationResult:
     """Simula o mês. `cash_accounts` são abas do caixa sem extrato (ex.: dinheiro em espécie):
     cada linha da aba é o próprio movimento e baixa títulos com a mesma carteira do extrato."""
@@ -322,6 +329,7 @@ def simulate(
     names = {"extrato": cashbook.name if cashbook else "extrato"}
     names.update({sheet.name: sheet.name for sheet in cash_accounts})
     transfers = _pair_transfers(results, names, own_tax_id, warnings) if cash_accounts else []
+    loan_unmatched, cards_unmatched = _apply_credit(main.results, loans, cards, warnings)
     document_matches = _match_documents(results, documents, titles)
     differences = _compare(titles, [reference_receivables, reference_payables])
     for source in (
@@ -346,6 +354,10 @@ def simulate(
         investment_unmatched,
         document_matches,
         transfers,
+        list(loans),
+        list(cards),
+        loan_unmatched,
+        cards_unmatched,
     )
 
 
@@ -516,6 +528,89 @@ def _pair_transfers(
             line.status = AUTOMATIC
         pairs.append(TransferPair(out, inc, name(out), name(inc)))
     return pairs
+
+
+CREDIT_DAYS = 3
+
+
+def _credit_candidate(line: LineResult, cents: int, day: date) -> bool:
+    return (
+        line.bank.amount_cents == -cents
+        and line.status != AUTOMATIC
+        and not any(
+            p.kind in ("receivable", "payable", "investment", "transfer") for p in line.parts
+        )
+        and abs((line.bank.occurred_on - day).days) <= CREDIT_DAYS
+    )
+
+
+def _identify(line: LineResult, kind: str, label: str, source: str) -> None:
+    cash = "; ".join(p.label for p in line.parts if p.kind == "nature")
+    text = f"{label} (caixa: {cash})" if cash else label
+    line.parts = [Part(kind, abs(line.bank.amount_cents), text, source=source)]
+    line.reasons = []
+    line.status = IDENTIFIED
+
+
+def _apply_credit(
+    results: list[LineResult],
+    loans: Sequence[LoanSchedule],
+    cards: Sequence[CardInvoice],
+    warnings: list[str],
+) -> tuple[list[tuple[LoanSchedule, LoanInstallment]], list[CardInvoice]]:
+    """D-418: parcela de empréstimo e fatura do cartão identificam o débito do extrato.
+
+    Só identificam (sem separar juros e principal, Q-55, nem despesas da fatura, Q-56). Mesmo
+    valor, até 3 dias da data de pagamento ou do vencimento; com mais de um débito possível, nada
+    é ligado."""
+    if not results:
+        return [], list(cards)
+    first = min(r.bank.occurred_on for r in results)
+    last = max(r.bank.occurred_on for r in results)
+    taken: set[int] = set()
+    loan_unmatched: list[tuple[LoanSchedule, LoanInstallment]] = []
+    for loan in loans:
+        for item in loan.installments:
+            paid = item.paid_on
+            if paid is None or not first <= paid <= last:
+                continue
+            options = [
+                r
+                for r in results
+                if id(r) not in taken and _credit_candidate(r, item.amount_cents, paid)
+            ]
+            if len(options) != 1:
+                if len(options) > 1:
+                    warnings.append(
+                        f"Empréstimo {loan.contract} parcela {item.number:03d}: mais de um débito "
+                        f"de {money(item.amount_cents)} perto de {paid:%d/%m/%Y}; confirmar."
+                    )
+                loan_unmatched.append((loan, item))
+                continue
+            taken.add(id(options[0]))
+            label = (
+                f"Empréstimo {loan.contract} · parcela {item.number:03d}/{loan.count:03d} "
+                f"(venc. {item.due_on:%d/%m/%Y}) — juros e principal a separar (Q-55)"
+            )
+            _identify(options[0], "loan", label, f"empréstimo {loan.contract}")
+    cards_unmatched: list[CardInvoice] = []
+    for card in cards:
+        warnings.extend(card.warnings)
+        options = [
+            r
+            for r in results
+            if id(r) not in taken and _credit_candidate(r, card.total_cents, card.due_on)
+        ]
+        if len(options) != 1:
+            cards_unmatched.append(card)
+            continue
+        taken.add(id(options[0]))
+        label = (
+            f"Fatura do cartão final {card.card} (venc. {card.due_on:%d/%m/%Y}, "
+            f"{len(card.expenses)} despesa(s)) — total ou por despesa a definir (Q-56)"
+        )
+        _identify(options[0], "card", label, f"fatura cartão {card.card}")
+    return loan_unmatched, cards_unmatched
 
 
 def _apply_investment(

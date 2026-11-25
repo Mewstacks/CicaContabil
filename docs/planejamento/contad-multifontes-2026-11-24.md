@@ -590,3 +590,15 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   natureza pelo caixa, aplicação, transferência, documento) e de qual fonte veio, mais os motivos das
   sinalizações, com filtro por situação. Só leitura.
 - Itens restantes do plano: os mesmos da seção 20 (decisões do responsável e respostas da CONTAD).
+
+## 22. Empréstimo, cartão e resultado do extrato (D-418/V-475, D-419/V-476)
+
+- **Empréstimo e cartão:** a consulta de parcelas do empréstimo e a fatura do cartão do Sicredi entram pelo
+  comando (`--emprestimo`, `--fatura-cartao`) e pela tela de fechamento. Só identificam o débito: outubro
+  mostra a parcela 003/035 do empréstimo (8.654,61, com 183.464,65 a vencer) e a fatura do cartão (210,42,
+  uma despesa). Juros e principal (Q-55) e lançar a fatura pelo total ou por despesa (Q-56) continuam
+  abertos. O empréstimo da CEF fica sem cronograma.
+- **Resultado do extrato:** “Não comparável” cabe no cartão em 375 px, e no uso direto os ignorados (inclusive
+  os repetidos de outro extrato) aparecem à parte: “N não conferidos · M ignorados”. A variação do extrato não
+  muda, porque compara o arquivo inteiro com o Razão do período.
+- Itens restantes do plano: os mesmos da seção 20 (decisões do responsável e respostas da CONTAD).

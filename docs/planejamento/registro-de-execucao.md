@@ -1,3 +1,11 @@
+<!-- D418-D419-V475-V476-2026-11-25 -->
+## 25/11/2026 — D-418/V-475 e D-419/V-476: empréstimo, cartão e resultado do extrato
+
+- [x] Empréstimo e fatura do cartão pelo comando e pela tela de fechamento; outubro: parcela 003 e fatura identificadas.
+- [x] Resultado do extrato: “Não comparável” cabe no cartão em 375 px; “N não conferidos · M ignorados” no uso direto.
+- [x] Testes, suíte completa e navegador.
+- [ ] Publicação — depende de autorização.
+
 <!-- D417-V474-2026-11-25 -->
 ## 25/11/2026 — D-417/V-474: posição por NF em planilha e movimentos na tela (PC-33)
 

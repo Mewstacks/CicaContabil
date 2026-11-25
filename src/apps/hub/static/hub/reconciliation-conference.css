@@ -44,3 +44,6 @@
 .conference-auto-review-form .checkbox-field input[type=checkbox]{flex:0 0 20px;width:20px;height:20px;min-height:20px;margin:2px 0 0;accent-color:var(--cica-forest)}
 .conference-auto-review-form .checkbox-field label{margin:0;line-height:1.5}
 @media(max-width:640px){.conference-auto-review,.conference-auto-review-form{align-items:stretch;flex-direction:column}.conference-auto-review>p,.conference-auto-review-form .checkbox-field{flex:0 0 auto}.conference-auto-review .button{width:100%}}
+
+/* D-419: texto no lugar do número ("Não comparável") não passa da largura do cartão. */
+.reconciliation-metrics strong.metric-text{font-size:20px;letter-spacing:-.02em;line-height:1.15;overflow-wrap:normal;hyphens:manual}

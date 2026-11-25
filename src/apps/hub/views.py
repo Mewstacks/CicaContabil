@@ -11213,6 +11213,13 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
         for row in context.get("conference_rows", []):
             row["outcome"] = outcomes.get(str(row["movement"].pk))
         context["direct_use_outcomes"] = outcome_counts(outcomes)
+        # D-419: ignored movements (also repeated from another file) are not "não conferidos".
+        ignored = sum(
+            1 for item in outcomes.values() if item["key"] in {"ignored", "repeated_file"}
+        )
+        unmatched = int((context.get("conference_report") or {}).get("bank_unmatched_count", 0))
+        context["direct_use_ignored"] = ignored
+        context["direct_use_unconferred"] = max(unmatched - ignored, 0)
         context["page_title"] = "Resultado do extrato"  # D-398
         context["direct_use_summary"] = _direct_use_source_summary(source, outcomes, context)
     response = render(request, "hub/reconciliation_source_review.html", context)

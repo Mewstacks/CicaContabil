@@ -15,6 +15,8 @@
         <div class="field">{{ multisource_form.statement.label_tag }}{{ multisource_form.statement }}{{ multisource_form.statement.errors }}<small class="field-help">Obrigatório. PDF de texto exportado do internet banking.</small></div>
         <div class="field">{{ multisource_form.collection.label_tag }}{{ multisource_form.collection }}{{ multisource_form.collection.errors }}<small class="field-help">Decompõe a cobrança do extrato por título.</small></div>
         <div class="field">{{ multisource_form.investment.label_tag }}{{ multisource_form.investment }}{{ multisource_form.investment.errors }}</div>
+        <div class="field">{{ multisource_form.loan.label_tag }}{{ multisource_form.loan }}{{ multisource_form.loan.errors }}</div>
+        <div class="field">{{ multisource_form.card.label_tag }}{{ multisource_form.card }}{{ multisource_form.card.errors }}</div>
       </div>
     </fieldset>
     <fieldset class="multisource-group"><legend>Títulos do Domínio</legend>
@@ -51,6 +53,7 @@
     <div><dt>Juros/multa a classificar</dt><dd>{{ multisource.parts.interest }}</dd></div>
     <div><dt>Aplicações e resgates</dt><dd>{{ multisource.parts.investment }}</dd></div>
     <div><dt>Transferências entre contas</dt><dd>{{ multisource.parts.transfer }}</dd></div>
+    <div><dt>Empréstimo e cartão</dt><dd>{{ multisource.parts.credit }}</dd></div>
     <div><dt>Notas do mês (fora da posição)</dt><dd>{{ multisource.parts.document }}</dd></div>
     <div><dt>Natureza pelo caixa</dt><dd>{{ multisource.parts.nature }}</dd></div>
   </dl>
