@@ -1,3 +1,10 @@
+<!-- D410-V467-2026-11-24 -->
+## 24/11/2026 — D-410/V-467: comparação com o Razão; agente sem mudança
+
+- [x] Conferido no código que o agente e o servidor já aceitam outubro (C-01 do plano não procede).
+- [x] Comparação simulação × Razão (PDF do Domínio ou ledger-csv-v1) no `simular_multifontes`, com testes.
+- [ ] Obter o Razão de outubro da SURIA e rodar a comparação.
+
 <!-- D409-V466-2026-11-24 -->
 ## 24/11/2026 — D-409/V-466: simulação multifontes de outubro (PC-33, Fase 1)
 

@@ -6370,3 +6370,24 @@ Vale só para o desenvolvimento descrito abaixo; não registra estimativa, preç
    marketplace com comissão, empréstimo e cartão.
 
 Sem custo, IA, deploy ou mensagem externa. Commit, merge e publicação dependem de autorização na sessão.
+
+## D-410 — PC-33: comparação da simulação com o Razão de outubro; agente sem mudança (24/11/2026)
+
+Origem: responsável, 24/11/2026, “Agente e Razão de outubro”, ao escolher o próximo passo do PC-33.
+Executor Claude Code. Complementa a D-409 e continua em modo simulação.
+
+1. **Correção do plano (C-01):** a leitura do código mostrou que o agente no modo automático
+   (`dominio-ledger-snapshot-v2`, títulos automáticos) já aceita qualquer mês cheio a partir de 09/2026
+   (`NativeLedgerPlan.cs`, `NativeTitlePlan.cs`); só o piloto antigo (empresa 212, setembro) é fixo. O servidor
+   também aceita (`ledger_requests._month`), e o bloqueio do 2º mês foi corrigido pela D-396. Não há versão nova
+   do agente nesta etapa; o Razão de outubro é pedido pela tela, como os demais.
+2. O comando `simular_multifontes` passa a aceitar o Razão da conta bancária, em PDF do Domínio (leitor
+   existente `ledger_evidence`) ou no contrato `ledger-csv-v1`, e compara cada movimento do extrato com os
+   lançamentos do Razão: mesmo desdobramento, mesmo valor com desdobramento diferente, ausente no Razão ou só no
+   Razão. Datas até 5 dias de distância são aceitas, como na D-397.
+3. O relatório lista as contas de contrapartida usadas pela contadora para cada tipo de parte (recebimento,
+   pagamento, juros, natureza do caixa) como **evidência** para Q-50 e Q-53. Nada vira regra ou conta
+   automaticamente.
+4. Nenhum dado é lido de produção por este comando: o Razão é um arquivo informado por quem executa.
+
+Sem migração, custo, IA, deploy ou mensagem externa.

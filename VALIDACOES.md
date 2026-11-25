@@ -13238,7 +13238,8 @@ Verificado (arquivos recebidos pelo responsável, lidos fora do repositório; ne
 - Scans (7 e 50 páginas) vistos no navegador do app, sem download: boletos, CT-e, DANFE e recibos de
   outubro; um boleto traz a razão social antiga com o mesmo CNPJ.
 - Código em `origin/main`: o CICA não lê .xls, .docx, francesinha, aplicação nem documentos escaneados de
-  pagamento; o vínculo título × extrato é só manual; as consultas nativas do agente estão fixas em 09/2026.
+  pagamento; o vínculo título × extrato é só manual. (A suposição de consultas nativas fixas em 09/2026
+  foi corrigida pela D-410/V-467: só o piloto antigo é fixo.)
 
 Não verificado: nada foi executado contra produção, o agente ou o Domínio; o Razão manual de outubro não foi
 lido; as respostas da CONTAD (Q-50 a Q-66), a estimativa e a decisão de escopo (D-409) estão pendentes.
@@ -13278,5 +13279,26 @@ Verificado com os arquivos reais de outubro, fora do repositório (saída em pas
 - Testes: 38 novos em `tests/test_multisource_readers.py` e `tests/test_multisource_matching.py`, com
   dados sintéticos; `ruff check .` e `makemigrations --check` limpos.
 
-Não verificado: comparação com o Razão manual de outubro (o agente só lê setembro, C-01); aplicação e
+Não verificado: comparação com o Razão manual de outubro (o Razão de outubro ainda não foi obtido; o agente aceita o mês, ver D-410); aplicação e
 resgate com rendimento/IRRF (Fase 2); documentos escaneados; contas contábeis (Q-50/Q-53); tela.
+
+## V-467 — D-410: agente já aceita outubro; comparação simulação × Razão (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Somente código local e leitura; nada em produção.
+
+- Leitura do código: `NativeLedgerPlan.cs` aceita qualquer mês cheio desde 2026-09-01 no modo automático;
+  `NativeTitlePlan.cs` só fixa empresa 212/setembro no piloto antigo (`expected_counts`); o servidor aceita
+  meses desde 09/2026 (`ledger_requests._month`). O item C-01 do plano não procede; nenhum agente novo.
+- Novo `src/apps/hub/multisource/ledger_comparison.py` e opções `--razao-pdf`/`--razao-csv` do
+  `simular_multifontes`: por movimento do extrato, "mesmo desdobramento", "mesmo valor, desdobramento
+  diferente" ou "não encontrado no Razão" (janela de 5 dias), lançamentos só no Razão e as contas de
+  contrapartida por tipo de parte. Relatório `comparacao-razao.csv` e seção no `resumo.md`.
+- Razão real de setembro (PDF do Domínio, conta 8 — Banco Sicredi, fora do repositório) lido pelo novo
+  adaptador: 163 lançamentos; contrapartidas concentradas nas contas 4 (72), 9 (35), 13 (29) e 227 (12) —
+  indício, a confirmar com o Razão de outubro, de que clientes e fornecedores não têm conta analítica
+  individual (Q-50).
+- Testes: 6 novos em `tests/test_multisource_ledger_comparison.py` (PDF sintético, CSV, comando); 85 aprovados
+  nos arquivos multifontes e de Razão; `ruff check .` limpo.
+
+Não verificado: comparação de outubro, porque o Razão de outubro ainda não foi obtido (pedido pela tela ou
+exportado pela CONTAD).

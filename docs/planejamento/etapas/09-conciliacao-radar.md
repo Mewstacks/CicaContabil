@@ -12,8 +12,9 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [ ] Respostas bloqueantes Q-50, Q-52, Q-53, Q-58 e Q-59.
 - [x] D-409: Fase 1 em modo simulação autorizada e registrada.
 - [x] Fase 1 (linha de comando): leitores CP/CR .xls, francesinha e caixa do cliente; posição de títulos; motor e sinalizações; outubro simulado com os arquivos reais (V-466).
-- [ ] Fase 1 restante: comparação com o Razão manual (depende do agente, C-01) e tela de fechamento do mês (protocolo de UI).
-- [ ] Agente com período configurável (consultas nativas fixas em 09/2026) e nova versão no SVAPL02.
+- [x] D-410: agente sem mudança (já aceita outubro); comparação simulação × Razão no comando, em PDF ou ledger-csv-v1 (V-467).
+- [ ] Obter o Razão de outubro da SURIA (tela ou exportação da CONTAD) e rodar a comparação.
+- [ ] Tela de fechamento do mês (protocolo de UI).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->
 **17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**

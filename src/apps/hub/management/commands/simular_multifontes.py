@@ -43,6 +43,12 @@ class Command(BaseCommand):
             "--aba", default="SICREDI", help="Aba do caixa que corresponde ao extrato."
         )
         parser.add_argument(
+            "--razao-pdf", type=Path, help="Razão da conta bancária (PDF do Domínio)."
+        )
+        parser.add_argument(
+            "--razao-csv", type=Path, help="Razão da conta bancária no contrato ledger-csv-v1."
+        )
+        parser.add_argument(
             "--aba-sem-extrato",
             action="append",
             default=[],
@@ -63,9 +69,16 @@ class Command(BaseCommand):
         from apps.hub.bank_evidence import read_sicredi_pdf
         from apps.hub.multisource.client_cashbook import read_client_cashbook_xlsx
         from apps.hub.multisource.francesinha import read_francesinha_pdf
+        from apps.hub.multisource.ledger_comparison import (
+            compare_with_ledger,
+            movements_from_ledger_csv,
+            movements_from_pdf,
+        )
         from apps.hub.multisource.matching import BankLine, simulate
         from apps.hub.multisource.report import (
             render_differences_csv,
+            render_ledger_csv,
+            render_ledger_summary,
             render_lines_csv,
             render_position_csv,
             render_summary,
@@ -112,6 +125,18 @@ class Command(BaseCommand):
                 cash_accounts = [workbook.sheet(name) for name in options["aba_sem_extrato"]]
             elif options["aba_sem_extrato"]:
                 raise CommandError("--aba-sem-extrato exige --caixa.")
+            if options["razao_pdf"] and options["razao_csv"]:
+                raise CommandError("Informe o Razão em PDF ou em CSV, não os dois.")
+            ledger_movements = None
+            if content := _read(options["razao_pdf"]):
+                from apps.hub.ledger_evidence import LedgerEvidenceError, read_dominio_ledger_pdf
+
+                try:
+                    ledger_movements = movements_from_pdf(read_dominio_ledger_pdf(content))
+                except LedgerEvidenceError as exc:
+                    raise MultisourceError(str(exc)) from exc
+            if content := _read(options["razao_csv"]):
+                ledger_movements = movements_from_ledger_csv(content)
         except (MultisourceError, ReconciliationError) as exc:
             raise CommandError(str(exc)) from exc
 
@@ -134,6 +159,10 @@ class Command(BaseCommand):
             "posicao.csv": render_position_csv(result),
             "diferencas-posicao.csv": render_differences_csv(result),
         }
+        if ledger_movements is not None:
+            comparison = compare_with_ledger(result, ledger_movements)
+            files["resumo.md"] += render_ledger_summary(comparison)
+            files["comparacao-razao.csv"] = render_ledger_csv(comparison)
         for name, text in files.items():
             target = output / name
             target.write_text(text, encoding="utf-8")

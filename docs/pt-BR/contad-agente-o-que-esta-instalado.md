@@ -53,6 +53,6 @@ Ele só busca o que for pedido pela tela da CICA, por empresa e mês.
 
 ## Atualizações
 
-Para conciliar outubro em diante, será necessária uma **nova versão** do agente (a atual só busca setembro de
-2026). A atualização preserva a configuração e não exige refazer a conexão; combinaremos o melhor momento com
-vocês antes de aplicá-la.
+A versão instalada já busca qualquer mês a partir de setembro de 2026; outubro e os meses seguintes não exigem
+atualização. Quando uma atualização for necessária, ela preserva a configuração e não exige refazer a conexão;
+combinaremos o melhor momento com vocês antes de aplicá-la.

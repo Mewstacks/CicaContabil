@@ -7,6 +7,14 @@ import io
 from collections import Counter
 
 from apps.hub.multisource.common import money
+from apps.hub.multisource.ledger_comparison import (
+    MISSING,
+    ONLY_LEDGER,
+    OTHER_SPLIT,
+    SAME_SPLIT,
+    WINDOW_DAYS,
+    LedgerComparison,
+)
 from apps.hub.multisource.matching import (
     AUTOMATIC,
     FLAGGED,
@@ -203,6 +211,79 @@ def render_differences_csv(result: SimulationResult) -> str:
                 diff.label,
                 money(diff.simulated_cents),
                 money(diff.reference_cents),
+            ]
+        )
+    return out.getvalue()
+
+
+def render_ledger_summary(comparison: LedgerComparison) -> str:
+    """Seção do resumo com a comparação contra o Razão lançado pela contadora (D-410)."""
+    total = len(comparison.lines)
+    lines = [
+        "",
+        "## Comparação com o Razão lançado (conta bancária)",
+        "",
+        "| Resultado | Movimentos do extrato |",
+        "|---|---:|",
+    ]
+    for outcome in (SAME_SPLIT, OTHER_SPLIT, MISSING):
+        lines.append(f"| {outcome} | {comparison.count(outcome)} |")
+    shifted = sum(1 for c in comparison.lines if c.shifted_days)
+    lines += [
+        f"| **Total** | **{total}** |",
+        "",
+        f"- Lançamentos do Razão sem movimento no extrato: {len(comparison.only_ledger)}",
+        f"- Casados com data diferente (até {WINDOW_DAYS} dias): {shifted}",
+        "",
+        "### Contas de contrapartida usadas pela contadora (evidência para Q-50/Q-53)",
+        "",
+        "| Tipo de parte | Contas (ocorrências) |",
+        "|---|---|",
+    ]
+    for group, counter in sorted(comparison.accounts.items()):
+        accounts = ", ".join(f"{code} ({n})" for code, n in counter.most_common(6))
+        more = f" e mais {len(counter) - 6}" if len(counter) > 6 else ""
+        lines.append(f"| {group} | {accounts}{more} |")
+    return "\n".join(lines) + "\n"
+
+
+def render_ledger_csv(comparison: LedgerComparison) -> str:
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";")
+    writer.writerow(
+        [
+            "data",
+            "valor",
+            "historico_extrato",
+            "resultado",
+            "dias_de_diferenca",
+            "lancamentos_razao",
+        ]
+    )
+    for item in comparison.lines:
+        writer.writerow(
+            [
+                item.line.bank.occurred_on.strftime("%d/%m/%Y"),
+                money(item.line.bank.amount_cents),
+                item.line.bank.description,
+                item.outcome,
+                item.shifted_days,
+                " | ".join(
+                    f"{m.reference} {m.occurred_on:%d/%m} {money(m.amount_cents)} "
+                    f"contra {','.join(m.counterparts) or '-'}"
+                    for m in item.movements
+                ),
+            ]
+        )
+    for movement in comparison.only_ledger:
+        writer.writerow(
+            [
+                movement.occurred_on.strftime("%d/%m/%Y"),
+                money(movement.amount_cents),
+                movement.history,
+                ONLY_LEDGER,
+                "",
+                f"{movement.reference} contra {','.join(movement.counterparts) or '-'}",
             ]
         )
     return out.getvalue()

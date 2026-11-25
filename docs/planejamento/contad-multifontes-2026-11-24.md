@@ -152,7 +152,7 @@ Base: **`origin/main` 565773d** (D-403/V-462). O checkout local está em `b65dfe
 
 | C | Problema | Onde | Por que bloqueia |
 |---|---|---|---|
-| C-01 | Consultas nativas presas a 09/2026 | `agent-windows/src/Cica.Agent.Contracts/NativeLedgerPlan.cs:16-17`, `NativeTitlePlan.cs:18-19` | Outubro e novembro sem Razão nem títulos pelo agente (R-17, R-20). Exige nova versão do agente [43:01] |
+| C-01 | ~~Consultas nativas presas a 09/2026~~ **Não procede (D-410):** o modo automático do agente já aceita qualquer mês desde 09/2026; só o piloto antigo é fixo | `agent-windows/src/Cica.Agent.Contracts/NativeLedgerPlan.cs:16-17`, `NativeTitlePlan.cs:18-19` | Outubro e novembro sem Razão nem títulos pelo agente (R-17, R-20). Exige nova versão do agente [43:01] |
 | C-02 | Razão não é pedido no 2º mês ou em OFX que cruza meses | `account_auto_link.py:164`, `ledger_requests.py:430` (revisão 23/11 §4.1) | Outubro é o 2º mês da SURIA. Confirmar se a D-396/D-397 já está em `origin/main` e em produção |
 | C-03 | Títulos exibidos por código ("Título ea9d8ba1") | `title_labels.py:18-21`, `title_auto.py:331-340` | R-07 exige mostrar a NF |
 | C-04 | OFX em Windows-1252 perde acentos | `reconciliation.py:80` | Prejudica nomes e regras por histórico (R-12) |
@@ -254,7 +254,7 @@ Linguagem simples:
 - usuário externo do Domínio, só leitura;
 - o que lê e para onde envia;
 - como parar ou desinstalar;
-- como atualizar (C-01).
+- como atualizar.
 
 Fonte: `docs/contad-agente-oficial-windows-server.md`. **O envio à cliente depende da autorização do Pedro.**
 
@@ -285,7 +285,7 @@ Obrigatório em toda mudança de tela, pelo AGENTS.md: ui-ux-pro-max, Watermelon
 | **Backend** | Leitores novos em módulos próprios (padrão de `bank_evidence.py`). Motor N-04 em `src/apps/hub/multisource_matching.py`, idempotente e reexecutável por mês. Extensão de `title_persistence` para a cadeia mensal. Regras condicionadas como extensão de `ReconciliationRule`. Processamento pesado (OCR de 50 páginas) em **tarefa assíncrona** (Celery, `tasks.py`), não na requisição |
 | **Dependência nova** | `xlrd` (somente .xls BIFF) **ou** conversão no envio. Exige registro de decisão. `python-docx` só se Q-63 exigir |
 | **Exportação** | Lote 19 com várias partidas e histórico com nº do documento (C-07). Antes de usar com a SURIA, executar o roteiro da V-428 (importação real no Domínio), que ainda não foi feita |
-| **Agente Windows** | C-01: período configurável (mês pedido pela tela). Nova versão + atualização no SVAPL02, a combinar com a CONTAD [42:59–43:09]. Sem escrita no Domínio |
+| **Agente Windows** | Sem mudança (D-410): o modo automático já aceita qualquer mês desde 09/2026. Atualização só se outra etapa exigir, a combinar com a CONTAD [42:59–43:09]. Sem escrita no Domínio |
 | **IA/OCR** | OCR local por padrão. IA só dentro do teto da D-395; a chave vence em 13/12 (Q-11) |
 | **Armazenamento e LGPD** | Arquivos de cliente (planilhas e scans) no armazenamento de objetos, com retenção definida (Q-24/Q-49 abertas). Nunca em repositório ou fixture real; os testes usam réplicas sintéticas dos layouts |
 | **Arquitetura** | Sem conector novo de banco ou ERP (D-109): só importação de arquivos. Isolamento por escritório (`CICA_DIRECT_USE_ORGANIZATION_IDS`) mantido |
@@ -299,11 +299,11 @@ Criticidade: P0 bloqueia o teste de outubro, P1 é necessário para novembro, P2
 | Item | Prio | Importância | Complexidade | Depende de |
 |---|---|---|---|---|
 | Governança: base `origin/main`, branches, registro D/Q (Fase 0) | P0 | Alta | Baixa | — |
-| C-01 período do agente + C-02 Razão do 2º mês | P0 | Alta | Média | Fase 0 |
+| C-02 Razão do 2º mês (C-01 não procede, D-410) | P0 | Alta | Baixa | Fase 0 |
 | N-02 leitores CP/CR .xls + francesinha + F7 | P0 | Alta | Média | Q-52, Q-59 |
 | N-03 carteira de títulos (abertura → fechamento) | P0 | Alta | Alta | N-02 |
 | N-04 regras 1–4, 7 (parcial) e 8 + fila de sinalizações | P0 | Alta | Alta | N-02, N-03, Q-58 |
-| N-07 relatórios + comparação com o Razão manual (simulação) | P0 | Alta | Média | C-01, N-04 |
+| N-07 relatórios + comparação com o Razão manual (simulação) | P0 | Alta | Média | N-04 |
 | N-05 juros recebidos | P0 | Alta | Baixa | Q-53 |
 | C-03, C-07, C-08 | P1 | Média | Baixa | — |
 | N-05 aplicação e resgate + leitor F3 | P1 | Alta | Média | Q-54 |
@@ -331,7 +331,7 @@ Criticidade: P0 bloqueia o teste de outubro, P1 é necessário para novembro, P2
 3. Enviar à CONTAD as perguntas da seção 12 e a estimativa (R-25). **Exige autorização do Pedro para enviar mensagem.**
 
 **Fase 1 — Fatia de outubro (alvo: revisão conjunta, ver R-24; prazo depende da estimativa)**
-- C-01 e C-02.
+- C-02 (C-01 não procede, D-410).
 - Leitores CP/CR .xls, francesinha e F7.
 - Carteira N-03 (abertura 09 → fechamento 10).
 - Motor N-04, regras 1–4 e 8; juros N-05.
@@ -413,7 +413,7 @@ Criticidade: P0 bloqueia o teste de outubro, P1 é necessário para novembro, P2
 3. **Fonte de títulos (D-305, D-394).** Hoje é o Domínio via agente. Os novos .xls também vêm do Domínio, mas a planilha do cliente (F7) é uma fonte nova, com outro dono. Registrar.
 4. **Baixas fora do Domínio (R-07).** O módulo fiscal do Domínio e a carteira CICA vão divergir com o tempo. É preciso definir qual é a posição oficial (Q-61).
 5. **Lote 19 nunca importado de verdade** (V-428). Lançamentos com várias partidas aumentam o risco.
-6. **Agente.** Exige nova versão (C-01) e atualização no servidor da cliente; ela pediu clareza sobre o que está instalado (R-23).
+6. **Agente.** Não precisa de nova versão para outubro (D-410); a cliente pediu clareza sobre o que está instalado (R-23).
 7. **LGPD e autorização de dados.** Planilhas e scans contêm nomes, CPFs e salários (folha). Q-24 e Q-49 estão abertas. A autorização de IA da D-395 não foi coletada em tela.
 8. **Custo de IA.** OCR com IA pode estourar o teto da D-395. A chave vence em 13/12. Qualquer ampliação exige autorização (D-158).
 9. **Variação por cliente (R-21).** Cada cliente com layouts próprios encarece a escala (146 empresas). Mitigar com perfis de fonte e o modelo padrão (S-05).
@@ -507,6 +507,6 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   Domínio baixou a 2. A diferença de 1 centavo decide a parcela; vale confirmar com a contadora.
 
 **Próximos passos da Fase 1**
-- Período configurável no agente (C-01), para comparar com o Razão manual de outubro.
+- ~~Período configurável no agente~~ não é necessário (D-410). Comparação com o Razão pronta no comando (`--razao-pdf`/`--razao-csv`); falta obter o Razão de outubro.
 - Tela de fechamento do mês, com o protocolo de UI do AGENTS.md.
 - Aplicação e resgate com rendimento/IRRF (Fase 2).
