@@ -46,6 +46,11 @@ Para começar sem presumir regras, precisamos destas respostas:
 16. Como os arquivos chegarão todo mês (envio pela tela do CICA, por quem, até que dia) e por quanto tempo guardar? (Q-65)
 17. Folha, guias, distribuição de lucros e adiantamentos de cliente (cliente D, pago por terceiro; cliente E): contas e documentos de suporte (Q-66)
 
+Para compararmos o resultado com o que vocês já lançaram em outubro, pedimos também o **Razão da conta
+8 — Banco Sicredi da SURIA, de 01/10/2026 a 31/10/2026, em PDF**, exportado do Domínio no mesmo modelo do
+Razão de setembro que vocês nos enviaram. Se possível, mandem também o Razão de outubro do caixa em dinheiro
+e da Caixa Econômica, no mesmo modelo.
+
 Sobre o servidor: segue em anexo uma explicação curta do que está instalado e do que ele faz.
 
 Assim que a primeira parte estiver pronta para olharmos juntos, avisamos.
