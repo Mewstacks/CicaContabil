@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 from collections import Counter
+from typing import Any
 
 from apps.hub.multisource.common import money
 from apps.hub.multisource.ledger_comparison import (
@@ -166,13 +167,26 @@ def _reason_group(reason: str) -> str:
     return text
 
 
-def render_lines_csv(result: SimulationResult) -> str:
+def render_lines_csv(result: SimulationResult, suggestions: Any = None) -> str:
     out = io.StringIO()
     writer = csv.writer(out, delimiter=";")
-    writer.writerow(
-        ["conta", "data", "valor", "historico", "situacao", "linhas_caixa", "partes", "motivos"]
-    )
+    header = [
+        "conta",
+        "data",
+        "valor",
+        "historico",
+        "situacao",
+        "linhas_caixa",
+        "partes",
+        "motivos",
+    ]
+    if suggestions is not None:
+        header.append("contas_sugeridas_a_confirmar")  # D-420
+    writer.writerow(header)
     for line in result.lines:
+        extra = (
+            [" | ".join(suggestions.text(p) for p in line.parts)] if suggestions is not None else []
+        )
         writer.writerow(
             [
                 line.bank.account,
@@ -183,6 +197,7 @@ def render_lines_csv(result: SimulationResult) -> str:
                 ",".join(str(r) for r in line.cashbook_rows),
                 " | ".join(f"{p.label} = {money(p.amount_cents)}" for p in line.parts),
                 " | ".join(line.reasons),
+                *extra,
             ]
         )
     return out.getvalue()

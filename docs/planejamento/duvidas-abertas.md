@@ -305,6 +305,18 @@ Q-53, Q-58 e Q-59. Envio à cliente só com autorização do responsável
 | Q-65 | Como os arquivos chegarão todo mês (envio pela tela do CICA, por quem, até que dia) e por quanto tempo guardar? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-01, LGPD. Até a resposta, não presumir a regra. |
 | Q-66 | Folha, guias, distribuição de lucros e adiantamentos de cliente (cliente D, pago por terceiro; cliente E): contas e documentos de suporte | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-04.5. Até a resposta, não presumir a regra. |
 
+**Evidência e proposta (25/11/2026, D-420/V-477) — a confirmar pela CONTAD, não são respostas:**
+Q-50: contas de passagem no Razão do banco (9 COBRANÇA, 4 PAGAMENTO DE FORNECEDORES) e plano com conta por
+cliente (3.067) e fornecedor (739); proposta: baixa da CICA move da passagem para a conta analítica, achada pelo
+nome (149/151 e 15/17). Q-51: setembro lançou PIX ao marketplace como fornecedor, não propaganda (conflito com
+R-12). Q-52: `*1NNNNNNPP` = NF + parcela (51/51); `XX…` sem relação com a NF. Q-53: proposta 132 JUROS ATIVOS e
+230 DESCONTOS CONCEDIDOS. Q-54: aplicação/resgate em 13; proposta 134 e 232 por resgate (há provisões 14-16).
+Q-55: parcela 02/35 dividida em 117 (principal) e 231 (juros); falta a fonte da divisão. Q-56: setembro lançou
+o total contra 4. Q-57: CAIXA (1) e CEF (3) usadas em setembro. Q-58: proposta tolerância zero (nenhuma
+pendência de centavos em outubro). Q-59: diferença do Total Geral = título sem saldo não detalhado; saldo fecha.
+Q-66: folha contra 4; guias em 75/100/83/78 e tributos federais divididos; PIX aos sócios como empréstimo (385
+e 386), meio a meio. Mensagem reescrita como pedido de confirmação (envio só com autorização).
+
 ## Contraprova (etapa 15)
 
 | ID | Pergunta objetiva | Por que altera a implementação |

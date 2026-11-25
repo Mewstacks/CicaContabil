@@ -1,3 +1,11 @@
+<!-- D420-V477-2026-11-25 -->
+## 25/11/2026 — D-420/V-477: respostas propostas com evidência (PC-33, Q-50 a Q-66)
+
+- [x] Razão de setembro, plano 212, posições, francesinha e caixa analisados; propostas registradas nas Q.
+- [x] Simulação mostra contas sugeridas (a confirmar), usa o Seu Nº `*` e explica o Total Geral.
+- [x] Mensagem à CONTAD reescrita como pedido de confirmação (não enviada).
+- [ ] Confirmação da CONTAD e envio — dependem do responsável.
+
 <!-- D418-D419-V475-V476-2026-11-25 -->
 ## 25/11/2026 — D-418/V-475 e D-419/V-476: empréstimo, cartão e resultado do extrato
 

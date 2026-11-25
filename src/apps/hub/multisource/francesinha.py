@@ -55,6 +55,14 @@ class CollectionItem:
     line: int
 
     @property
+    def invoice_from_your_number(self) -> str:
+        """NF codificada no Seu Nº `*1NNNNNNPP` (D-420, Q-52); vazio nos demais formatos.
+
+        A parcela (PP) não é usada: a posição do Domínio numera só as parcelas em aberto."""
+        match = re.fullmatch(r"\*1(\d{6})(\d{2})", self.your_number.strip())
+        return match[1].lstrip("0") if match else ""
+
+    @property
     def extra_cents(self) -> int:
         """Juros + multa recebidos além do nominal."""
         return self.interest_cents + self.penalty_cents

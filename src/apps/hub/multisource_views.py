@@ -25,6 +25,7 @@ from apps.hub.module_catalog import definition
 from apps.hub.multisource.common import MAX_SOURCE_BYTES, MultisourceError, money
 from apps.hub.multisource.matching import AUTOMATIC, FLAGGED, IDENTIFIED, STATUS_LABELS
 from apps.hub.multisource.service import SimulationOutput, SimulationSources, run_simulation
+from apps.hub.multisource.suggested_accounts import chart_for_company
 from apps.hub.title_ui import private_response
 from apps.hub.views import _can_manage_reconciliation, _module_page_context, office_required
 from apps.organizations.models import Organization
@@ -156,6 +157,7 @@ def _sources(form: MultisourceCloseForm) -> SimulationSources:
         ledger_pdf=None if is_csv else ledger_bytes,
         ledger_csv=ledger_bytes if is_csv else None,
         tax_id=_tax_id(data["company"]),
+        chart=chart_for_company(data["company"]),  # D-420: contas sugeridas, a confirmar
     )
 
 
@@ -175,7 +177,7 @@ FILTER_LABELS = {AUTOMATIC: "Automáticos", IDENTIFIED: "Identificados", FLAGGED
 ROW_LABELS = {AUTOMATIC: "Automático", IDENTIFIED: "Identificado pelo caixa", FLAGGED: "Sinalizado"}
 
 
-def _movements(result: Any) -> list[dict[str, Any]]:
+def _movements(result: Any, suggestions: Any = None) -> list[dict[str, Any]]:
     """D-417: cada movimento com a explicação de como foi baixado, identificado ou sinalizado."""
     rows = []
     for line in sorted(result.lines, key=lambda r: (r.bank.occurred_on, r.bank.account)):
@@ -185,6 +187,7 @@ def _movements(result: Any) -> list[dict[str, Any]]:
                 "label": part.label,
                 "amount": money(part.amount_cents),
                 "source": part.source,
+                "suggestion": suggestions.text(part) if suggestions is not None else "",
             }
             for part in line.parts
         ]
@@ -311,7 +314,16 @@ def _view_model(output: SimulationOutput) -> dict[str, Any]:
             for (kind, o), n in sorted(differences.items())
         ],
         "investment": investment,
-        "movements": _movements(result),
+        "movements": _movements(result, output.suggestions),
+        "suggestions": (
+            {
+                "covered": output.suggestions.covered,
+                "parts": output.suggestions.parts,
+                "missing_party": output.suggestions.missing_party,
+            }
+            if output.suggestions is not None
+            else None
+        ),
         "filters": [
             {"key": STATUS_FILTERS[status], "label": FILTER_LABELS[status], "count": item["count"]}
             for status, item in zip((AUTOMATIC, IDENTIFIED, FLAGGED), statuses, strict=True)

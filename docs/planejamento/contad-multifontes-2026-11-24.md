@@ -602,3 +602,13 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   os repetidos de outro extrato) aparecem à parte: “N não conferidos · M ignorados”. A variação do extrato não
   muda, porque compara o arquivo inteiro com o Razão do período.
 - Itens restantes do plano: os mesmos da seção 20 (decisões do responsável e respostas da CONTAD).
+
+## 23. Respostas propostas com evidência e contas sugeridas (D-420, V-477)
+
+- O Razão de setembro da conta Sicredi, o plano de contas da SURIA (empresa 212), as posições, a francesinha e o
+  caixa respondem, como **proposta a confirmar**, Q-50, Q-52, Q-53, Q-54, Q-56, Q-57, Q-58, Q-59 e Q-66, e
+  mostram conflitos em Q-51 (marketplace) e na distribuição de lucros. Resumo em `duvidas-abertas.md`.
+- A simulação mostra a conta sugerida de cada parte (comando: `--plano-contas` e `--plano-empresa`; tela: plano
+  da descoberta D-373), sem lançar nada. Outubro: 254 de 260 partes com conta sugerida.
+- O Seu Nº `*1NNNNNNPP` passa a indicar a NF quando o caixa não traz a nota.
+- A mensagem à CONTAD virou pedido de confirmação com as evidências; envio depende do responsável.

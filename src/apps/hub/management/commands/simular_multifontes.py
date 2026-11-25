@@ -26,6 +26,22 @@ def _read(path: Path | None, limit: int = MAX_SOURCE_BYTES) -> bytes | None:
     return path.read_bytes()
 
 
+def _chart(options: dict[str, Any]) -> Any:
+    """Plano de contas para as contas sugeridas (D-420); exige o código da empresa do plano."""
+    path, company = options.get("plano_contas"), options.get("plano_empresa")
+    if path is None and company is None:
+        return None
+    if path is None or company is None:
+        raise CommandError("Informe --plano-contas e --plano-empresa juntos.")
+    from apps.hub.multisource.suggested_accounts import read_chart_jsonl
+
+    content = _read(path, limit=200 * 1024 * 1024)
+    try:
+        return read_chart_jsonl(content or b"", company)
+    except MultisourceError as exc:
+        raise CommandError(str(exc)) from exc
+
+
 class Command(BaseCommand):
     help = "Simular a conciliação multifontes (extrato, francesinha, posição, caixa) sem gravar."
     requires_system_checks: list[str] = []
@@ -50,6 +66,14 @@ class Command(BaseCommand):
             help="PDF escaneado com boletos, recibos, DANFE ou CT-e (OCR local); pode repetir.",
         )
         parser.add_argument("--aplicacao", type=Path, help="Extrato de aplicação Sicredi (PDF).")
+        parser.add_argument(
+            "--plano-contas",
+            type=Path,
+            help="Plano de contas no contrato da descoberta D-373 (chart-accounts.jsonl).",
+        )
+        parser.add_argument(
+            "--plano-empresa", type=int, help="Código da empresa do plano no Domínio (ex.: 212)."
+        )
         parser.add_argument(
             "--emprestimo",
             type=Path,
@@ -118,6 +142,7 @@ class Command(BaseCommand):
             documents=documents,
             tax_id=options["cnpj"] or "",
             loans=[_read(path) or b"" for path in options["emprestimo"]],
+            chart=_chart(options),
             cards=[_read(path) or b"" for path in options["fatura_cartao"]],
         )
         try:

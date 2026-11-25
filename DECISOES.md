@@ -6583,3 +6583,43 @@ extrato”. Executor Claude Code, com a delegação da D-393 (apresentação no 
    procede). O relatório da conferência (`reconciliation-conference-v1`) e o CSV continuam iguais.
 
 Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
+
+## D-420 — PC-33: respostas propostas com evidência e padrões provisórios na simulação (25/11/2026)
+
+Origem: responsável, 25/11/2026, “sim, comece pelo grupo 2”, depois de lhe ser proposto pesquisar nos arquivos
+da própria cliente as perguntas Q-50 a Q-66 que têm evidência, ligar as respostas como padrões provisórios só
+na simulação e reescrever as perguntas como “confirma que é assim?”. Executor Claude Code. **Não responde as
+perguntas**: a contadora confirma. Continua em modo simulação (D-409).
+
+Evidências (V-477): Razão de setembro/2026 da conta Sicredi (163 lançamentos, importado pelo agente; backup
+de 24/11), plano de contas da SURIA (empresa 212, 4.134 contas, descoberta D-373), posições CR/CP de 09 e
+10/2026, francesinha e caixa de outubro.
+
+1. **Contas sugeridas (Q-50, Q-53, Q-54, Q-56, Q-57, Q-66):** a simulação passa a mostrar, para cada parte, a
+   conta que a contadora usou em setembro para o mesmo tipo de movimento, procurada **pelo nome** no plano da
+   empresa, marcada “sugerida — a confirmar”. Nunca vira lançamento. Prática observada em setembro: cobrança e
+   PIX recebidos contra COBRANÇA; pagamentos (boleto, PIX, folha e fatura do cartão) contra PAGAMENTO DE
+   FORNECEDORES; aplicação e resgate contra APLICAÇÃO SICREDINVEST AUTOMATICO; tarifas contra DESPESAS
+   BANCÁRIAS; saque e transferência contra CAIXA e CAIXA ECONOMICA FEDERAL; guias contra FGTS, SIMPLES e ICMS
+   DIFERENCIAL; consignado contra EMPRESTIMOS CONSIGNADOS; PIX aos sócios contra EMPRÉSTIMO AO SÓCIO / A SÓCIA
+   (meio a meio); parcela do empréstimo dividida entre o contrato (principal) e JUROS PASSIVOS. Para a baixa
+   do título (R-07), a conta analítica do cliente ou fornecedor é procurada pelo nome (149 de 151 clientes e
+   15 de 17 fornecedores das posições têm conta com o mesmo nome); juros recebidos em JUROS ATIVOS;
+   rendimento e IRRF da aplicação em RECEITA DE APLICAÇÕES FINANCEIRAS e IRRF S/ APLICAÇÃO FINANCEIRA (o
+   plano também tem contas de provisão; a confirmar). Sem a conta no plano, não há sugestão.
+2. **“Seu Nº” da francesinha (Q-52):** o formato `*1NNNNNNPP` traz a NF (6 dígitos) e a parcela (2 dígitos):
+   51 de 51 NFs decodificadas de outubro existem no caixa. Passa a ser usado como referência da NF quando o
+   caixa não traz a nota. A parcela não é usada, porque a posição do Domínio numera só as parcelas em aberto.
+   O formato `XX0000nnnn` é uma numeração sequencial sem relação com a NF (36 de 36) e não é usado.
+3. **Tolerância de valor (Q-58):** fica em zero. Em outubro nenhuma sinalização foi causada por centavos; o
+   único caso de 1 centavo (parcelas de 3.317,47 e 3.317,46) só decide qual parcela baixar.
+4. **“Total Geral” dos `.xls` (Q-59):** a diferença é sempre um título sem saldo que o relatório não detalha
+   (CP 09: NF de 793,40 paga, ausente das linhas; CR 10: NF com valor zero na linha e 9.110,46 no total); o
+   saldo fecha. O aviso passa a dizer isso; o leitor continua usando as linhas.
+5. **Conflitos levados à contadora, sem escolher:** PIX ao marketplace foi lançado em setembro como pagamento
+   de fornecedor, não como propaganda (R-12, Q-51); PIX de “distribuição de lucros” no caixa foi lançado como
+   empréstimo aos sócios; folha e fatura do cartão foram para PAGAMENTO DE FORNECEDORES.
+6. A mensagem à CONTAD é reescrita com as evidências, pedindo confirmação. Envio continua dependendo de
+   autorização do responsável.
+
+Sem custo, IA, migração, deploy ou mensagem externa.

@@ -13507,3 +13507,37 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, 
 - Regressão (D-418 e D-419 juntas): `uv run pytest -q` 5823 passaram, 59 ignorados; `ruff check .` limpo.
 
 Não verificado: rodada `--ds=config.settings.test_postgresql` (fica para o CI).
+
+## V-477 — D-420: respostas propostas com evidência e contas sugeridas na simulação (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Arquivos da cliente lidos só na máquina (fora do
+repositório); nada enviado. Sem migração, deploy ou mensagem externa.
+
+- **Fontes:** Razão de setembro/2026 da conta 8 (PDF: 163 lançamentos, 11 contrapartidas; backup de 24/11 com as
+  334 partidas da importação pelo agente), plano de contas da empresa 212 (exportação D-373 de 17/11: 4.134
+  contas, 4.022 analíticas ativas), CR/CP 09 e 10/2026, francesinha, caixa e extratos de outubro.
+- **Achados:** cobrança e PIX recebidos contra 9 COBRANÇA (35); pagamentos contra 4 PAGAMENTO DE FORNECEDORES (72,
+  inclusive folha e fatura do cartão); aplicação/resgate contra 13 (29); tarifas contra 227 (12); CAIXA (4) e
+  CEF (1); guias contra 75, 100, 83 e 78, tributos federais divididos em 85/74/82; PIX aos sócios contra 385/386
+  meio a meio (4 lançamentos); parcela 02/35 do empréstimo dividida em 117 (8.850,94) e 231 (122,39). Plano com
+  3.067 contas de cliente e 739 de fornecedor; 149/151 clientes e 15/17 fornecedores das posições de 09 têm conta
+  com o mesmo nome. Seu Nº: 51 no formato `*1NNNNNNPP`, todas as NFs decodificadas existem no caixa; 36 no
+  formato `XX…`, nenhuma ligada à NF. Total Geral: CP 09 +793,40 (NF paga, ausente das linhas); CR 10 +9.110,46
+  (NF com valor zero na linha); saldos fecham. Em outubro, nenhuma sinalização por centavos.
+- **Código:** `multisource/suggested_accounts.py` (novo: plano por nome, prática de setembro, sem códigos nem
+  nomes de pessoas fixos no código); `francesinha.py` (NF do Seu Nº `*`); `matching.py` (usa a NF do Seu Nº sem
+  NF no caixa); `title_position.py` (aviso da Q-59); relatório (`contas_sugeridas_a_confirmar` no
+  `movimentos.csv`, seção no resumo), comando (`--plano-contas`, `--plano-empresa`) e tela (plano da descoberta
+  D-373; conta sugerida em cada parte).
+- **Outubro com o plano real:** 254 de 260 partes com conta sugerida; 3 baixas sem conta de mesmo nome (nome
+  diferente no plano); sem sugestão: aluguel e água/luz pagos em dinheiro e a prestação da CEF (sem evidência em
+  setembro). Automático e identificados sem mudança (47,3% e 96,2%): o caixa já trazia as NFs.
+- **Testes:** 4 em `tests/test_multisource_suggested_accounts.py` (plano por nome e empresa, contas da cobrança
+  com juros, naturezas do caixa, Seu Nº sem caixa) e 2 em `tests/test_multisource_chart_lookup.py` (plano pela
+  descoberta D-373).
+
+- Regressão: `uv run pytest -q` 5829 passaram, 59 ignorados; `ruff check .` limpo.
+
+Não verificado: tela com o plano real e a linha “Conta sugerida” no navegador (o servidor descartável não tem
+plano descoberto; a busca foi testada com dados sintéticos e a linha pelo template); as propostas
+não são respostas — dependem da confirmação da contadora.

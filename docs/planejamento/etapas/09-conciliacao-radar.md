@@ -24,6 +24,8 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] D-417: posição de títulos por NF em `.xlsx` (R-07) e detalhe de cada movimento na tela de fechamento (V-474).
 - [x] D-418: empréstimo e fatura do cartão identificam o débito na simulação; juros/principal e despesas seguem Q-55/Q-56 (V-475).
 - [x] D-419: resultado do extrato sem estourar “Não comparável” no celular e ignorados fora dos “não conferidos” (V-476).
+- [x] D-420: respostas propostas com evidência para Q-50 a Q-59 e Q-66; contas sugeridas (a confirmar) e Seu Nº na simulação; mensagem à CONTAD reescrita (V-477).
+- [ ] Confirmação da CONTAD sobre as propostas da D-420 (envio da mensagem depende do responsável).
 - [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

@@ -233,11 +233,13 @@ def parse_title_position_rows(rows: list[list[object]]) -> TitlePosition:
     amount = sum(i.amount_cents for i in installments)
     paid = sum(i.paid_cents for i in installments)
     if amount != reported_amount or paid != reported_paid:
-        # Q-59: o saldo fecha, mas valor da parcela e pago do Total Geral não; causa a confirmar.
+        # Q-59/D-420: o Total Geral inclui títulos sem saldo que o relatório não detalha (linha
+        # omitida ou com valor zero); o saldo fecha e a leitura usa as linhas.
         warnings.append(
             "Total Geral de valor da parcela/valor pago difere da soma das parcelas "
             f"({(reported_amount - amount) / 100:.2f} / {(reported_paid - paid) / 100:.2f}); "
-            "o saldo fecha. Causa a confirmar com a contabilidade (Q-59)."
+            "o saldo fecha. Nos relatórios de 09 e 10/2026 a diferença foi um título sem saldo "
+            "que o relatório não detalha; a leitura usa as linhas (Q-59, a confirmar)."
         )
     return TitlePosition(
         kind,

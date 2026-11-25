@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
+from typing import Any
 
 from apps.hub.multisource.common import MultisourceError
 from apps.hub.multisource.ledger_comparison import LedgerComparison
@@ -33,6 +34,7 @@ class SimulationSources:
     documents: Sequence[tuple[str, bytes]] = ()  # (nome do arquivo, conteúdo)
     tax_id: str = ""
     loans: Sequence[bytes] = ()  # D-418: consulta de parcelas do empréstimo
+    chart: Any = None  # D-420: plano de contas da empresa (contas sugeridas, a confirmar)
     cards: Sequence[bytes] = ()  # D-418: fatura do cartão
 
 
@@ -42,6 +44,7 @@ class SimulationOutput:
     result: SimulationResult
     comparison: LedgerComparison | None
     reports: dict[str, str | bytes] = field(default_factory=dict)
+    suggestions: Any = None  # D-420
 
     @property
     def period_label(self) -> str:
@@ -157,9 +160,13 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
         cards=cards,
     )
     output = SimulationOutput(statement.period_start, result, None)
+    if sources.chart is not None:
+        from apps.hub.multisource.suggested_accounts import suggest_accounts
+
+        output.suggestions = suggest_accounts(result, sources.chart)
     output.reports = {
         "resumo.md": render_summary(result, title=f"Simulação multifontes — {output.period_label}"),
-        "movimentos.csv": render_lines_csv(result),
+        "movimentos.csv": render_lines_csv(result, output.suggestions),
         "posicao.csv": render_position_csv(result),
         "diferencas-posicao.csv": render_differences_csv(result),
     }
@@ -169,6 +176,12 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
         )  # D-417
     if documents:
         output.reports["documentos.csv"] = render_documents_csv(result)
+    if output.suggestions is not None:
+        from apps.hub.multisource.suggested_accounts import summary_lines
+
+        output.reports["resumo.md"] += (
+            "\n".join(summary_lines(output.suggestions, chart_size=len(sources.chart))) + "\n"
+        )
     if ledger_movements is not None:
         output.comparison = compare_with_ledger(result, ledger_movements)
         output.reports["resumo.md"] += render_ledger_summary(output.comparison)

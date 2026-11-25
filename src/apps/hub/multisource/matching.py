@@ -831,6 +831,9 @@ def _classify(
         for item in result.collection_items:
             cash = next((c for c in linked if c.inflow_cents == item.amount_cents), None)
             refs = [r for r in (cash.refs if cash else ()) if r.kind == "nf"]
+            if not refs and item.invoice_from_your_number:
+                # D-420 (Q-52): sem NF no caixa, o Seu Nº `*1NNNNNNPP` indica a nota.
+                refs = [DocumentRef("nf", item.invoice_from_your_number)]
             parts, reason = _settle_receipt(
                 titles,
                 RECEIVABLE,
