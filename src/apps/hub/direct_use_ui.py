@@ -26,6 +26,7 @@ OUTCOMES: dict[str, tuple[str, str]] = {
     "no_rule": ("Sem regra · não lançado", "is-muted"),
     "no_razao": ("Aguardando o Razão do mês", "is-muted"),
     "statement_only": ("Extrato sem Razão", "is-muted"),
+    "repeated_file": ("Repetido de outro extrato · não lançado", "is-muted"),
     "ignored": ("Ignorado", "is-muted"),
 }
 HELP = {
@@ -44,6 +45,10 @@ HELP = {
     "no_rule": "Nenhuma regra reconhece este histórico ainda; nada foi lançado.",
     "no_razao": "O Razão deste mês ainda não chegou; a CICA lança depois que ele chegar.",
     "statement_only": "Conta sem conta contábil no Domínio: só consulta do extrato.",
+    "repeated_file": (
+        "O mesmo movimento (data e valor) já veio de outro arquivo do extrato desta conta; a CICA "
+        "não lança duas vezes."
+    ),
     "ignored": "Marcado para não lançar.",
 }
 
@@ -76,7 +81,7 @@ def movement_outcomes(movements: Iterable[NormalizedMovement]) -> dict[str, dict
     for movement in movements:
         account = movement.financial_account
         if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
-            key = "ignored"
+            key = "repeated_file" if repeated_file(movement) else "ignored"
         elif movement.pk in confirmed:
             key = "confirmed"
         elif entry_state.get(movement.pk) == JournalEntry.State.EXPORTED:
@@ -103,8 +108,19 @@ def movement_outcomes(movements: Iterable[NormalizedMovement]) -> dict[str, dict
             else:
                 key = "no_rule"
         label, css = OUTCOMES[key]
-        result[str(movement.pk)] = {"key": key, "label": label, "css": css, "help": HELP[key]}
+        help_text = HELP[key]
+        if key == "repeated_file":
+            help_text = f"{help_text} Arquivo de origem: {repeated_file(movement)}."
+        result[str(movement.pk)] = {"key": key, "label": label, "css": css, "help": help_text}
     return result
+
+
+def repeated_file(movement: NormalizedMovement) -> str:
+    """D-416: name of the other statement file this ignored movement repeats, if any."""
+    details = movement.confidence_details or {}
+    if details.get("ignored_reason") != "repeated_from_other_file":
+        return ""
+    return str(details.get("repeated_file") or "outro arquivo")
 
 
 def _same_day_free(index: Any, movement: NormalizedMovement) -> int:

@@ -12197,11 +12197,19 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             "href": "#allocation-heading",
         }
     elif movement.review_state == NormalizedMovement.ReviewState.IGNORED:
+        from apps.hub.direct_use_ui import repeated_file
+
+        repeated_from = repeated_file(movement)  # D-416
         movement_workflow = {
             "state": "ignored",
             "eyebrow": "MOVIMENTO IGNORADO",
             "title": "Restaurar para voltar à revisão",
-            "description": "O movimento não gera lançamento enquanto estiver ignorado.",
+            "description": (
+                f"Repetido de outro extrato ({repeated_from}): mesma conta, data e valor. "
+                "Não gera lançamento; restaure só se não for repetição."
+                if repeated_from
+                else "O movimento não gera lançamento enquanto estiver ignorado."
+            ),
             "label": "Ver opção de restauração",
             "href": "#movement-secondary-actions",
         }
@@ -12343,6 +12351,11 @@ _DIRECT_USE_MOVEMENT_NEXT: dict[str, dict[str, str]] = {
         "hint": "Só consulta.",
         "action": "Ver evidências",
         "href": "#allocation-heading",
+    },
+    "repeated_file": {  # D-416
+        "hint": "Se não for repetição, restaure em Outras ações.",
+        "action": "Outras ações",
+        "href": "#movement-secondary-actions",
     },
     "ignored": {
         "hint": "Pode ser restaurado em Outras ações.",

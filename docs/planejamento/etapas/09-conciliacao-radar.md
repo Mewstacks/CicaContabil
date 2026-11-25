@@ -19,6 +19,8 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] D-413: tela “Fechamento do mês (simulação)”, sem gravar nada (V-470).
 - [x] D-414: guias de 48 dígitos, linha digitável tolerante, valor por extenso e soma conferida nos documentos (V-471).
 - [x] D-415: transferências entre contas da própria empresa pareadas na simulação; contas a definir (Q-57) (V-472).
+- [x] Correções C-02 a C-08 do plano mapeadas: já no `main` (D-396 a D-399), exceto C-05.
+- [x] D-416 (C-05): extrato da mesma conta em dois arquivos não gera movimento em dobro (V-473).
 - [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

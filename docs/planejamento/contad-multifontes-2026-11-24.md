@@ -463,7 +463,7 @@ Criticidade: P0 bloqueia o teste de outubro, P1 é necessário para novembro, P2
 - [ ] Estimativa de esforço e custo (R-25) — responsável.
 - [ ] Revisão e autorização do envio da mensagem e da explicação do agente — responsável.
 - [ ] Decisão de escopo D-409 (inclui o ajuste da D-393 para sinalizações bloqueantes, risco 12.1-2) — responsável.
-- [ ] Mapear o que as branches não mescladas já resolvem (C-02, C-03, C-06, D-404 a D-408).
+- [x] Mapear o que as branches não mescladas já resolvem (C-02, C-03, C-06, D-404 a D-408) — ver seção 20.
 
 A implementação (Fase 1 em diante) só começa depois da estimativa (R-25), das respostas bloqueantes (Q-50, Q-52, Q-53, Q-58, Q-59) e do registro da D-409.
 
@@ -563,3 +563,18 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   - lançamento real e exportação (decisão própria; conflito com a D-393);
   - documentos escaneados na tela, por fila (exige decisão sobre guardar os arquivos no servidor);
   - itens que dependem das respostas Q-50 a Q-66.
+
+## 20. Correções C e extrato repetido em dois arquivos (D-416, V-473)
+
+- **Mapa das correções (25/11):** C-02 e C-06 estão no `main` pela D-396; C-04 e C-07 pela D-397; C-08 pelas
+  D-397 a D-399; C-03 em parte (D-396 item 5: nota e parcela quando há fonte legível; sem fonte, código curto).
+  C-01 não procede (D-410). Das branches citadas na seção 4, `contad-revisao-restante` e
+  `contad-correcoes-revisao` já estão no `main`; `contad-tela-unificada` (D-406/D-408, tela do resultado)
+  está no PR #79, aberto; `contad-registro-v128` só tem registro (D-404).
+- **C-05 (D-416):** um extrato da mesma conta importado em dois arquivos (PDF e OFX, ou dois períodos
+  sobrepostos) não gera mais o mesmo movimento duas vezes: a cópia fica ignorada, com o arquivo de origem, e
+  não entra no lançamento automático nem na exportação. Pode ser restaurada no movimento.
+- Itens restantes do plano:
+  - lançamento real e exportação (decisão própria; conflito com a D-393);
+  - documentos escaneados na tela, por fila (decisão sobre guardar os arquivos no servidor);
+  - itens que dependem das respostas Q-50 a Q-66 e do Razão de outubro.

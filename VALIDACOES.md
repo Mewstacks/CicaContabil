@@ -13416,3 +13416,31 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, 
 
 Não verificado: contas e forma de lançamento das transferências (Q-57); rodada `--ds=config.settings.test_postgresql`
 (fica para o CI).
+
+## V-473 — D-416 (C-05): extrato da mesma conta em dois arquivos não gera movimento em dobro (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou dado real.
+
+- Mapa das correções C do plano por leitura de `DECISOES.md` e do código no `main`: C-02, C-04, C-06, C-07 e
+  C-08 resolvidas (D-396 a D-399); C-03 em parte; C-05 confirmada por leitura de código (só hash do arquivo e
+  FITID do OFX barravam repetição).
+- `reconciliation_service.py`: `_movements_from_other_files` e `_mark_repeated_from_other_file` no
+  `process_run`; `direct_use_ui.py`: situação “Repetido de outro extrato · não lançado” com o arquivo de
+  origem; `views.py`: texto e próximo passo na página do movimento.
+- Testes: 5 em `tests/test_statement_repeated_files.py` — PDF depois de OFX (só as cópias de mesma data e
+  valor ficam ignoradas, inclusive com histórico diferente; tarifa repetida conta 1 de 2), dois OFX com FITIDs
+  diferentes (min(k, m)) e reprocessamento estável, original ignorado não conta, página do movimento dentro e
+  fora do uso direto.
+- Navegador (servidor descartável com dois extratos fictícios da mesma conta, arquivos temporários removidos
+  e `launch.json` restaurado): resultado do extrato e página do movimento em 1366 px claro e 375 px escuro,
+  sem rolagem horizontal. **Corrigido na verificação:** a página do movimento no uso direto dava erro 500
+  (faltava o próximo passo da nova situação); o teste passou a cobrir os dois modos.
+- Observado, anterior a esta entrega e fora do escopo: em 375 px o indicador “Não comparável” do resultado
+  do extrato passa da largura do cartão; a variação e os “não conferidos” do arquivo contam também os
+  movimentos ignorados.
+- Regressão: `uv run pytest -q` 5815 passaram, 59 ignorados (numa rodada anterior, `test_mfa` falhou uma vez e
+  passou 3 de 3 isolado, sem relação com esta mudança); `ruff check .` limpo.
+- Protocolo de UI: Watermelon e web-design-guidelines indisponíveis nesta sessão (mesmo limite da V-470).
+
+Não verificado: rodada `--ds=config.settings.test_postgresql` (fica para o CI); extrato real da SURIA em PDF e
+OFX do mesmo mês (não há OFX de outubro).

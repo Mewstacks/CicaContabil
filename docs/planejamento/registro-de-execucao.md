@@ -1,3 +1,11 @@
+<!-- D416-V473-2026-11-25 -->
+## 25/11/2026 — D-416/V-473: extrato repetido em dois arquivos (PC-33, C-05)
+
+- [x] Correções C do plano mapeadas: C-02, C-04, C-06, C-07 e C-08 já no `main`; C-03 em parte (D-396).
+- [x] PDF e OFX (ou dois arquivos) da mesma conta: a cópia repetida fica ignorada, com o arquivo de origem.
+- [x] Testes, suíte completa e navegador (resultado e movimento, 1366/375, claro e escuro).
+- [ ] Publicação — depende de autorização.
+
 <!-- D414-D415-V471-V472-2026-11-25 -->
 ## 25/11/2026 — D-414/V-471 e D-415/V-472: leitura de documentos e transferências (PC-33)
 

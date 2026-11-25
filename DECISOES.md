@@ -6500,3 +6500,27 @@ Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano levando
    mesmo com rótulos de alturas diferentes.
 
 Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-416 — PC-33 (C-05): extrato da mesma conta importado em dois arquivos não gera movimento em dobro (25/11/2026)
+
+Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano”; correção C-05 do plano multifontes
+(hipótese da revisão de 23/11, item 1a), confirmada por leitura de código: o reenvio só é barrado pelo hash do
+arquivo e pelo FITID do OFX, então um PDF e um OFX (ou dois PDFs de períodos sobrepostos) da mesma conta
+geram o mesmo movimento duas vezes, e no uso direto (D-393) cada cópia pode virar lançamento. Executor
+Claude Code. As demais correções do plano já estão no `main`: C-02 e C-06 (D-396), C-04 e C-07 (D-397),
+C-08 (D-397 a D-399), C-03 em parte (D-396 item 5, rótulo pela nota quando há fonte legível).
+
+1. Ao processar um extrato bancário com conta financeira, cada movimento lido é comparado com os movimentos
+   **da mesma conta vindos de outros arquivos**, não ignorados, com a **mesma data e o mesmo valor com
+   sinal**. A comparação conta repetições: se o arquivo novo tem k movimentos com essa data e valor e os
+   outros arquivos já têm m, os min(k, m) primeiros do arquivo novo são repetição.
+2. A repetição é gravada como movimento **ignorado**, com o motivo e o arquivo de onde já tinha vindo. Assim
+   fica fora do lançamento automático, da conciliação automática, da IA e da exportação, como qualquer
+   ignorado; a pessoa pode restaurá-lo no próprio movimento se não for repetição. O histórico não entra na
+   comparação, porque OFX e PDF descrevem o mesmo movimento de formas diferentes.
+3. Vale para todos os escritórios (só afeta cópias exatas da mesma conta). O processamento conta essas
+   repetições entre os ignorados; no movimento e no resultado do uso direto, a situação aparece como
+   “Repetido de outro extrato · não lançado”, com o nome do arquivo de origem.
+4. Sem efeito retroativo: movimentos já gravados não mudam.
+
+Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
