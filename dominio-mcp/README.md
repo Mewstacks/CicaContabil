@@ -30,6 +30,10 @@ uv run dominio-mcp serve
 
 Cada cliente tem o seu passo a passo no guia. **Nenhum cliente real foi testado ainda** (só o cliente do SDK `mcp` por stdio): veja [reports/clientes.md](reports/clientes.md).
 
+## Serviço para o CICA
+
+`dominio-mcp agent-enroll`, `agent-run` e `agent-status` pareiam o computador com o CICA e respondem aos pedidos do escritório (só conexão de saída, mesmo `relay-job`). Como serviço do Windows: `python scripts/build_instalador.py` e o `instalar-servico.ps1` do pacote. Manual de uma página: [reports/manual-instalacao-uso.pdf](reports/manual-instalacao-uso.pdf); detalhes em [docs/dominio-mcp.md](../docs/dominio-mcp.md).
+
 ## Verificação do pacote
 
 A partir da raiz do repositório:

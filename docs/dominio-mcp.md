@@ -189,6 +189,18 @@ Só é declarado como compatível o cliente com linha "testado em <data e versã
 | Claude Code | não testado |
 | ChatGPT (túnel) | não testado |
 
+## Pelo CICA: o escritório liga e configura o próprio conector
+
+Três peças: a chave e a tela no **CICA** (Configurações › Conector MCP), um **serviço do Windows** no computador onde está o ODBC do Domínio e a **IA** do escritório (Claude) apontando para o endereço do conector. Manual de uma página: [dominio-mcp/reports/manual-instalacao-uso.pdf](../dominio-mcp/reports/manual-instalacao-uso.pdf).
+
+- **Tela** (dono ou administrador): ligar e desligar a chave do escritório; gerar o código de pareamento (uso único, 30 minutos, reaproveita `issue_enrollment`); ver o computador (Online quando puxou trabalho nos últimos 2 minutos) e desconectar; copiar o endereço do conector; ver quem autorizou e revogar (revoga os tokens na hora); últimas consultas. Com `MCP_GATEWAY_ENABLED` desligado a tela mostra "Indisponível" e nada responde.
+- **Fila** (`apps/mcpgateway/jobs.py`): a IA chama uma das 11 ferramentas no `/mcp`; o Hub vira um trabalho `{contrato, id, ferramenta, argumentos}` (sem campo de SQL), espera até 25 s e devolve o resultado. Até 5 trabalhos abertos por escritório; parado 60 s na fila ou 120 s em execução expira; argumentos até 16 KB e 8 níveis. As ferramentas do Domínio só aparecem com a chave ligada **e** um computador pareado.
+- **Serviço** (`dominio_mcp/agent.py` e `service.py`): só conexão de saída. Puxa a fila do próprio escritório (`/api/agent/mcp/claim`, long-poll de 10 s), executa no `relay-job` (perfil remote fixo) e devolve (`/api/agent/mcp/result`). Mesma identidade e assinatura HMAC do agente de sincronização; o segredo fica em `C:\ProgramData\HubContador\dominio-mcp\agent.json`, protegido pelo DPAPI (escopo da máquina) e por ACL só para SYSTEM e Administradores.
+- **Instalar**: `python scripts/build_instalador.py` gera `dist/dominio-mcp-servico-<versão>.zip`; no computador do Domínio, PowerShell como Administrador: `.\instalar-servico.ps1 -Hub https://SEU-CICA -Codigo CODIGO` (antes, `-SomenteConferir` confere Python, DSN de sistema e pacote sem gastar o código). O instalador lê o catálogo e roda o `doctor` **antes** de gastar o código, instala o serviço `DominioMcpAgent` em início automático com reinício sozinho. O DSN tem de ser **de sistema** (o serviço roda como SYSTEM). Se o Hub exigir mTLS (`EDGE_AGENT_MTLS_REQUIRED`, ligado em produção), passe `-Cert`, `-Chave` e `-Ca`.
+- **Ferramentas anunciadas**: `src/apps/mcpgateway/dominio_tools.json` é gerado do servidor (`python scripts/export_tools.py`) e um teste do `dominio-mcp` falha se divergir.
+
+Provado: 35 testes do Hub (fila, agente, tela, isolamento entre escritórios), 17 do agente, e a cadeia inteira com o Domínio real (`tests/test_mcp_connector_live.py`: `/mcp` → fila → agente em processo separado → ODBC → resposta). Não provado: instalação do serviço no Windows (exige Administrador: só o `-SomenteConferir` e o pacote em venv limpo foram exercitados), mTLS de ponta a ponta, e um cliente real (Claude ou ChatGPT) pelo OAuth.
+
 ## Privacidade: o que sai do computador
 
 **Sai** tudo o que uma ferramenta devolve (no máximo 12 KB por chamada): razão social, CNPJ, totais mensais, nomes de tabela e coluna, comentários do dicionário do Domínio. Isso passa a fazer parte da conversa e é processado pelo provedor do cliente (Anthropic ou OpenAI), nas condições do plano e das configurações de dados da conta usada. **Conferir essas condições é decisão do dono**, que também responde pelos dados dos clientes do escritório.

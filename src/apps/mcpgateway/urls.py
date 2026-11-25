@@ -16,7 +16,7 @@ from django.http import HttpRequest, HttpResponse
 from django.urls import include, path
 from oauth2_provider import views as dot
 
-from apps.mcpgateway import conf
+from apps.mcpgateway import agent_api, conf, views
 from apps.mcpgateway.authorize import McpAuthorizationView
 from apps.mcpgateway.endpoint import mcp_endpoint
 
@@ -68,4 +68,7 @@ _oauth_patterns = [
 urlpatterns = [
     path("", include((_oauth_patterns, "oauth2_provider"), namespace="oauth2_provider")),
     path("mcp", mcp_endpoint, name="mcp"),
+    path("app/conector-mcp/", views.connector, name="mcp-connector"),
+    path("api/agent/mcp/claim", agent_api.claim, name="agent-mcp-claim"),
+    path("api/agent/mcp/result", agent_api.result, name="agent-mcp-result"),
 ]

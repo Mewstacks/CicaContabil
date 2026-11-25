@@ -19,6 +19,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -27,7 +28,7 @@ from oauth2_provider.oauth2_backends import get_oauthlib_core
 from apps.common.ratelimit import rate_limited
 from apps.hub.controlplane import authorization_is_fresh, membership_has_capability
 from apps.intelligence.mcp import TOOLS, McpToolError, call_tool
-from apps.mcpgateway import conf
+from apps.mcpgateway import conf, jobs
 from apps.mcpgateway.models import McpConsent
 from apps.organizations.models import Membership
 
@@ -120,12 +121,72 @@ def authenticate(request: HttpRequest) -> Caller | HttpResponse:
 def _tools_for(membership: Membership) -> list[dict[str, object]]:
     if not membership_has_capability(membership=membership, capability="read"):
         return []
-    return [tool for tool in TOOLS if tool["name"] in EXTERNAL_TOOLS]
+    listed = [tool for tool in TOOLS if tool["name"] in EXTERNAL_TOOLS]
+    if jobs.tools_visible(membership.organization):
+        listed += jobs.dominio_tools()
+    return listed
+
+
+@dataclass(frozen=True)
+class PendingDominio:
+    """Trabalho ja na fila: quem espera o agente e a view async, sem prender a thread."""
+
+    request_id: object
+    job: Any
+
+
+def _error_result(request_id: object, message: str) -> JsonResponse:
+    return _json(
+        {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {"content": [{"type": "text", "text": message}], "isError": True},
+        }
+    )
+
+
+def _call_dominio(
+    request: HttpRequest, caller: Caller, request_id: object, name: str, arguments: dict[str, Any]
+) -> JsonResponse | PendingDominio:
+    """Ferramenta do Dominio: enfileira o trabalho; a espera (ate 25 s) e da view async."""
+    try:
+        job = jobs.enqueue(
+            organization=caller.membership.organization,
+            user=caller.user,
+            tool=name,
+            arguments=arguments,
+            request=request,
+        )
+    except jobs.JobError as exc:
+        return _error_result(request_id, str(exc))
+    return PendingDominio(request_id, job)
+
+
+def _dominio_response(request_id: object, done: Any) -> JsonResponse:
+    if done.status == done.Status.EXPIRED:
+        return _error_result(
+            request_id, "O computador do escritório não respondeu a tempo. Tente de novo."
+        )
+    structured = done.result or {}
+    text = json.dumps(structured, ensure_ascii=False, separators=(",", ":"), default=str)
+    if len(text.encode("utf-8")) > MAX_RESULT_BYTES:
+        return _rpc_error(request_id, -32603, "Resultado grande demais; refine a consulta.")
+    return _json(
+        {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": structured,
+                "isError": done.status != done.Status.DONE,
+            },
+        }
+    )
 
 
 def _call(
     request: HttpRequest, caller: Caller, request_id: object, params: dict[str, Any]
-) -> JsonResponse:
+) -> JsonResponse | PendingDominio:
     name = params.get("name")
     arguments = params.get("arguments", {})
     if not isinstance(name, str) or not isinstance(arguments, dict):
@@ -133,6 +194,8 @@ def _call(
     # a mesma lista que `tools/list` mostra: lista e chamada nao podem divergir
     if name not in {tool["name"] for tool in _tools_for(caller.membership)}:
         return _rpc_error(request_id, -32602, "Ferramenta não disponível neste conector.")
+    if name in jobs.dominio_tool_names():
+        return _call_dominio(request, caller, request_id, name, arguments)
     try:
         structured = call_tool(
             name=name,
@@ -181,8 +244,7 @@ def _initialize(request_id: object, params: dict[str, Any]) -> JsonResponse:
     )
 
 
-@csrf_exempt
-def mcp_endpoint(request: HttpRequest) -> HttpResponse:
+def _handle(request: HttpRequest) -> HttpResponse | PendingDominio:
     if not conf.enabled():
         return HttpResponse(status=404)
     if not _origin_allowed(request):
@@ -233,3 +295,13 @@ def mcp_endpoint(request: HttpRequest) -> HttpResponse:
     if method == "tools/call":
         return _call(request, caller, request_id, params)
     return _rpc_error(request_id, -32601, "Método MCP não implementado.")
+
+
+@csrf_exempt
+async def mcp_endpoint(request: HttpRequest) -> HttpResponse:
+    """Tudo que toca o banco roda em unidades curtas; so a espera do agente fica no laco."""
+    outcome = await sync_to_async(_handle)(request)
+    if isinstance(outcome, PendingDominio):
+        done = await jobs.await_result(outcome.job)
+        return _dominio_response(outcome.request_id, done)
+    return outcome
