@@ -29,7 +29,7 @@ class CatalogoTests(TestCase):
     def test_o_modulo_esta_no_catalogo_e_na_oferta(self) -> None:
         modulo = definition(ProductModule.Code.PROFITABILITY)
 
-        assert modulo.label == "Rentabilidade por Cliente"
+        assert modulo.label == "Lucrums"
         assert modulo.route_name == "profitability:overview"
         assert modulo.required_capabilities == ("companies",)
         assert ProductModule.Code.PROFITABILITY in OFFERED_MODULE_CODES

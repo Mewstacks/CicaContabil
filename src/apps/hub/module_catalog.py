@@ -76,8 +76,8 @@ MODULES: dict[str, ModuleDefinition] = {
     ),
     ProductModule.Code.PROFITABILITY: ModuleDefinition(
         code=ProductModule.Code.PROFITABILITY,
-        label="Rentabilidade por Cliente",
-        short_label="Rentabilidade",
+        label="Lucrums",
+        short_label="Lucrums",
         description=(
             "Cruze honorários, horas lançadas e custo do colaborador para ver o "
             "resultado de cada cliente."
@@ -118,7 +118,10 @@ OFFERED_MODULE_CODES: tuple[str, ...] = tuple(
     code for code in ProductModule.Code.values if code != ProductModule.Code.JOURNEY
 )
 OFFERED_MODULE_CHOICES: tuple[tuple[str, str], ...] = tuple(
-    (str(code), str(label))
+    # O nome que o escritório vê vem do catálogo, não do `choices` do modelo: mudar um
+    # rótulo ali é um AlterField em tabela de produção, e o nome comercial muda mais
+    # vezes do que o schema.
+    (str(code), MODULES[code].label if code in MODULES else str(label))
     for code, label in ProductModule.Code.choices
     if code in OFFERED_MODULE_CODES
 )

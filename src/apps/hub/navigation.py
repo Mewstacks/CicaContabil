@@ -151,7 +151,7 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
         "Gestão",
         [
             link(
-                "Rentabilidade",
+                "Lucrums",
                 "profitability:overview",
                 "Resultado e margem de cada cliente",
             ),
