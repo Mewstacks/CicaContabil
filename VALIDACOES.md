@@ -13444,3 +13444,33 @@ Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, 
 
 Não verificado: rodada `--ds=config.settings.test_postgresql` (fica para o CI); extrato real da SURIA em PDF e
 OFX do mesmo mês (não há OFX de outubro).
+
+## V-474 — D-417: posição de títulos por NF em planilha e movimentos do mês na tela (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `multisource/position_workbook.py` (novo): `posicao-titulos.xlsx` com “Resumo”, “A receber” e “A pagar”;
+  uma linha por NF e parcela, valores numéricos, datas como data, total com fórmula, filtro e cabeçalho fixo.
+  `service.py`, comando e `.zip` da tela passam a aceitar relatório binário.
+- Tela (`multisource_views.py`, template, `multisource.css` e `.js`): seção “Movimentos do mês”, fechada por
+  padrão, com todos os movimentos, a explicação de cada parte e a fonte, motivos das sinalizações e filtro por
+  situação com a contagem anunciada (`aria-live`). Funciona sem JavaScript (todas as linhas visíveis).
+- Testes: 2 em `tests/test_multisource_position_workbook.py` e 2 em `tests/test_multisource_screen.py`
+  (seção e filtros na tela; planilha em binário no `.zip`).
+- Outubro da SURIA (arquivos reais fora do repositório, sem os scans): planilha com os mesmos totais do resumo
+  — a receber 231 parcelas, 82 baixadas, abertura 244.631,35, baixado 127.870,31, final 116.761,04; a pagar
+  82 parcelas, 32 baixadas, final 49.709,62; comparação com o Domínio preenchida em 92 e 8 parcelas, como em
+  `diferencas-posicao.csv`.
+- Navegador (servidor descartável, dados sintéticos, temporários removidos, `launch.json` restaurado): 1366 px
+  claro e escuro, 375 px claro e escuro; sem rolagem horizontal; filtro 6 → 2 sinalizados com a contagem
+  atualizada; sem erro no console. **Corrigido na verificação:** botão de filtro ativo com contraste 3,9:1 no
+  escuro (agora 9,8:1 no escuro e 9,7:1 no claro, mesmos tokens do botão principal); selo de situação quebrava
+  no meio da palavra (rótulo curto e sem quebra); frase explicativa sob o título tirada (regra D-277, apontada
+  por `test_ui_copy_rule`).
+- Regressão: `uv run pytest -q` 5818 passaram e 1 falhou (`test_ui_copy_rule`, corrigido acima; os 12 testes
+  afetados passam depois da correção); `ruff check .` limpo.
+- Protocolo de UI: ui-ux-pro-max consultado (tabela em cartões no celular, estado vazio com explicação);
+  Watermelon e web-design-guidelines indisponíveis nesta sessão.
+
+Não verificado: tela com os arquivos reais (só pelo comando); planilha aberta no Excel (conferida com openpyxl);
+rodada `--ds=config.settings.test_postgresql` (fica para o CI).

@@ -1,3 +1,11 @@
+<!-- D417-V474-2026-11-25 -->
+## 25/11/2026 — D-417/V-474: posição por NF em planilha e movimentos na tela (PC-33)
+
+- [x] `posicao-titulos.xlsx` no `.zip` da tela e na pasta do comando: uma linha por NF e parcela, com baixas e comparação com o Domínio.
+- [x] Tela de fechamento: “Movimentos do mês” com a explicação de cada movimento e filtro por situação.
+- [x] Outubro real conferido; testes, suíte completa e navegador (1366/375, claro e escuro).
+- [ ] Publicação — depende de autorização.
+
 <!-- D416-V473-2026-11-25 -->
 ## 25/11/2026 — D-416/V-473: extrato repetido em dois arquivos (PC-33, C-05)
 

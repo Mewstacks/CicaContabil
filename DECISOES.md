@@ -6524,3 +6524,25 @@ C-08 (D-397 a D-399), C-03 em parte (D-396 item 5, rótulo pela nota quando há 
 4. Sem efeito retroativo: movimentos já gravados não mudam.
 
 Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
+
+## D-417 — PC-33: posição de títulos por NF em planilha e detalhe de cada movimento na tela (25/11/2026)
+
+Origem: responsável, 25/11/2026, “faça o 1 e o 2”, ao escolher, entre os itens que não dependem de
+resposta externa, a posição de títulos exportável (R-07) e o detalhe de cada movimento (seção 6, item 3 do
+plano). Executor Claude Code. Continua em modo simulação (D-409): nada é gravado, lançado ou exportado.
+
+1. **Posição de títulos em `.xlsx` (R-07):** a simulação passa a gerar `posicao-titulos.xlsx`, com uma aba
+   “A receber” e outra “A pagar”, uma linha por NF e parcela: código e nome do cliente ou fornecedor, NF,
+   parcela (n/m), emissão, vencimento, valor da parcela, saldo na abertura, baixado no mês, saldo final,
+   situação (em aberto, baixado, baixa parcial), data e conta de cada baixa e, quando houver a posição do
+   Domínio do mês, o resultado da comparação. Uma aba “Resumo” traz os totais e avisa que é simulação. Os
+   valores ficam como números e as datas como datas, para filtrar e somar. Vai no `.zip` da tela e na pasta
+   do comando; o `posicao.csv` continua igual.
+2. **Detalhe de cada movimento na tela de fechamento:** nova seção “Movimentos do mês”, com todos os
+   movimentos (extrato e abas do caixa) e, em cada um, como foi explicado: títulos baixados, juros, natureza
+   pelo caixa, aplicação, transferência, documento escaneado, linhas do caixa e títulos da francesinha usados
+   e os motivos da sinalização. Filtro por situação. Só leitura: escolher título, definir conta ou “aplicar
+   sempre” continuam dependendo da decisão sobre lançamento real.
+3. Protocolo de UI do AGENTS.md na mudança de tela.
+
+Sem custo, IA, migração, deploy ou mensagem externa.

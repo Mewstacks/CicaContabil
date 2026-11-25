@@ -578,3 +578,15 @@ uv run python manage.py simular_multifontes --extrato extrato.pdf --francesinha 
   - lançamento real e exportação (decisão própria; conflito com a D-393);
   - documentos escaneados na tela, por fila (decisão sobre guardar os arquivos no servidor);
   - itens que dependem das respostas Q-50 a Q-66 e do Razão de outubro.
+
+## 21. Posição por NF em planilha e movimentos na tela (D-417, V-474)
+
+- **Posição de títulos (R-07):** a simulação gera `posicao-titulos.xlsx` (no `.zip` da tela e na pasta do
+  comando), com abas “A receber” e “A pagar”: uma linha por NF e parcela, saldo na abertura, baixado no mês,
+  saldo final, situação, data e conta de cada baixa e o resultado da comparação com a posição do Domínio do
+  mês. Valores e datas ficam como número e data, para filtrar e somar. Outubro: a receber 231 parcelas, 82
+  com baixa, saldo final 116.761,04; a pagar 82 parcelas, 32 com baixa, saldo final 49.709,62.
+- **Movimentos do mês na tela:** todos os movimentos com a explicação de cada parte (título baixado, juros,
+  natureza pelo caixa, aplicação, transferência, documento) e de qual fonte veio, mais os motivos das
+  sinalizações, com filtro por situação. Só leitura.
+- Itens restantes do plano: os mesmos da seção 20 (decisões do responsável e respostas da CONTAD).

@@ -64,6 +64,17 @@
   {% else %}<div class="empty-block"><strong>Nenhuma sinalização</strong><span>Todos os movimentos foram baixados ou identificados.</span></div>{% endif %}
   {% if multisource.unmatched_cashbook %}<p class="titles-notice">{{ multisource.unmatched_cashbook }} linha{{ multisource.unmatched_cashbook|pluralize }} do caixa do cliente sem movimento no extrato.</p>{% endif %}
 </section>
+<section class="workspace-panel titles-panel" aria-labelledby="multisource-movements-heading">
+  <header class="workspace-panel-head"><div><h2 id="multisource-movements-heading">Movimentos do mês</h2></div></header>
+  <details class="multisource-movements" data-multisource-movements>
+    <summary>{% if multisource.movements|length == 1 %}Ver o movimento{% else %}Ver os {{ multisource.movements|length }} movimentos{% endif %}</summary>
+    <div class="multisource-filter" role="group" aria-label="Filtrar movimentos por situação"><button type="button" class="button button-quiet button-small" data-filter="all" aria-pressed="true">Todos ({{ multisource.movements|length }})</button>{% for item in multisource.filters %}{% if item.count %}<button type="button" class="button button-quiet button-small" data-filter="{{ item.key }}" aria-pressed="false">{{ item.label }} ({{ item.count }})</button>{% endif %}{% endfor %}</div>
+    <p class="field-help" aria-live="polite" data-multisource-count>Mostrando {{ multisource.movements|length }} movimento{{ multisource.movements|length|pluralize }}.</p>
+    <div class="data-table-wrap titles-table-wrap"><table class="operational-table titles-table multisource-movement-table"><caption class="sr-only">Movimentos do mês e como cada um foi explicado</caption><thead><tr><th scope="col" class="multisource-nowrap">Data</th><th scope="col" class="multisource-nowrap">Valor</th><th scope="col">Histórico</th><th scope="col">Situação</th><th scope="col">Como foi explicado</th></tr></thead><tbody>
+      {% for row in multisource.movements %}<tr data-situation="{{ row.filter }}"><td data-label="Data" class="multisource-nowrap">{{ row.date|date:'d/m/Y' }}{% if row.account != 'extrato' %}<small>{{ row.account }}</small>{% endif %}</td><td data-label="Valor" class="multisource-nowrap titles-money">R$ {{ row.amount }}</td><td data-label="Histórico">{{ row.description }}</td><td data-label="Situação"><span class="status-badge {{ row.tone }}">{{ row.status }}</span></td><td data-label="Como foi explicado">{% if row.parts %}<ul class="multisource-parts">{% for part in row.parts %}<li><strong>{{ part.kind }}:</strong> {{ part.label }} · R$ {{ part.amount }}{% if part.source %} <small>{{ part.source }}</small>{% endif %}</li>{% endfor %}</ul>{% endif %}{% if row.links %}<small class="multisource-links">Fontes: {{ row.links|join:'; ' }}</small>{% endif %}{% for reason in row.reasons %}<span class="multisource-reason">{{ reason }}</span>{% endfor %}{% if not row.parts and not row.reasons %}<span class="table-muted">Sem explicação: nenhuma fonte cobre este movimento.</span>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </details>
+</section>
 {% if multisource.investment %}
 <section class="workspace-panel titles-panel" aria-labelledby="multisource-investment-heading">
   <header class="workspace-panel-head"><div><h2 id="multisource-investment-heading">Aplicação financeira</h2></div></header>

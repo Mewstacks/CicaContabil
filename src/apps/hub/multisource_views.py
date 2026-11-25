@@ -153,6 +153,58 @@ def _sources(form: MultisourceCloseForm) -> SimulationSources:
     )
 
 
+PART_LABELS = {
+    "receivable": "Recebimento",
+    "payable": "Pagamento",
+    "interest": "Juros/multa (a classificar)",
+    "nature": "Natureza pelo caixa",
+    "document": "Nota/documento",
+    "investment": "Aplicação",
+    "transfer": "Transferência",
+}
+STATUS_FILTERS = {AUTOMATIC: "automatic", IDENTIFIED: "identified", FLAGGED: "flagged"}
+FILTER_LABELS = {AUTOMATIC: "Automáticos", IDENTIFIED: "Identificados", FLAGGED: "Sinalizados"}
+ROW_LABELS = {AUTOMATIC: "Automático", IDENTIFIED: "Identificado pelo caixa", FLAGGED: "Sinalizado"}
+
+
+def _movements(result: Any) -> list[dict[str, Any]]:
+    """D-417: cada movimento com a explicação de como foi baixado, identificado ou sinalizado."""
+    rows = []
+    for line in sorted(result.lines, key=lambda r: (r.bank.occurred_on, r.bank.account)):
+        parts = [
+            {
+                "kind": PART_LABELS.get(part.kind, part.kind),
+                "label": part.label,
+                "amount": money(part.amount_cents),
+                "source": part.source,
+            }
+            for part in line.parts
+        ]
+        links = []
+        if line.collection_items:
+            links.append(f"{len(line.collection_items)} título(s) da francesinha")
+        if line.cashbook_rows:
+            rows_text = ", ".join(str(r) for r in sorted(set(line.cashbook_rows)))
+            links.append(f"caixa do cliente, linha(s) {rows_text}")
+        rows.append(
+            {
+                "date": line.bank.occurred_on,
+                "account": line.bank.account,
+                "amount": money(line.bank.amount_cents),
+                "description": line.bank.description,
+                "status": ROW_LABELS[line.status],
+                "filter": STATUS_FILTERS[line.status],
+                "tone": {"automatic": "is-active", "identified": "is-muted"}.get(
+                    STATUS_FILTERS[line.status], "is-warning"
+                ),
+                "parts": parts,
+                "links": links,
+                "reasons": line.reasons,
+            }
+        )
+    return rows
+
+
 def _view_model(output: SimulationOutput) -> dict[str, Any]:
     result = output.result
     total = len(result.lines)
@@ -250,6 +302,11 @@ def _view_model(output: SimulationOutput) -> dict[str, Any]:
             for (kind, o), n in sorted(differences.items())
         ],
         "investment": investment,
+        "movements": _movements(result),
+        "filters": [
+            {"key": STATUS_FILTERS[status], "label": FILTER_LABELS[status], "count": item["count"]}
+            for status, item in zip((AUTOMATIC, IDENTIFIED, FLAGGED), statuses, strict=True)
+        ],
         "comparison": comparison,
         "warnings": result.warnings,
     }
@@ -258,8 +315,10 @@ def _view_model(output: SimulationOutput) -> dict[str, Any]:
 def _zip(output: SimulationOutput) -> HttpResponse:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        for name, text in output.reports.items():
-            archive.writestr(name, text.encode("utf-8"))
+        for name, content in output.reports.items():
+            archive.writestr(
+                name, content if isinstance(content, bytes) else content.encode("utf-8")
+            )
     period = output.period_start.strftime("%Y-%m")
     response = HttpResponse(buffer.getvalue(), content_type="application/zip")
     response["Content-Disposition"] = f'attachment; filename="simulacao-multifontes-{period}.zip"'

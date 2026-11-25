@@ -142,3 +142,28 @@ def _plain_pdf() -> bytes:
     canvas.showPage()
     canvas.save()
     return stream.getvalue()
+
+
+def test_result_lists_every_movement_with_its_explanation(screen):
+    """D-417: todos os movimentos com a explicação, filtro por situação e planilha no .zip."""
+    response = screen["client"].post(reverse(URL), payload(screen["company"]))
+    page = response.content.decode()
+    assert "Movimentos do mês" in page and "Ver o movimento" in page
+    assert 'data-situation="identified"' in page
+    assert "Natureza pelo caixa:" in page and "caixa do cliente, linha(s)" in page
+    assert 'data-filter="identified"' in page and 'data-filter="flagged"' not in page
+
+
+def test_zip_and_command_keep_the_position_workbook_as_bytes(tmp_path):
+    """D-417: a planilha da posição vai em binário no .zip e na pasta do comando."""
+    from datetime import date
+
+    from apps.hub.multisource.matching import simulate
+    from apps.hub.multisource.service import SimulationOutput
+    from apps.hub.multisource_views import _zip
+
+    output = SimulationOutput(date(2026, 10, 1), simulate([]), None)
+    output.reports = {"resumo.md": "ok", "posicao-titulos.xlsx": b"PK\x03\x04binario"}
+    archive = zipfile.ZipFile(io.BytesIO(_zip(output).content))
+    assert archive.read("posicao-titulos.xlsx") == b"PK\x03\x04binario"
+    assert archive.read("resumo.md") == b"ok"

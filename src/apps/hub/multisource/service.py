@@ -13,6 +13,7 @@ from datetime import date
 from apps.hub.multisource.common import MultisourceError
 from apps.hub.multisource.ledger_comparison import LedgerComparison
 from apps.hub.multisource.matching import SimulationResult
+from apps.hub.multisource.position_workbook import render_position_xlsx
 
 
 @dataclass
@@ -38,7 +39,7 @@ class SimulationOutput:
     period_start: date
     result: SimulationResult
     comparison: LedgerComparison | None
-    reports: dict[str, str] = field(default_factory=dict)
+    reports: dict[str, str | bytes] = field(default_factory=dict)
 
     @property
     def period_label(self) -> str:
@@ -154,6 +155,10 @@ def run_simulation(sources: SimulationSources) -> SimulationOutput:
         "posicao.csv": render_position_csv(result),
         "diferencas-posicao.csv": render_differences_csv(result),
     }
+    if result.installments:
+        output.reports["posicao-titulos.xlsx"] = render_position_xlsx(
+            result, period=statement.period_start
+        )  # D-417
     if documents:
         output.reports["documentos.csv"] = render_documents_csv(result)
     if ledger_movements is not None:

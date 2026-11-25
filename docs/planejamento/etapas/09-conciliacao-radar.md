@@ -21,6 +21,7 @@ passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md
 - [x] D-415: transferências entre contas da própria empresa pareadas na simulação; contas a definir (Q-57) (V-472).
 - [x] Correções C-02 a C-08 do plano mapeadas: já no `main` (D-396 a D-399), exceto C-05.
 - [x] D-416 (C-05): extrato da mesma conta em dois arquivos não gera movimento em dobro (V-473).
+- [x] D-417: posição de títulos por NF em `.xlsx` (R-07) e detalhe de cada movimento na tela de fechamento (V-474).
 - [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
 
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->

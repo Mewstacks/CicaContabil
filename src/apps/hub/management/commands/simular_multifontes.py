@@ -110,9 +110,12 @@ class Command(BaseCommand):
             raise CommandError(str(exc)) from exc
         target_dir: Path = options["saida"]
         target_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-        for name, text in output.reports.items():
+        for name, content in output.reports.items():
             target = target_dir / name
-            target.write_text(text, encoding="utf-8")
+            if isinstance(content, bytes):
+                target.write_bytes(content)  # planilha da posição (D-417)
+            else:
+                target.write_text(content, encoding="utf-8")
             target.chmod(0o600)
         result = output.result
         self.stdout.write(
