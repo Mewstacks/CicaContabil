@@ -858,7 +858,12 @@ def convert_nfse_sync(organization: Organization, stats: Stats, *, enable: bool)
         if _digits(masked)
     }
     marks = _Marks()
-    for record in _records(organization, "nfse_sincronizacaonfse"):
+    # Rows that kept their company link go first, so an orphan never wins over them.
+    ordered = sorted(
+        _records(organization, "nfse_sincronizacaonfse"),
+        key=lambda r: r.payload.get("empresa_id") is None,
+    )
+    for record in ordered:
         data = record.payload
         # Some legacy rows lost their company link; the CNPJ they poll for still identifies it.
         company = companies.get(str(data.get("empresa_id"))) or by_cnpj.get(
