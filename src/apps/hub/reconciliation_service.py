@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 import uuid
 import zipfile
+from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -1453,6 +1454,7 @@ def process_run(
         ignored = 0
         errors: list[dict[str, str]] = []
         auto_reconciliation_candidates: list[uuid.UUID] = []
+        already_imported = _movements_from_other_files(source)
         for index, record in enumerate(records, start=1):
             if ReconciliationRun.objects.filter(
                 id=run.id, lease_token=token, cancel_requested_at__isnull=False
@@ -1492,7 +1494,13 @@ def process_run(
                             "confidence_details": record.confidence_details or {},
                         },
                     )
-                    if was_created:
+                    repeated = already_imported.get((record.occurred_on, record.amount_cents))
+                    if was_created and repeated:
+                        # D-416: same account, date and signed amount came from another file.
+                        created += 1
+                        ignored += 1
+                        _mark_repeated_from_other_file(movement, repeated.pop(0))
+                    elif was_created:
                         created += 1
                         apply_rules(movement)
                         require_review_for_low_quality_extraction(movement)
@@ -1552,6 +1560,51 @@ def process_run(
                 errors=[{"code": "processing_failed", "message": str(exc)[:240]}],
             )
         return {"state": "failed"}
+
+
+REPEATED_FROM_OTHER_FILE = "repeated_from_other_file"
+
+
+def _movements_from_other_files(
+    source: ReconciliationSourceFile,
+) -> dict[tuple[date | None, int], list[NormalizedMovement]]:
+    """D-416: movements of the same account already imported from other statement files.
+
+    Keyed by date and signed amount (descriptions differ between OFX and PDF); each list is consumed
+    once per repeated record, so k copies in the new file match at most m existing movements."""
+    if (
+        source.financial_account_id is None
+        or source.origin != ReconciliationSourceFile.Origin.BANK_STATEMENT
+    ):
+        return {}
+    existing: dict[tuple[date | None, int], list[NormalizedMovement]] = defaultdict(list)
+    for movement in (
+        NormalizedMovement.objects.filter(
+            organization_id=source.organization_id,
+            financial_account_id=source.financial_account_id,
+            source_file__origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+        )
+        .exclude(source_file=source)
+        .exclude(review_state=NormalizedMovement.ReviewState.IGNORED)
+        .exclude(amount_cents=0)
+        .select_related("source_file")
+        .order_by("occurred_on", "created_at", "id")
+    ):
+        existing[(movement.occurred_on, movement.amount_cents)].append(movement)
+    return existing
+
+
+def _mark_repeated_from_other_file(
+    movement: NormalizedMovement, original: NormalizedMovement
+) -> None:
+    movement.review_state = NormalizedMovement.ReviewState.IGNORED
+    movement.confidence_details = {
+        **(movement.confidence_details or {}),
+        "ignored_reason": REPEATED_FROM_OTHER_FILE,
+        "repeated_movement": str(original.pk),
+        "repeated_file": original.source_file.original_filename,
+    }
+    movement.save(update_fields=["review_state", "confidence_details", "updated_at"])
 
 
 def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[str, int | str]:
@@ -1965,6 +2018,33 @@ def _dominio_record(kind: str, body: str) -> str:
     return record
 
 
+def _lote19_pairs(parts: list[JournalLine]) -> list[tuple[str, str, int]]:
+    """Pares (débito, crédito, valor) do tipo "X", o único emitido até a importação real (V-428).
+
+    Pares iguais viram um lote X cada. D-421: um lado único contra várias partidas do outro (ex.:
+    principal + juros contra o banco) vira um par X por partida, repetindo a conta do lado único;
+    totais e contas não mudam. Vários débitos contra vários créditos de valores diferentes são
+    recusados."""
+    debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
+    credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
+    if len(debits) == len(credits) and all(
+        debit.amount_cents == credit.amount_cents
+        for debit, credit in zip(debits, credits, strict=True)
+    ):
+        pairs = zip(debits, credits, strict=True)
+        return [(d.account_code, c.account_code, d.amount_cents) for d, c in pairs]
+    debit_total = sum(d.amount_cents for d in debits)
+    credit_total = sum(c.amount_cents for c in credits)
+    if len(debits) == 1 and credits and credit_total == debit_total:
+        return [(debits[0].account_code, c.account_code, c.amount_cents) for c in credits]
+    if len(credits) == 1 and debits and debit_total == credit_total:
+        return [(d.account_code, credits[0].account_code, d.amount_cents) for d in debits]
+    raise ReconciliationError(
+        "Partidas compostas com vários débitos e vários créditos de valores diferentes ainda não "
+        "são aceitas no arquivo Domínio; divida o lançamento em pares de débito e crédito."
+    )
+
+
 def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
     """Render approved entries of one company as the official fixed-width lote file."""
     entries = list(entries)
@@ -1997,32 +2077,15 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
     ]
     sequence = 0
     for entry in sorted(entries, key=lambda item: (item.occurred_on, str(item.pk))):
-        parts = list(entry.lines.all())
         # Ordem do banco não é contrato: sem ORDER BY o Postgres devolve as linhas na ordem
-        # física, que muda com o estado da tabela, e o zip abaixo pareava uma partida de 500
-        # com uma de 300. Ordenar os dois lados pelo mesmo critério faz pares iguais sempre
-        # coincidirem e torna a ordem do arquivo estável.
-        debits = sorted(
-            (line for line in parts if line.side == JournalLine.Side.DEBIT),
-            key=lambda line: (line.amount_cents, line.account_code),
+        # física, que muda com o estado da tabela. Ordenar pelo valor e pela conta faz pares
+        # iguais sempre coincidirem e torna a ordem do arquivo estável.
+        parts = sorted(
+            entry.lines.all(),
+            key=lambda line: (line.amount_cents, line.account_code, str(line.pk)),
         )
-        credits = sorted(
-            (line for line in parts if line.side == JournalLine.Side.CREDIT),
-            key=lambda line: (line.amount_cents, line.account_code),
-        )
-        # Only the "X" lote type (one debit, one credit) is emitted until another type
-        # is proven on the destination importer; equal debit/credit pairs become one
-        # X lote each, preserving totals. Other compositions are refused.
-        if len(debits) != len(credits) or any(
-            debit.amount_cents != credit.amount_cents
-            for debit, credit in zip(debits, credits, strict=False)
-        ):
-            raise ReconciliationError(
-                "Partidas compostas com valores diferentes ainda não são aceitas no arquivo "
-                "Domínio; divida o lançamento em pares de débito e crédito."
-            )
-        for debit, credit in zip(debits, credits, strict=True):
-            if debit.amount_cents <= 0:
+        for debit_code, credit_code, amount in _lote19_pairs(parts):
+            if amount <= 0:
                 raise ReconciliationError("O valor do lançamento deve ser maior que zero.")
             sequence += 1
             lines.append(
@@ -2039,9 +2102,9 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
                 _dominio_record(
                     "03",
                     _fixed_number(sequence, 7, "Sequencial")
-                    + _fixed_number(debit.account_code, 7, "Conta débito")
-                    + _fixed_number(credit.account_code, 7, "Conta crédito")
-                    + _fixed_number(debit.amount_cents, 15, "Valor")
+                    + _fixed_number(debit_code, 7, "Conta débito")
+                    + _fixed_number(credit_code, 7, "Conta crédito")
+                    + _fixed_number(amount, 15, "Valor")
                     + "0" * 7
                     + _fixed_text(entry.history, 512)
                     + company_code,

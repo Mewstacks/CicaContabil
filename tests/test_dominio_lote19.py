@@ -129,9 +129,38 @@ def test_equal_pairs_become_separate_x_lotes_and_other_compositions_are_refused(
     rows = records(render_dominio_lote19([paired]))
     assert [row[:2] for row in rows] == ["01", "02", "03", "02", "03", "99"]
     assert [field(row, 3, 9) for row in rows[1:5]] == [f"000000{n}" for n in range(1, 5)]
+    # D-421: um lado único contra várias partidas vira um par X por partida.
     split = entry(company, [("8", "debit", 1000), ("41", "credit", 800), ("42", "credit", 200)])
+    split_rows = [row for row in records(render_dominio_lote19([split])) if row[:2] == "03"]
+    assert [(field(r, 10, 16), field(r, 17, 23), field(r, 24, 38)) for r in split_rows] == [
+        ("0000008", "0000042", "000000000000200"),
+        ("0000008", "0000041", "000000000000800"),
+    ]
+    loan = entry(
+        company, [("117", "debit", 885094), ("231", "debit", 12239), ("8", "credit", 897333)]
+    )
+    loan_rows = [row for row in records(render_dominio_lote19([loan])) if row[:2] == "03"]
+    assert [(field(r, 10, 16), field(r, 17, 23)) for r in loan_rows] == [
+        ("0000231", "0000008"),  # ordem crescente de valor, como os pares iguais
+        ("0000117", "0000008"),
+    ]
+    mixed = entry(
+        company,
+        [("8", "debit", 700), ("9", "debit", 300), ("41", "credit", 600), ("42", "credit", 400)],
+    )
     with pytest.raises(ReconciliationError, match="pares de débito e crédito"):
-        render_dominio_lote19([split])
+        render_dominio_lote19([mixed])
+
+
+def test_equal_pairs_are_matched_by_value_whatever_the_line_order(company):
+    # O banco não garante a ordem das linhas (PostgreSQL difere do SQLite); o pareamento
+    # débito/crédito não pode depender dela.
+    shuffled = entry(
+        company,
+        [("9", "debit", 300), ("41", "credit", 500), ("8", "debit", 500), ("42", "credit", 300)],
+    )
+    rows = records(render_dominio_lote19([shuffled]))
+    assert [row[:2] for row in rows] == ["01", "02", "03", "02", "03", "99"]
 
 
 def test_pairing_does_not_depend_on_the_order_the_database_returns_lines(company):

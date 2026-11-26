@@ -868,6 +868,7 @@ sem dimensionar equipe, acesso e disponibilidade do piloto.
 | PC-30 | Crítico liberação · 12 | Dossiê por módulo, oferta coerente, manual/suporte e aceite | Todos os pacotes aplicáveis à liberação | Nenhuma promessa sem prova; proprietário assina matriz de capacidades e limitações |
 | PC-31 | Posterior · 13 | Treino/avaliação/capacidade da IA na máquina definitiva | Hardware/modelo/curadoria; D-50/51 | Qualidade e isolamento medidos; migração aprovada com rollback; API só como reserva autorizada |
 | PC-32 | Alto · 15 | Contraprova: conferência SPED × XML, SPED × SPED, ICMS 51 e UF × Domínio como módulo do CICA (sucessor do Tax Envel), com motor em streaming, regras explícitas e consulta de UF ao Domínio pelo agente | D-300 a D-302; Q-46 (responsável fiscal) e Q-47 (contrato do dataset); desenvolvimento | Cada defeito catalogado do legado coberto por teste; nada some em silêncio (o ignorado fica listado e exportado); entrada apagada em 24 h; consulta ao Domínio só homologa após ensaio autorizado na base real (D-86) |
+| PC-33 | Crítico Contábil · 09/11/12 | Conciliação multifontes CONTAD: extrato + francesinha + posição CP/CR + caixa do cliente + aplicação + documentos escaneados, carteira de títulos mantida pela CICA, sinalizações com motivo e comparação com o Razão manual ([plano](docs/planejamento/contad-multifontes-2026-11-24.md), reunião de 24/11/2026) | Q-50 a Q-66; estimativa ao cliente; decisão de escopo D-409 pendente (inclui ajuste da D-393); agente com período configurável; contador + desenvolvimento | Outubro/SURIA em simulação: francesinha decompõe cada cobrança do extrato; posição de 31/10 conferida contra o CP/CR 10/2026; nenhum lançamento para item ambíguo; % automático medido; novembro rodado no início de dezembro |
 
 ### Ondas e caminho crítico
 
@@ -884,7 +885,7 @@ operacional podem seguir em paralelo ao recebimento do material.
 independente com provas humanas, depois ligar fontes homologadas. Calendário e handoffs novos
 precisam ser especificados a partir das rotinas reais, não de regras fiscais supostas.
 
-**Onda 4 — completar módulos:** Triagem PC-15/16/17; Contábil PC-19/20/21; Integra PC-18;
+**Onda 4 — completar módulos:** Triagem PC-15/16/17; Contábil PC-19/20/21/33; Integra PC-18;
 IA PC-22/23; Radar PC-24. Trilhas independentes podem ser paralelas. PC-25 avança quando Q-33
 for atendida, sem bloquear correções de outros módulos.
 

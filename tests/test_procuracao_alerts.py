@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from typing import Any
 
 import pytest
@@ -29,12 +29,15 @@ pytestmark = pytest.mark.django_db
 
 def certificate(world: World, *, days: int, **extra: Any) -> OfficeCertificate:
     now = timezone.now()
+    # Meio-dia local do dia-alvo: os limiares contam dias na data local, e "agora + horas" muda de
+    # dia quando o teste roda perto da meia-noite (falhou no CI às 22h de Brasília).
+    target = timezone.localdate() + timedelta(days=days)
     fields: dict[str, Any] = {
         "organization": world.office,
         "label": "e-CNPJ",
         "cnpj": OFFICE_CNPJ,
         "valid_from": now - timedelta(days=300),
-        "valid_until": now + timedelta(days=days, hours=2),
+        "valid_until": timezone.make_aware(datetime.combine(target, time(12))),
         "fingerprint_sha256": f"{days:064d}",
     }
     fields.update(extra)

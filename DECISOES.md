@@ -6341,3 +6341,353 @@ pedido em dobro; nenhuma regra contábil muda. Vale para todos os escritórios.
    revisão não bloqueia (continua valendo “Tentar novamente”).
 
 Sem migração, custo, IA ou mensagem externa. Merge e publicação dependem de autorização do responsável na sessão.
+
+## D-409 — PC-33, Fase 1: conciliação multifontes CONTAD em modo simulação (24/11/2026)
+
+Origem: responsável, 24/11/2026, “pode iniciar o desenvolvimento”, depois de aprovar o plano
+[`docs/planejamento/contad-multifontes-2026-11-24.md`](docs/planejamento/contad-multifontes-2026-11-24.md)
+(PC-33, Q-50 a Q-66, V-465), que nasceu da reunião com a CONTAD de 24/11/2026. Executor Claude Code.
+Vale só para o desenvolvimento descrito abaixo; não registra estimativa, preço ou prazo comercial.
+
+1. A Fase 1 roda em **modo simulação**: lê as fontes, decompõe movimentos, casa recebimentos e pagamentos com
+   títulos, calcula a posição de títulos e gera relatório. Não cria lançamento, regra, conciliação nem
+   exportação, não grava no banco e não muda o uso direto (D-393) nem dados de produção. Tornar as sinalizações
+   bloqueantes no uso real (risco de conflito com a D-393) exige decisão própria.
+2. Fontes da Fase 1: extrato Sicredi (leitor existente), francesinha Sicredi em PDF, posição de contas a
+   receber e a pagar do Domínio em `.xls` e planilha de caixa do cliente em `.xlsx`. Por linha de comando, com
+   arquivos locais; sem tela e sem migração nesta fase (telas seguem o protocolo de UI do AGENTS.md depois).
+3. Regras explícitas da cliente aplicadas: decompor a cobrança do extrato pela data de lançamento em c/c da
+   francesinha; baixar o valor nominal e separar juros e multa; com vários títulos de valor exato, baixar o de
+   vencimento mais antigo; pagamento de fornecedor por documento citado no caixa, um por documento; sem
+   documento, título aberto de valor exato; tudo o que não fecha vira **sinalização com motivo**.
+4. Sem presumir respostas abertas: tolerância de valor zero (Q-58); o “Seu Nº” da francesinha não é usado
+   como número da nota (Q-52) — a nota vem do caixa do cliente ou do casamento pagador + valor; juros ficam
+   “a classificar”, sem conta (Q-53); diferença no “Total Geral” dos `.xls` vira aviso (Q-59); nenhuma conta
+   contábil é atribuída (Q-50).
+5. Nova dependência `xlrd` (somente leitura de `.xls` BIFF). Arquivos reais da cliente nunca entram no
+   repositório; os testes usam réplicas sintéticas dos layouts.
+6. Fora desta decisão: período configurável do agente (C-01), aplicação/resgate, documentos escaneados,
+   marketplace com comissão, empréstimo e cartão.
+
+Sem custo, IA, deploy ou mensagem externa. Commit, merge e publicação dependem de autorização na sessão.
+
+## D-410 — PC-33: comparação da simulação com o Razão de outubro; agente sem mudança (24/11/2026)
+
+Origem: responsável, 24/11/2026, “Agente e Razão de outubro”, ao escolher o próximo passo do PC-33.
+Executor Claude Code. Complementa a D-409 e continua em modo simulação.
+
+1. **Correção do plano (C-01):** a leitura do código mostrou que o agente no modo automático
+   (`dominio-ledger-snapshot-v2`, títulos automáticos) já aceita qualquer mês cheio a partir de 09/2026
+   (`NativeLedgerPlan.cs`, `NativeTitlePlan.cs`); só o piloto antigo (empresa 212, setembro) é fixo. O servidor
+   também aceita (`ledger_requests._month`), e o bloqueio do 2º mês foi corrigido pela D-396. Não há versão nova
+   do agente nesta etapa; o Razão de outubro é pedido pela tela, como os demais.
+2. O comando `simular_multifontes` passa a aceitar o Razão da conta bancária, em PDF do Domínio (leitor
+   existente `ledger_evidence`) ou no contrato `ledger-csv-v1`, e compara cada movimento do extrato com os
+   lançamentos do Razão: mesmo desdobramento, mesmo valor com desdobramento diferente, ausente no Razão ou só no
+   Razão. Datas até 5 dias de distância são aceitas, como na D-397.
+3. O relatório lista as contas de contrapartida usadas pela contadora para cada tipo de parte (recebimento,
+   pagamento, juros, natureza do caixa) como **evidência** para Q-50 e Q-53. Nada vira regra ou conta
+   automaticamente.
+4. Nenhum dado é lido de produção por este comando: o Razão é um arquivo informado por quem executa.
+
+Sem migração, custo, IA, deploy ou mensagem externa.
+
+## D-411 — PC-33, Fase 2 em simulação: aplicação financeira e natureza divergente (24/11/2026)
+
+Origem: responsável, 24/11/2026, “continue o desenvolvimento com base no plano”. Executor Claude Code.
+Continua em modo simulação (D-409): nada é gravado, lançado ou exportado.
+
+1. **Aplicação (R-15):** leitor do “Extrato de Aplicação — Depósito a Prazo” do Sicredi em PDF texto, com a
+   cadeia de saldos conferida (saldo anterior + aplicações − resgates + rendimentos − encargos de IRRF/IOF =
+   saldo atual) e a linha repetida na virada de página descartada. No extrato bancário, as aplicações e os
+   resgates do dia (podem vir em várias linhas) são casados por soma exata com a aplicação ou o resgate do
+   mesmo dia no extrato da aplicação e ficam como transferência entre banco e aplicação. Rendimentos e IRRF
+   não passam pelo banco: são listados “a lançar na conta da aplicação”, sem conta atribuída (Q-54).
+2. **Natureza divergente (R-12):** quando o mesmo CPF/CNPJ do extrato tem uma natureza habitual no caixa do
+   cliente (ao menos 2 ocorrências no mês) e outro movimento dele traz natureza diferente, o movimento é
+   sinalizado (“natureza diferente do habitual”), não identificado.
+3. A situação “baixa automática” passa a se chamar “automático (títulos ou aplicação)”, porque inclui as
+   transferências de aplicação comprovadas pelos dois extratos.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-412 — PC-33: documentos escaneados na simulação (R-10, R-11) (24/11/2026)
+
+Origem: responsável, 24/11/2026, “Documentos escaneados”, ao escolher o próximo item do plano. Executor
+Claude Code. Continua em modo simulação (D-409); OCR somente local (Tesseract `por`, já usado pelo sistema),
+sem IA nem serviço externo.
+
+1. O comando `simular_multifontes` aceita PDFs escaneados (`--documentos`, pode repetir). Cada página passa
+   por OCR local; o boleto é identificado pela linha digitável, cujos dígitos verificadores são conferidos —
+   valor e vencimento vêm dela, não do texto livre. Recibos, DANFE e CT-e têm valor, CNPJ e número lidos do
+   texto, com a confiança do OCR registrada; leitura abaixo de 90 fica “leitura incerta”.
+2. Cada documento de pagamento (boleto, recibo, fatura) é procurado no extrato e nas abas do caixa sem
+   extrato: mesmo valor, data entre 15 dias antes e 5 dias depois do vencimento, e, quando houver, mesmo
+   CNPJ. Documento sem pagamento vira sinalização “pode ter sido pago em dinheiro ou ser ressarcimento”
+   (R-11).
+3. R-10: um pagamento do extrato sem linha no caixa do cliente, mas com documento casado, usa o número do
+   documento e o nome do beneficiário para baixar o título aberto, pelas mesmas regras da D-409.
+4. O CNPJ da própria empresa (`--cnpj`) é ignorado na leitura do beneficiário. Arquivos escaneados da
+   cliente não entram no repositório; os testes usam documentos sintéticos.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-413 — PC-33: tela “Fechamento do mês (simulação)” (24/11/2026)
+
+Origem: responsável, 24/11/2026, “Tela de fechamento”, ao escolher o próximo item do plano. Executor Claude
+Code. Leva para a tela a simulação das D-409 a D-412, sem mudar sua natureza.
+
+1. Nova página `app/conciliacao/fechamento/`, a partir da Conciliação bancária, para quem pode operar a
+   conciliação no escritório (mesma regra das demais telas; perfil de consulta e demonstração não enviam).
+2. A pessoa escolhe a empresa e envia as fontes do mês: extrato Sicredi (obrigatório), francesinha, posição a
+   receber e a pagar do mês anterior, caixa do cliente (aba do banco e abas sem extrato), extrato da aplicação,
+   posição do mês para comparação e Razão da conta (PDF ou CSV). A simulação roda na própria requisição e o
+   resultado aparece na mesma página: situação dos movimentos, sinalizações com motivo, aplicação, posição de
+   títulos e comparação com o Razão. Um segundo botão devolve os mesmos relatórios em `.zip`.
+3. **Nada é guardado:** os arquivos são lidos em memória (ou no arquivo temporário do próprio upload) e
+   descartados ao fim da requisição; não há modelo, migração, lançamento, regra nem exportação. A resposta é
+   privada (`no-store`). O CNPJ das posições precisa ser o da empresa escolhida, quando ela tiver CNPJ.
+4. Documentos escaneados ficam fora da tela nesta etapa: o OCR leva cerca de 1 s por página e a requisição
+   web tem limite de 30 s. Continuam pelo comando `simular_multifontes --documentos`; levar para a tela exige
+   processamento em fila (decisão própria).
+5. Protocolo de UI do AGENTS.md: diretrizes do ui-ux-pro-max consultadas (rótulos, retorno ao enviar, tabela
+   em cartões no celular, indicação de espera); Watermelon e web-design-guidelines não estão disponíveis nesta
+   sessão (mesmo limite registrado em V-441 e seguintes); verificação no navegador em 1366/375 px, claro e
+   escuro, com dados sintéticos.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-414 — PC-33: leitura de guias, valor por extenso e linha digitável tolerante (25/11/2026)
+
+Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano levando em conta o que já foi feito”.
+Executor Claude Code. Fecha as lacunas registradas na V-469 sem mudar a natureza da D-412: modo simulação,
+OCR somente local, sem IA nem serviço externo.
+
+1. **Guias e contas de consumo (linha de 48 dígitos, começa por 8):** a linha é aceita só com os quatro
+   dígitos de bloco e o dígito geral conferidos (módulo 10 ou 11, conforme o identificador de valor). O valor
+   vem da linha quando ela traz valor efetivo; o vencimento continua vindo do texto. O documento passa a ser
+   do tipo “guia” e é procurado no extrato e no caixa como os demais documentos de pagamento.
+2. **Linha digitável do boleto tolerante a separadores lidos errado** (dois-pontos, barra, falta de espaço
+   entre campos). A segurança continua nos dígitos verificadores e na regra de confiança mínima da D-412.
+3. **Valor por extenso** (“a quantia de seiscentos e cinquenta reais”): lido com tolerância a erros de
+   grafia do OCR. Quando confirma o valor em algarismos, a leitura deixa de ser incerta; quando diverge, vale
+   o algarismo e o documento recebe a observação “valor por extenso diferente; confirmar”. O extenso nunca
+   substitui um valor em algarismos sozinho.
+4. **Soma confere:** valor do documento igual à soma de outros dois valores da mesma página (ex.: parcelas
+   de um recibo de ressarcimento) conta como leitura confirmada. O rótulo “Total a pagar” passa a ser lido.
+5. Sem mudança nas regras de casamento (D-412 itens 2 e 3) nem no limite de tempo da tela (D-413 item 4).
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-415 — PC-33: transferências entre contas da própria empresa na simulação (25/11/2026)
+
+Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano levando em conta o que já foi feito”
+(N-05 do plano, transferências Sicredi ↔ Caixa ↔ CEF). Executor Claude Code. Continua em modo simulação
+(D-409): nada é gravado, lançado ou exportado.
+
+1. Um movimento de uma conta da empresa (extrato ou aba do caixa sem extrato) forma par com o movimento de
+   **valor igual e sinal oposto** em **outra** conta da empresa, com até 3 dias de distância, quando os dois
+   lados trazem indício de transferência (TED, transferência, saque, depósito, “recebido de”, o CNPJ da
+   própria empresa ou o nome de uma conta da empresa) e ao menos um deles cita a outra conta pelo nome da
+   aba. Movimentos que já baixaram títulos ou casaram com a aplicação não entram.
+2. Cada movimento forma no máximo um par. Havendo mais de um par possível, nenhum é formado e o caso vira
+   aviso no relatório; não há escolha por proximidade de data entre candidatos empatados.
+3. O par fica como “automático” (transferência entre contas), sem conta contábil atribuída: como lançar a
+   transferência e se o caixa físico e a CEF entram no escopo continuam em aberto (Q-57). O rótulo da
+   situação passa a ser “Automático (títulos, aplicação ou transferência)”.
+4. O relatório lista os pares e os avisos. Na tela de fechamento, muda o rótulo da situação e entra a
+   contagem “Transferências entre contas” junto às demais partes; os números dos cartões ficam alinhados
+   mesmo com rótulos de alturas diferentes.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-416 — PC-33 (C-05): extrato da mesma conta importado em dois arquivos não gera movimento em dobro (25/11/2026)
+
+Origem: responsável, 25/11/2026, “continue o desenvolvimento do plano”; correção C-05 do plano multifontes
+(hipótese da revisão de 23/11, item 1a), confirmada por leitura de código: o reenvio só é barrado pelo hash do
+arquivo e pelo FITID do OFX, então um PDF e um OFX (ou dois PDFs de períodos sobrepostos) da mesma conta
+geram o mesmo movimento duas vezes, e no uso direto (D-393) cada cópia pode virar lançamento. Executor
+Claude Code. As demais correções do plano já estão no `main`: C-02 e C-06 (D-396), C-04 e C-07 (D-397),
+C-08 (D-397 a D-399), C-03 em parte (D-396 item 5, rótulo pela nota quando há fonte legível).
+
+1. Ao processar um extrato bancário com conta financeira, cada movimento lido é comparado com os movimentos
+   **da mesma conta vindos de outros arquivos**, não ignorados, com a **mesma data e o mesmo valor com
+   sinal**. A comparação conta repetições: se o arquivo novo tem k movimentos com essa data e valor e os
+   outros arquivos já têm m, os min(k, m) primeiros do arquivo novo são repetição.
+2. A repetição é gravada como movimento **ignorado**, com o motivo e o arquivo de onde já tinha vindo. Assim
+   fica fora do lançamento automático, da conciliação automática, da IA e da exportação, como qualquer
+   ignorado; a pessoa pode restaurá-lo no próprio movimento se não for repetição. O histórico não entra na
+   comparação, porque OFX e PDF descrevem o mesmo movimento de formas diferentes.
+3. Vale para todos os escritórios (só afeta cópias exatas da mesma conta). O processamento conta essas
+   repetições entre os ignorados; no movimento e no resultado do uso direto, a situação aparece como
+   “Repetido de outro extrato · não lançado”, com o nome do arquivo de origem.
+4. Sem efeito retroativo: movimentos já gravados não mudam.
+
+Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
+
+## D-417 — PC-33: posição de títulos por NF em planilha e detalhe de cada movimento na tela (25/11/2026)
+
+Origem: responsável, 25/11/2026, “faça o 1 e o 2”, ao escolher, entre os itens que não dependem de
+resposta externa, a posição de títulos exportável (R-07) e o detalhe de cada movimento (seção 6, item 3 do
+plano). Executor Claude Code. Continua em modo simulação (D-409): nada é gravado, lançado ou exportado.
+
+1. **Posição de títulos em `.xlsx` (R-07):** a simulação passa a gerar `posicao-titulos.xlsx`, com uma aba
+   “A receber” e outra “A pagar”, uma linha por NF e parcela: código e nome do cliente ou fornecedor, NF,
+   parcela (n/m), emissão, vencimento, valor da parcela, saldo na abertura, baixado no mês, saldo final,
+   situação (em aberto, baixado, baixa parcial), data e conta de cada baixa e, quando houver a posição do
+   Domínio do mês, o resultado da comparação. Uma aba “Resumo” traz os totais e avisa que é simulação. Os
+   valores ficam como números e as datas como datas, para filtrar e somar. Vai no `.zip` da tela e na pasta
+   do comando; o `posicao.csv` continua igual.
+2. **Detalhe de cada movimento na tela de fechamento:** nova seção “Movimentos do mês”, com todos os
+   movimentos (extrato e abas do caixa) e, em cada um, como foi explicado: títulos baixados, juros, natureza
+   pelo caixa, aplicação, transferência, documento escaneado, linhas do caixa e títulos da francesinha usados
+   e os motivos da sinalização. Filtro por situação. Só leitura: escolher título, definir conta ou “aplicar
+   sempre” continuam dependendo da decisão sobre lançamento real.
+3. Protocolo de UI do AGENTS.md na mudança de tela.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-418 — PC-33: empréstimo e fatura do cartão identificam o pagamento na simulação (25/11/2026)
+
+Origem: responsável, 25/11/2026, “faça o 3 e o 4”, ao escolher ler o cronograma do empréstimo e a fatura do
+cartão (F4 e F5 do plano) só para identificar o pagamento. Executor Claude Code. Continua em modo simulação
+(D-409): nada é gravado, lançado ou exportado.
+
+1. **Empréstimo Sicredi (“Consulta de Empréstimos — Parcelas do Título”, PDF texto):** lê número do título,
+   data de liberação e cada parcela (número, situação, vencimento, pagamento e valor). A débito do extrato de
+   **mesmo valor** de uma parcela liquidada, com data até 3 dias da data de pagamento, fica identificado como
+   “Empréstimo nº · parcela n/total”. Juros e principal **não** são separados: o cronograma só traz o total
+   (Q-55). O relatório lista as parcelas pagas no mês sem débito no extrato e o saldo das parcelas a vencer.
+2. **Fatura do cartão Sicredi (PDF texto):** lê cartão (final), vencimento, total da fatura e as transações.
+   O débito do extrato com o total da fatura, até 3 dias do vencimento, fica identificado como “Fatura do
+   cartão final … (venc. …)”. As despesas da fatura são listadas no relatório; lançar o total ou cada despesa
+   continua em aberto (Q-56).
+3. Os dois documentos só **identificam**: o movimento fica “identificado”, nunca “automático”, e nenhuma
+   conta é atribuída. Se o caixa do cliente já descreveu o movimento, a descrição do caixa é mantida ao lado.
+4. Comando (`--emprestimo`, `--fatura-cartao`, podem repetir) e tela de fechamento (dois campos opcionais).
+   O empréstimo da CEF fica como está, sem cronograma.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-419 — Resultado do extrato: indicador sem estourar no celular e ignorados fora dos “não conferidos” (25/11/2026)
+
+Origem: responsável, 25/11/2026, “faça o 3 e o 4”, para dois problemas vistos na V-473 na tela “Resultado do
+extrato”. Executor Claude Code, com a delegação da D-393 (apresentação no uso direto, como D-398/D-399).
+
+1. Em 375 px, “Não comparável” passava da largura do cartão “Diferença nas variações”: texto no lugar de
+   número passa a usar tamanho menor e quebra normal.
+2. No uso direto, o cartão “Movimentos conferidos” passa a dizer “N não conferidos · M ignorados”: os
+   movimentos ignorados (inclusive os repetidos de outro extrato, D-416) saem da contagem de não conferidos.
+   A **variação do extrato não muda**: ela compara o arquivo inteiro com o Razão do período, e os movimentos
+   ignorados também são movimentos do banco nesse período (a observação da V-473 sobre a variação não
+   procede). O relatório da conferência (`reconciliation-conference-v1`) e o CSV continuam iguais.
+
+Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
+
+## D-420 — PC-33: respostas propostas com evidência e padrões provisórios na simulação (25/11/2026)
+
+Origem: responsável, 25/11/2026, “sim, comece pelo grupo 2”, depois de lhe ser proposto pesquisar nos arquivos
+da própria cliente as perguntas Q-50 a Q-66 que têm evidência, ligar as respostas como padrões provisórios só
+na simulação e reescrever as perguntas como “confirma que é assim?”. Executor Claude Code. **Não responde as
+perguntas**: a contadora confirma. Continua em modo simulação (D-409).
+
+Evidências (V-477): Razão de setembro/2026 da conta Sicredi (163 lançamentos, importado pelo agente; backup
+de 24/11), plano de contas da SURIA (empresa 212, 4.134 contas, descoberta D-373), posições CR/CP de 09 e
+10/2026, francesinha e caixa de outubro.
+
+1. **Contas sugeridas (Q-50, Q-53, Q-54, Q-56, Q-57, Q-66):** a simulação passa a mostrar, para cada parte, a
+   conta que a contadora usou em setembro para o mesmo tipo de movimento, procurada **pelo nome** no plano da
+   empresa, marcada “sugerida — a confirmar”. Nunca vira lançamento. Prática observada em setembro: cobrança e
+   PIX recebidos contra COBRANÇA; pagamentos (boleto, PIX, folha e fatura do cartão) contra PAGAMENTO DE
+   FORNECEDORES; aplicação e resgate contra APLICAÇÃO SICREDINVEST AUTOMATICO; tarifas contra DESPESAS
+   BANCÁRIAS; saque e transferência contra CAIXA e CAIXA ECONOMICA FEDERAL; guias contra FGTS, SIMPLES e ICMS
+   DIFERENCIAL; consignado contra EMPRESTIMOS CONSIGNADOS; PIX aos sócios contra EMPRÉSTIMO AO SÓCIO / A SÓCIA
+   (meio a meio); parcela do empréstimo dividida entre o contrato (principal) e JUROS PASSIVOS. Para a baixa
+   do título (R-07), a conta analítica do cliente ou fornecedor é procurada pelo nome (149 de 151 clientes e
+   15 de 17 fornecedores das posições têm conta com o mesmo nome); juros recebidos em JUROS ATIVOS;
+   rendimento e IRRF da aplicação em RECEITA DE APLICAÇÕES FINANCEIRAS e IRRF S/ APLICAÇÃO FINANCEIRA (o
+   plano também tem contas de provisão; a confirmar). Sem a conta no plano, não há sugestão.
+2. **“Seu Nº” da francesinha (Q-52):** o formato `*1NNNNNNPP` traz a NF (6 dígitos) e a parcela (2 dígitos):
+   51 de 51 NFs decodificadas de outubro existem no caixa. Passa a ser usado como referência da NF quando o
+   caixa não traz a nota. A parcela não é usada, porque a posição do Domínio numera só as parcelas em aberto.
+   O formato `XX0000nnnn` é uma numeração sequencial sem relação com a NF (36 de 36) e não é usado.
+3. **Tolerância de valor (Q-58):** fica em zero. Em outubro nenhuma sinalização foi causada por centavos; o
+   único caso de 1 centavo (parcelas de 3.317,47 e 3.317,46) só decide qual parcela baixar.
+4. **“Total Geral” dos `.xls` (Q-59):** a diferença é sempre um título sem saldo que o relatório não detalha
+   (CP 09: NF de 793,40 paga, ausente das linhas; CR 10: NF com valor zero na linha e 9.110,46 no total); o
+   saldo fecha. O aviso passa a dizer isso; o leitor continua usando as linhas.
+5. **Conflitos levados à contadora, sem escolher:** PIX ao marketplace foi lançado em setembro como pagamento
+   de fornecedor, não como propaganda (R-12, Q-51); PIX de “distribuição de lucros” no caixa foi lançado como
+   empréstimo aos sócios; folha e fatura do cartão foram para PAGAMENTO DE FORNECEDORES.
+6. A mensagem à CONTAD é reescrita com as evidências, pedindo confirmação. Envio continua dependendo de
+   autorização do responsável.
+
+Sem custo, IA, migração, deploy ou mensagem externa.
+
+## D-421 — PC-33: desenho do lançamento real multifontes e do lote 19 com várias partidas (25/11/2026)
+
+Origem: responsável, 25/11/2026, “Sim, grupo 1”, depois de lhe ser proposto decidir, com a delegação da D-393,
+como funcionará o lançamento real quando as contas forem confirmadas e como fica o lote 19 com várias partidas.
+Executor Claude Code. Resolve o conflito com a D-393 apontado no plano (risco 12.1-2) **pelo desenho**, sem
+revogá-la. Nada é lançado nesta decisão: o lançamento real continua bloqueado pelas confirmações abaixo.
+
+1. **Divisão sem lançamento em dobro:** o lançamento do **banco** (banco × conta da regra) continua sendo do uso
+   direto (D-393), com as regras aprendidas do Razão — que em setembro já levam cobrança a COBRANÇA e pagamentos a
+   PAGAMENTO DE FORNECEDORES. O multifontes gera **só o que ninguém gera hoje**: os lançamentos de **baixa** que a
+   CONTAD fazia no Domínio (R-07), um por título: COBRANÇA × conta do cliente pelo valor nominal; COBRANÇA × juros
+   pela diferença; conta do fornecedor × PAGAMENTO DE FORNECEDORES. Data = data do movimento do banco; histórico
+   com a NF e a parcela (“Baixa NF 29740 parc. 3 — francesinha 26/000001-1”), como pede R-08.
+2. **O que nunca gera baixa:** movimento sinalizado; título “identificado” sem estar na posição de abertura;
+   natureza pelo caixa (já é do lançamento do banco); aplicação, transferência, empréstimo e cartão (lançamento
+   do banco pela regra; divisão de juros do empréstimo só com a fonte da Q-55).
+3. **Condições para lançar de verdade** (todas): contas confirmadas pela contadora (Q-50 e Q-53, hoje só
+   propostas na D-420); o mês com Razão recebido (mesma regra da D-393 item 3); a baixa ainda não feita no
+   Domínio para aquele título (a posição do mês, quando houver, não pode já trazê-lo baixado — senão é
+   sinalizado como possível baixa em dobro); e a gravação das fontes do mês, que hoje não existe (D-413: nada é
+   guardado) e exige decisão própria sobre guarda de arquivos.
+4. **Lote 19 com várias partidas:** continua só o tipo “X” (um débito, um crédito), o único da especificação já
+   usada e ainda sem importação real (V-428). Um lançamento com um lado único e vários do outro (ex.: parcela do
+   empréstimo = principal + juros contra o banco) vira **um par X por partida**, com a mesma conta do lado único;
+   os totais e as contas não mudam, só o Razão mostra uma linha por par. Composições com vários débitos e vários
+   créditos continuam recusadas. Os tipos “D”, “C” e “V” do leiaute só depois da importação real de teste.
+5. **Prévia agora:** a simulação passa a listar os lançamentos de baixa que **seriam** gerados
+   (`lancamentos-previstos.csv`, com as contas sugeridas da D-420), sem arquivo `.txt`: um lote de baixas de
+   outubro importado na empresa real duplicaria as baixas que a CONTAD já fez à mão. Título ausente da posição
+   do Domínio do mês (o relatório não detalha quitados, Q-59) ou com saldo menor conta como já baixado lá; os
+   juros acompanham o título da mesma cobrança.
+6. **Conta do cliente/fornecedor pelo código (refina a D-420 item 1):** o código do cliente ou fornecedor na
+   posição CR/CP do Domínio é o próprio código da conta analítica (147 de 151 clientes e 17 de 19
+   fornecedores de setembro). A sugestão usa o código primeiro e o nome só quando o código não é conta do
+   grupo; nome repetido sem código vira “escolher”, nunca soma de contas.
+7. **Documentos escaneados na tela:** não decidido aqui. A análise com opções, números e recomendação está em
+   `docs/planejamento/analise-documentos-escaneados-na-tela-2026-11-25.md`; a escolha envolve guarda de
+   dados pessoais e possível custo, que são do responsável.
+
+Sem migração, custo, IA, deploy ou mensagem externa.
+
+## D-422 — PC-33: medição do OCR na máquina web de produção (25/11/2026)
+
+Origem: responsável, 25/11/2026, “pode medir o OCR em produção”, autorizando o passo 1 da análise de documentos
+escaneados (D-421 item 7). Executor Claude Code.
+
+1. **Escopo autorizado:** uma página **sintética** (boleto e DANFE fictícios, no formato dos scans reais: A4,
+   JPEG colorido 2448×3456 a 300 dpi), enviada por `fly ssh sftp` para `/tmp` da máquina `web` e medida com o
+   mesmo caminho de `ocr_pdf_pages` (pypdfium2 `scale=3`, Tesseract `por`, psm 4 e psm 6). Nenhum dado da
+   cliente saiu da máquina local; nenhum deploy, mudança de configuração, escala de máquina ou custo. Os
+   arquivos de teste foram apagados ao terminar.
+2. **Não decide a opção** para os scans na tela: o resultado (V-479) e a análise atualizada voltam ao
+   responsável, porque as opções restantes envolvem custo de máquina ou mudança de onde o OCR roda.
+
+## D-423 — PC-33: validação local do OCR no navegador (opção D) (25/11/2026)
+
+Origem: responsável, 25/11/2026, “Sim, validar a D”, sobre o passo 2 da análise de documentos escaneados
+(D-422). Executor Claude Code.
+
+1. **Escopo autorizado:** instalar `tesseract.js` 7.0.0 (Apache-2.0, npm, `--ignore-scripts`) numa pasta
+   temporária fora do repositório e ler os scans de outubro **na máquina local**, com o mesmo modelo `por` do
+   Tesseract nativo, comparando com a simulação nativa. Uma página fictícia foi lida também num navegador
+   (Chromium do app), servida por um servidor local temporário. Nenhum dado da cliente saiu da máquina; nada
+   entra no repositório nem em produção; sem custo.
+2. **Não implementa nem escolhe a opção:** o resultado (V-480) volta ao responsável. Se a D for escolhida, a
+   implementação exige decisão própria (bibliotecas servidas pelo CICA, leitura do PDF no navegador e tela).
+

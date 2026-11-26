@@ -1,3 +1,37 @@
+<!-- PC33-V465-2026-11-24 -->
+## PC-33/V-465 — Conciliação multifontes CONTAD: plano e perguntas, 24/11/2026
+
+Reunião com a CONTAD: para lançar outubro da SURIA, o extrato precisa ser cruzado com francesinha,
+posição CP/CR do mês anterior, caixa do cliente, extrato de aplicação e documentos escaneados, e a CICA
+passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md](../contad-multifontes-2026-11-24.md).
+
+- [x] Análise do vídeo e dos arquivos; plano com requisitos rastreáveis, critérios de aceite e riscos (V-465).
+- [x] PC-33 e perguntas Q-50 a Q-66 registrados; rascunhos da mensagem à CONTAD e da explicação do agente.
+- [ ] Estimativa ao cliente e autorização do envio das perguntas (responsável).
+- [ ] Decisão de escopo D-409, inclusive o ajuste da D-393 para sinalizações bloqueantes.
+- [ ] Respostas bloqueantes Q-50, Q-52, Q-53, Q-58 e Q-59.
+- [x] D-409: Fase 1 em modo simulação autorizada e registrada.
+- [x] Fase 1 (linha de comando): leitores CP/CR .xls, francesinha e caixa do cliente; posição de títulos; motor e sinalizações; outubro simulado com os arquivos reais (V-466).
+- [x] D-410: agente sem mudança (já aceita outubro); comparação simulação × Razão no comando, em PDF ou ledger-csv-v1 (V-467).
+- [ ] Obter o Razão de outubro da SURIA (tela ou exportação da CONTAD) e rodar a comparação.
+- [x] D-411: aplicação/resgate pelo extrato da aplicação e natureza divergente (R-12) na simulação (V-468).
+- [x] D-412: documentos escaneados por OCR local, cruzados com banco e caixa (R-10/R-11) (V-469).
+- [x] D-413: tela “Fechamento do mês (simulação)”, sem gravar nada (V-470).
+- [x] D-414: guias de 48 dígitos, linha digitável tolerante, valor por extenso e soma conferida nos documentos (V-471).
+- [x] D-415: transferências entre contas da própria empresa pareadas na simulação; contas a definir (Q-57) (V-472).
+- [x] Correções C-02 a C-08 do plano mapeadas: já no `main` (D-396 a D-399), exceto C-05.
+- [x] D-416 (C-05): extrato da mesma conta em dois arquivos não gera movimento em dobro (V-473).
+- [x] D-417: posição de títulos por NF em `.xlsx` (R-07) e detalhe de cada movimento na tela de fechamento (V-474).
+- [x] D-418: empréstimo e fatura do cartão identificam o débito na simulação; juros/principal e despesas seguem Q-55/Q-56 (V-475).
+- [x] D-419: resultado do extrato sem estourar “Não comparável” no celular e ignorados fora dos “não conferidos” (V-476).
+- [x] D-420: respostas propostas com evidência para Q-50 a Q-59 e Q-66; contas sugeridas (a confirmar) e Seu Nº na simulação; mensagem à CONTAD reescrita (V-477).
+- [ ] Confirmação da CONTAD sobre as propostas da D-420 (envio da mensagem depende do responsável).
+- [x] D-421: desenho do lançamento real (baixas pelo multifontes, banco pelo uso direto), prévia `lancamentos-previstos.csv` e lote 19 com um lado único contra várias partidas (V-478).
+- [x] D-422: OCR medido na máquina web de produção com página sintética: ~12 s por página no pior caso, mas o volume do mês esgota a cota de CPU da `shared-cpu-1x` (V-479).
+- [x] D-423: OCR no navegador (`tesseract.js`) validado localmente com outubro: 46 de 47 documentos com valor (nativo 47), ~0,9 s por página no navegador da M5 (V-480).
+- [ ] Documentos escaneados na tela: escolha do responsável entre as opções da análise de 25/11.
+- [ ] Documentos escaneados na tela (exige fila) e lançamento real (decisão própria, conflito com a D-393).
+
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->
 **17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**
 Ampliação autorizada para as146 empresas, consultando catálogo completo e relações

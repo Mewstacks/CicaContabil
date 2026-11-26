@@ -13213,3 +13213,407 @@ revisão/falha/importado liberam o botão); 568 aprovados e 13 skips (PostgreSQL
 direto. HTML real renderizado pelo teste, aberto no navegador: 820 px e 375 px sem rolagem horizontal, barra
 animada no estado em andamento e parada no estado sem conexão. Não verificado: comportamento em produção com
 o agente real.
+
+## V-465 — Análise da reunião CONTAD de 24/11/2026 e dos arquivos de outubro da SURIA (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0` a partir da main `565773d`. Somente análise e
+registro; nenhum código, deploy, escrita em produção, chamada à IA ou mensagem externa. Plano em
+[`docs/planejamento/contad-multifontes-2026-11-24.md`](docs/planejamento/contad-multifontes-2026-11-24.md).
+
+Verificado (arquivos recebidos pelo responsável, lidos fora do repositório; nenhum foi copiado para cá):
+- Vídeo de 46 min: transcrição automática local (Whisper small, sem envio externo) e 93 quadros a cada 30 s;
+  25 pedidos explícitos com o minuto de origem. Trechos ruidosos viraram perguntas (Q-50 a Q-66), não regras.
+- Francesinha Sicredi 10/2026: 87 títulos, R$ 131.360,65, juros R$ 89,06 (cabeçalho do relatório).
+  Cobrança de 01/10 no extrato (5.917,99) = soma da francesinha com lançamento em c/c nesse dia
+  (1.411,20 + 4.456,67 + 50,12).
+- Relatórios Domínio .xls (BIFF) de contas a receber e a pagar 09 e 10/2026, recalculados linha a linha:
+  CR 09 231 parcelas/151 clientes/saldo 244.631,35; CR 10 230/136/282.869,56; CP 09 82/19/70.103,88;
+  CP 10 89/20/68.055,28. O saldo fecha com o "Total Geral"; valor da parcela e valor pago não fecham
+  (CP 09 −793,40; CR 10 −9.110,46) — causa desconhecida (Q-59). O documento é o nº da NF, sem sufixo de parcela.
+- Planilha de caixa do cliente (abas SICREDI, CAIXA, CEF): histórico com NF/parcela e CT-e; uma linha do
+  banco pode corresponder a várias da planilha (débito de folha de 15.096,34 = 7 linhas); cabeçalhos de mês
+  da planilha não são confiáveis.
+- Extrato de aplicação (saldo 228.016,06 → 187.469,40, rendimentos e IRRF separados), cronograma de
+  empréstimo (sem separação de juros), fatura do cartão (210,42) e extrato CEF em .docx (3 movimentos).
+- Scans (7 e 50 páginas) vistos no navegador do app, sem download: boletos, CT-e, DANFE e recibos de
+  outubro; um boleto traz a razão social antiga com o mesmo CNPJ.
+- Código em `origin/main`: o CICA não lê .xls, .docx, francesinha, aplicação nem documentos escaneados de
+  pagamento; o vínculo título × extrato é só manual. (A suposição de consultas nativas fixas em 09/2026
+  foi corrigida pela D-410/V-467: só o piloto antigo é fixo.)
+
+Não verificado: nada foi executado contra produção, o agente ou o Domínio; o Razão manual de outubro não foi
+lido; as respostas da CONTAD (Q-50 a Q-66), a estimativa e a decisão de escopo (D-409) estão pendentes.
+
+## V-466 — D-409: simulação multifontes de outubro/2026 da SURIA (PC-33, Fase 1)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0` (base `565773d`). Sem migração, tela, deploy,
+escrita em banco, chamada à IA ou mensagem externa. Nova dependência `xlrd==2.0.2` (`pyproject.toml`,
+`uv.lock`, `requirements.txt`).
+
+Entregue: pacote `src/apps/hub/multisource/` (leitores da posição CP/CR do Domínio em `.xls`, da francesinha
+Sicredi em PDF e do caixa do cliente em `.xlsx`; motor de casamento; relatórios) e o comando
+`manage.py simular_multifontes`, que grava `resumo.md`, `movimentos.csv`, `posicao.csv` e
+`diferencas-posicao.csv` (0600) numa pasta indicada.
+
+Verificado com os arquivos reais de outubro, fora do repositório (saída em pasta temporária privada):
+- Leitores: posição CR/CP 09 e 10 com o saldo fechando com o "Total Geral" (parcelas de saldo zero
+  listadas pelo Domínio viram aviso); francesinha com 87 títulos e totais (131.360,65; juros 89,06)
+  conferidos; nomes de pagador quebrados em até 3 linhas reunidos; caixa com 3 abas e saldos conferidos.
+- Extrato Sicredi + francesinha + CR/CP 09 + caixa (abas SICREDI, CAIXA e CEF): 184 movimentos;
+  48 com baixa automática de títulos (26,1%), 126 identificados pelo caixa sem baixa (natureza ou nota do
+  próprio mês fora da posição de abertura) e 7 sinalizados: 4 recebimentos marketplace com comissão (Q-51),
+  1 pagamento parcial (título aberto de valor maior) e 2 notas digitadas no caixa com número diferente do
+  título aberto de mesmo fornecedor e valor (sugestão mostrada, sem baixa). 82 recebimentos e 32
+  pagamentos baixados; 6 títulos com juros (89,06) separados "a classificar" (Q-53).
+- Cada cobrança do extrato fechou exatamente com a soma da francesinha do dia (nenhum título sobrando);
+  débito de folha decomposto nas 7 linhas do caixa; resgates parciais da aplicação ligados à linha única do
+  caixa.
+- Sem o caixa do cliente: 22,9% com baixa automática (cobrança pela francesinha e pagamento pelo nome
+  após o CNPJ no extrato).
+- Comparação com a posição CR/CP 10 do Domínio (emitida em 23/11, pode conter baixas de novembro):
+  receber — 91 parcelas abertas na simulação e baixadas no Domínio (89 de consumidores com valor abaixo de
+  300, ligadas aos recebimentos marketplace sinalizados), 1 baixada na simulação e aberta no Domínio (NF 29984:
+  o caixa indica a parcela 3, de 3.317,46; o Domínio baixou a parcela 2, de 3.317,47); pagar — 6 abertas na
+  simulação e baixadas no Domínio (inclui as 2 notas com número divergente e notas da empresa do marketplace) e 2 com saldo
+  diferente (pagamentos parciais).
+- Testes: 38 novos em `tests/test_multisource_readers.py` e `tests/test_multisource_matching.py`, com
+  dados sintéticos; `ruff check .` e `makemigrations --check` limpos.
+
+Não verificado: comparação com o Razão manual de outubro (o Razão de outubro ainda não foi obtido; o agente aceita o mês, ver D-410); aplicação e
+resgate com rendimento/IRRF (Fase 2); documentos escaneados; contas contábeis (Q-50/Q-53); tela.
+
+## V-467 — D-410: agente já aceita outubro; comparação simulação × Razão (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Somente código local e leitura; nada em produção.
+
+- Leitura do código: `NativeLedgerPlan.cs` aceita qualquer mês cheio desde 2026-09-01 no modo automático;
+  `NativeTitlePlan.cs` só fixa empresa 212/setembro no piloto antigo (`expected_counts`); o servidor aceita
+  meses desde 09/2026 (`ledger_requests._month`). O item C-01 do plano não procede; nenhum agente novo.
+- Novo `src/apps/hub/multisource/ledger_comparison.py` e opções `--razao-pdf`/`--razao-csv` do
+  `simular_multifontes`: por movimento do extrato, "mesmo desdobramento", "mesmo valor, desdobramento
+  diferente" ou "não encontrado no Razão" (janela de 5 dias), lançamentos só no Razão e as contas de
+  contrapartida por tipo de parte. Relatório `comparacao-razao.csv` e seção no `resumo.md`.
+- Razão real de setembro (PDF do Domínio, conta 8 — Banco Sicredi, fora do repositório) lido pelo novo
+  adaptador: 163 lançamentos; contrapartidas concentradas nas contas 4 (72), 9 (35), 13 (29) e 227 (12) —
+  indício, a confirmar com o Razão de outubro, de que clientes e fornecedores não têm conta analítica
+  individual (Q-50).
+- Testes: 6 novos em `tests/test_multisource_ledger_comparison.py` (PDF sintético, CSV, comando); 85 aprovados
+  nos arquivos multifontes e de Razão; `ruff check .` limpo.
+
+Não verificado: comparação de outubro, porque o Razão de outubro ainda não foi obtido (pedido pela tela ou
+exportado pela CONTAD).
+
+## V-468 — D-411: aplicação financeira e natureza divergente na simulação de outubro (PC-33, Fase 2)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Somente simulação local; nada em produção.
+
+- Novo `src/apps/hub/multisource/investment.py` e opção `--aplicacao` do `simular_multifontes`. Extrato de
+  aplicação real de outubro (fora do repositório): 37 movimentos, linha repetida na virada de página
+  descartada, cadeia 228.016,06 + 81.583,33 − 122.495,40 + 471,33 − 105,92 = 187.469,40 conferida.
+- Simulação de outubro com extrato, francesinha, posição 09, caixa (abas SICREDI, CAIXA e CEF) e aplicação:
+  184 movimentos; **83 automáticos (45,1%)** — 48 com baixa de títulos e 35 aplicações/resgates casados com o
+  extrato da aplicação (204.078,73), inclusive resgates em várias linhas no banco; 94 identificados pelo
+  caixa; 7 sinalizados (os mesmos da V-466). Rendimentos 471,33 e IRRF 105,92 listados “a lançar na conta da
+  aplicação” (Q-54). Nenhum movimento da aplicação ficou sem par no banco.
+- Regra R-12: sem sinalização nova em outubro; dois falsos positivos de grafia do caixa (“ADIANTAMENTOCLIENTE
+  …”, “ADIANTAMENTO …”) foram eliminados com tolerância de semelhança (0,8) antes do commit.
+- Testes: 5 novos em `tests/test_multisource_investment.py`; 49 aprovados nos arquivos multifontes;
+  `ruff check .` limpo.
+
+Não verificado: contas de rendimento/IRRF (Q-54); o critério de semelhança da R-12 com outros clientes.
+
+## V-469 — D-412: documentos escaneados na simulação de outubro (PC-33, R-10/R-11)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Download dos dois scans autorizado pelo
+responsável na sessão (Skybox, 5,8 MB e 41,6 MB), guardados em pasta temporária privada, fora do
+repositório; OCR só local (Tesseract `por`), sem IA.
+
+- Novo `src/apps/hub/multisource/scanned_documents.py` e opção `--documentos` (limite próprio de 100 MiB).
+  Boleto: valor e vencimento pela linha digitável com dígitos verificadores conferidos; com OCR abaixo de 75 o
+  valor precisa aparecer no texto. Recibos: total ou valor repetido na página (percentuais ignorados). CT-e
+  e DANFE não contam como pagamento; fatura de várias páginas conta uma vez. Segunda passada de OCR (psm 6)
+  só nas páginas sem valor.
+- 57 páginas em cerca de 1 min: 56 documentos (40 boletos, 8 recibos, 4 outros, 2 CT-e, 2 faturas).
+  **Os 40 documentos de pagamento com valor foram encontrados**: 38 no extrato e 2 na aba CAIXA — o recibo
+  de aluguel pago em dinheiro (caso R-11 da reunião) e um recibo cujo valor o OCR leu com um dígito trocado,
+  casado com ressalva. 11 leituras incertas ficam listadas.
+- Falhas achadas e corrigidas antes do commit, cada uma com teste: linha digitável lida errada que passou no
+  dígito verificador por acaso (OCR 54); “50,00%” da participação dos sócios lido como valor do recibo de
+  distribuição; limite do cartão lido como total da fatura; CT-e com “recibo do sacado” classificado como
+  recibo; fatura repetida em duas páginas.
+- Outubro com caixa: sem mudança (45,1% automático, 96,2% identificado). Sem o caixa do cliente: os
+  documentos identificam 12 pagamentos e o identificado sobe de 44,0% para 51,2% (R-10); nenhuma baixa nova,
+  porque os boletos pagos em outubro são de notas do próprio mês, fora da posição de setembro.
+- Testes: 11 novos em `tests/test_multisource_documents.py` (inclui OCR de ponta a ponta, pulado sem
+  Tesseract `por`); 60 aprovados nos arquivos multifontes; `ruff check .` limpo.
+
+Não verificado: leitura de guias de arrecadação (linha de 48 dígitos); valor dos recibos por extenso.
+
+## V-470 — D-413: tela “Fechamento do mês (simulação)” (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou dado real.
+
+- Nova página `app/conciliacao/fechamento/` (`src/apps/hub/multisource_views.py`,
+  `templates/hub/reconciliation_multisource.html`, `static/hub/multisource.css` e `.js`), com links a partir
+  da Conciliação bancária. A lógica do comando foi extraída para `multisource/service.py`; o comando e a tela
+  rodam a mesma simulação (outubro real pelo comando continua com 45,1% automático e 96,2% identificado).
+- Testes: 6 novos em `tests/test_multisource_screen.py` — abertura pela Conciliação, simulação sem gravar
+  nenhum arquivo ou movimento, resposta `no-store`, `.zip` com os relatórios, erros de formato e de leiaute,
+  empresa de outro escritório recusada, perfil auditor sem envio (403).
+- Navegador (servidor descartável com dados sintéticos, `.tmp` removido ao final): 1366 px tema claro e
+  escuro e 375 px; sem rolagem horizontal; tabela de sinalizações em cartões no celular; sem erro no console.
+  Corrigidos na verificação: data e valor quebrando no meio, resultado fora da tela depois do envio (agora
+  foco e rolagem vão ao resultado), separador sobrando nos indicadores, dois-pontos nos rótulos.
+- Protocolo de UI: diretrizes do ui-ux-pro-max consultadas; Watermelon e web-design-guidelines indisponíveis
+  nesta sessão.
+
+Não verificado: uso com arquivos reais pela tela (só pelo comando); tempo de resposta em produção com
+arquivos grandes; documentos escaneados ficam fora da tela (D-413 item 4).
+
+## V-471 — D-414: guias, valor por extenso e linha digitável tolerante nos documentos escaneados (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy, IA ou serviço externo;
+OCR local.
+
+- `multisource/scanned_documents.py`: linha de guia/conta de consumo (48 dígitos, módulo 10 ou 11 pelo
+  identificador de valor, dígitos de bloco e geral conferidos); linha do boleto com separadores lidos errado
+  e ruído colado, com busca sobreposta; valor por extenso com tolerância a erro de grafia (corte 0,85, só em
+  palavras de 5 letras ou mais); soma de dois valores da página; rótulo “Total a pagar” e conta de consumo
+  sem a palavra “fatura”.
+- Conferência independente do leitor de guias: duas linhas de exemplo públicas (uma de módulo 10, outra de
+  módulo 11) foram aceitas com o valor esperado; os testes usam linhas sintéticas.
+- Testes: 9 novos em `tests/test_multisource_documents.py` (guia válida e com dígito trocado, referência sem
+  valor, guia casada com o banco, separadores, extenso que confirma, que diverge e que sozinho não cria valor,
+  soma conferida inclusive com valores repetidos, conta de consumo).
+- Outubro da SURIA (arquivos reais fora do repositório, scans já baixados na sessão anterior): documentos de
+  pagamento com valor de 40 para 47, todos com pagamento encontrado (45 no extrato, 2 no caixa em dinheiro);
+  leituras incertas de 11 para 5; recibo de aluguel confirmado pelo extenso; recibo de ressarcimento
+  confirmado pela soma (a diferença de um dígito agora aponta para o pagamento, não para o OCR). Nenhum
+  documento novo ficou “sem pagamento”.
+
+Não verificado: guia real lida por OCR com a linha completa (a única conta de consumo de outubro foi lida
+pelo “Total a pagar”, com a linha incompleta no scan); valor por extenso com centavos em documento real.
+
+## V-472 — D-415: transferências entre contas da própria empresa na simulação (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `multisource/matching.py` (`_pair_transfers`), `report.py` (seção própria e contagem), `service.py` (CNPJ
+  da empresa), tela: rótulo “Automático (títulos, aplicação ou transferência)”, contagem “Transferências entre
+  contas” e números dos cartões alinhados.
+- Testes: 4 novos em `tests/test_multisource_transfers.py` (banco → caixa e banco → outro banco; saque de
+  distribuição de lucros sem par; mesmo valor sem indício não pareia; dois pares possíveis viram aviso) e
+  asserções na tela.
+- Outubro da SURIA: exatamente os 2 pares esperados (Sicredi → CEF 5.000,00 em 07/10; Sicredi → caixa
+  30.000,00 em 29/10); o saque de 30.000,00 de 16/10 (distribuição de lucros) ficou fora. Automático de 45,1%
+  para 47,3%; identificados 96,2% e 7 sinalizações, sem mudança.
+- Regressão: `uv run pytest -q` 5810 passaram, 59 ignorados; `ruff check .` limpo; `manage.py check` e
+  `makemigrations --check` sem pendência.
+- Navegador (servidor descartável, dados sintéticos, arquivos temporários removidos): 1366 px claro e escuro
+  e 375 px escuro; sem rolagem horizontal; sem erro no console. Corrigido na verificação: em 375 px o rótulo
+  novo ocupava 4 linhas e desalinhava os números dos cartões.
+- Protocolo de UI: Watermelon e web-design-guidelines indisponíveis nesta sessão (mesmo limite da V-470).
+
+Não verificado: contas e forma de lançamento das transferências (Q-57); rodada `--ds=config.settings.test_postgresql`
+(fica para o CI).
+
+## V-473 — D-416 (C-05): extrato da mesma conta em dois arquivos não gera movimento em dobro (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou dado real.
+
+- Mapa das correções C do plano por leitura de `DECISOES.md` e do código no `main`: C-02, C-04, C-06, C-07 e
+  C-08 resolvidas (D-396 a D-399); C-03 em parte; C-05 confirmada por leitura de código (só hash do arquivo e
+  FITID do OFX barravam repetição).
+- `reconciliation_service.py`: `_movements_from_other_files` e `_mark_repeated_from_other_file` no
+  `process_run`; `direct_use_ui.py`: situação “Repetido de outro extrato · não lançado” com o arquivo de
+  origem; `views.py`: texto e próximo passo na página do movimento.
+- Testes: 5 em `tests/test_statement_repeated_files.py` — PDF depois de OFX (só as cópias de mesma data e
+  valor ficam ignoradas, inclusive com histórico diferente; tarifa repetida conta 1 de 2), dois OFX com FITIDs
+  diferentes (min(k, m)) e reprocessamento estável, original ignorado não conta, página do movimento dentro e
+  fora do uso direto.
+- Navegador (servidor descartável com dois extratos fictícios da mesma conta, arquivos temporários removidos
+  e `launch.json` restaurado): resultado do extrato e página do movimento em 1366 px claro e 375 px escuro,
+  sem rolagem horizontal. **Corrigido na verificação:** a página do movimento no uso direto dava erro 500
+  (faltava o próximo passo da nova situação); o teste passou a cobrir os dois modos.
+- Observado, anterior a esta entrega e fora do escopo: em 375 px o indicador “Não comparável” do resultado
+  do extrato passa da largura do cartão; a variação e os “não conferidos” do arquivo contam também os
+  movimentos ignorados.
+- Regressão: `uv run pytest -q` 5815 passaram, 59 ignorados (numa rodada anterior, `test_mfa` falhou uma vez e
+  passou 3 de 3 isolado, sem relação com esta mudança); `ruff check .` limpo.
+- Protocolo de UI: Watermelon e web-design-guidelines indisponíveis nesta sessão (mesmo limite da V-470).
+
+Não verificado: rodada `--ds=config.settings.test_postgresql` (fica para o CI); extrato real da SURIA em PDF e
+OFX do mesmo mês (não há OFX de outubro).
+
+## V-474 — D-417: posição de títulos por NF em planilha e movimentos do mês na tela (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `multisource/position_workbook.py` (novo): `posicao-titulos.xlsx` com “Resumo”, “A receber” e “A pagar”;
+  uma linha por NF e parcela, valores numéricos, datas como data, total com fórmula, filtro e cabeçalho fixo.
+  `service.py`, comando e `.zip` da tela passam a aceitar relatório binário.
+- Tela (`multisource_views.py`, template, `multisource.css` e `.js`): seção “Movimentos do mês”, fechada por
+  padrão, com todos os movimentos, a explicação de cada parte e a fonte, motivos das sinalizações e filtro por
+  situação com a contagem anunciada (`aria-live`). Funciona sem JavaScript (todas as linhas visíveis).
+- Testes: 2 em `tests/test_multisource_position_workbook.py` e 2 em `tests/test_multisource_screen.py`
+  (seção e filtros na tela; planilha em binário no `.zip`).
+- Outubro da SURIA (arquivos reais fora do repositório, sem os scans): planilha com os mesmos totais do resumo
+  — a receber 231 parcelas, 82 baixadas, abertura 244.631,35, baixado 127.870,31, final 116.761,04; a pagar
+  82 parcelas, 32 baixadas, final 49.709,62; comparação com o Domínio preenchida em 92 e 8 parcelas, como em
+  `diferencas-posicao.csv`.
+- Navegador (servidor descartável, dados sintéticos, temporários removidos, `launch.json` restaurado): 1366 px
+  claro e escuro, 375 px claro e escuro; sem rolagem horizontal; filtro 6 → 2 sinalizados com a contagem
+  atualizada; sem erro no console. **Corrigido na verificação:** botão de filtro ativo com contraste 3,9:1 no
+  escuro (agora 9,8:1 no escuro e 9,7:1 no claro, mesmos tokens do botão principal); selo de situação quebrava
+  no meio da palavra (rótulo curto e sem quebra); frase explicativa sob o título tirada (regra D-277, apontada
+  por `test_ui_copy_rule`).
+- Regressão: `uv run pytest -q` 5818 passaram e 1 falhou (`test_ui_copy_rule`, corrigido acima; os 12 testes
+  afetados passam depois da correção); `ruff check .` limpo.
+- Protocolo de UI: ui-ux-pro-max consultado (tabela em cartões no celular, estado vazio com explicação);
+  Watermelon e web-design-guidelines indisponíveis nesta sessão.
+
+Não verificado: tela com os arquivos reais (só pelo comando); planilha aberta no Excel (conferida com openpyxl);
+rodada `--ds=config.settings.test_postgresql` (fica para o CI).
+
+## V-475 — D-418: empréstimo e fatura do cartão identificam o débito na simulação (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `multisource/credit.py` (novo): consulta de parcelas do empréstimo Sicredi e fatura do cartão Sicredi em PDF
+  texto. `matching.py` (`_apply_credit`): débito de mesmo valor, até 3 dias da data de pagamento ou do
+  vencimento; mais de um débito possível não liga nada e vira aviso. Fica “identificado”, nunca
+  “automático”; a descrição do caixa do cliente é mantida no rótulo. Relatório com seção própria, parcelas
+  pagas sem débito, saldo a vencer e despesas da fatura. Comando e tela de fechamento com os novos arquivos.
+- Testes: 3 em `tests/test_multisource_credit.py` (leitura, identificação sem “automático”, débito
+  ambíguo e ausente).
+- Outubro da SURIA (arquivos reais fora do repositório): parcela 003/035 do empréstimo (8.654,61 em 13/10)
+  e fatura do cartão (210,42 em 23/10) identificadas; 183.464,65 em parcelas a vencer; automático e
+  identificados sem mudança (47,3% e 96,2%), porque os dois débitos já estavam identificados pelo caixa.
+- Navegador: os dois campos novos na tela de fechamento em 375 px, sem rolagem horizontal.
+
+Não verificado: empréstimo com mais de uma parcela no mês ou parcela paga com atraso e encargos; fatura com
+encargos ou compras parceladas (só há uma fatura simples de outubro).
+
+## V-476 — D-419: resultado do extrato no celular e ignorados fora dos “não conferidos”
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa.
+
+- `reconciliation_source_review.html`, `reconciliation-conference.css` e `views.py`: “Não comparável” com
+  texto de 20 px (antes 31 px, passava da largura do cartão em 375 px); no uso direto, “N não conferidos ·
+  M ignorados”. Relatório `reconciliation-conference-v1`, CSV e variação do extrato sem mudança.
+- Teste em `tests/test_statement_repeated_files.py`: “1 não conferido · 2 ignorados” e o indicador menor.
+- Navegador (servidor descartável com dois extratos fictícios, temporários removidos, `launch.json`
+  restaurado): 375 px escuro, texto de 119 px num cartão de 149 px, sem rolagem horizontal; 1366 px claro.
+- Regressão (D-418 e D-419 juntas): `uv run pytest -q` 5823 passaram, 59 ignorados; `ruff check .` limpo.
+
+Não verificado: rodada `--ds=config.settings.test_postgresql` (fica para o CI).
+
+## V-477 — D-420: respostas propostas com evidência e contas sugeridas na simulação (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Arquivos da cliente lidos só na máquina (fora do
+repositório); nada enviado. Sem migração, deploy ou mensagem externa.
+
+- **Fontes:** Razão de setembro/2026 da conta 8 (PDF: 163 lançamentos, 11 contrapartidas; backup de 24/11 com as
+  334 partidas da importação pelo agente), plano de contas da empresa 212 (exportação D-373 de 17/11: 4.134
+  contas, 4.022 analíticas ativas), CR/CP 09 e 10/2026, francesinha, caixa e extratos de outubro.
+- **Achados:** cobrança e PIX recebidos contra 9 COBRANÇA (35); pagamentos contra 4 PAGAMENTO DE FORNECEDORES (72,
+  inclusive folha e fatura do cartão); aplicação/resgate contra 13 (29); tarifas contra 227 (12); CAIXA (4) e
+  CEF (1); guias contra 75, 100, 83 e 78, tributos federais divididos em 85/74/82; PIX aos sócios contra 385/386
+  meio a meio (4 lançamentos); parcela 02/35 do empréstimo dividida em 117 (8.850,94) e 231 (122,39). Plano com
+  3.067 contas de cliente e 739 de fornecedor; 149/151 clientes e 15/17 fornecedores das posições de 09 têm conta
+  com o mesmo nome. Seu Nº: 51 no formato `*1NNNNNNPP`, todas as NFs decodificadas existem no caixa; 36 no
+  formato `XX…`, nenhuma ligada à NF. Total Geral: CP 09 +793,40 (NF paga, ausente das linhas); CR 10 +9.110,46
+  (NF com valor zero na linha); saldos fecham. Em outubro, nenhuma sinalização por centavos.
+- **Código:** `multisource/suggested_accounts.py` (novo: plano por nome, prática de setembro, sem códigos nem
+  nomes de pessoas fixos no código); `francesinha.py` (NF do Seu Nº `*`); `matching.py` (usa a NF do Seu Nº sem
+  NF no caixa); `title_position.py` (aviso da Q-59); relatório (`contas_sugeridas_a_confirmar` no
+  `movimentos.csv`, seção no resumo), comando (`--plano-contas`, `--plano-empresa`) e tela (plano da descoberta
+  D-373; conta sugerida em cada parte).
+- **Outubro com o plano real:** 254 de 260 partes com conta sugerida; 3 baixas sem conta de mesmo nome (nome
+  diferente no plano); sem sugestão: aluguel e água/luz pagos em dinheiro e a prestação da CEF (sem evidência em
+  setembro). Automático e identificados sem mudança (47,3% e 96,2%): o caixa já trazia as NFs.
+- **Testes:** 4 em `tests/test_multisource_suggested_accounts.py` (plano por nome e empresa, contas da cobrança
+  com juros, naturezas do caixa, Seu Nº sem caixa) e 2 em `tests/test_multisource_chart_lookup.py` (plano pela
+  descoberta D-373).
+
+- Regressão: `uv run pytest -q` 5829 passaram, 59 ignorados; `ruff check .` limpo.
+
+Não verificado: tela com o plano real e a linha “Conta sugerida” no navegador (o servidor descartável não tem
+plano descoberto; a busca foi testada com dados sintéticos e a linha pelo template); as propostas
+não são respostas — dependem da confirmação da contadora.
+
+## V-478 — D-421: desenho do lançamento real, prévia das baixas e lote 19 com várias partidas (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0`. Sem migração, deploy ou mensagem externa; nada
+lançado nem exportado.
+
+- **Desenho conferido contra o código:** o uso direto (D-393, `direct_use.py`) lança banco × conta da regra
+  aprendida do Razão; o multifontes não gera lançamento do banco, só a prévia das baixas — não há caminho para
+  o mesmo movimento ser lançado duas vezes.
+- `multisource/planned_entries.py` (novo): baixas previstas por título (passagem × cliente/fornecedor, juros),
+  situação “pronto quando as contas forem confirmadas”, “o Domínio já registra” (título ausente da posição do
+  mês ou com saldo menor; juros seguem o título), “sem conta” e “escolher” (nome repetido). `service.py` gera
+  `lancamentos-previstos.csv` e a seção do resumo. `suggested_accounts.py`: conta do cliente/fornecedor pelo
+  código da posição.
+- `reconciliation_service.py` (`_lote19_pairs`): um débito contra vários créditos (ou o inverso) vira pares X;
+  vários contra vários de valores diferentes continuam recusados. `tests/test_dominio_lote19.py` atualizado.
+- **Outubro (arquivos reais fora do repositório):** com a posição do Domínio de 10/2026, as 96 baixas aparecem
+  como “o Domínio já registra” (a CONTAD fez à mão), o que confirma a proteção contra baixa em dobro; sem a
+  posição do mês, 90 prontas, 1 sem conta e 5 para escolher. Código da posição = código da conta: CR 09 147/151,
+  CP 09 17/19, CR 10 133/136, CP 10 19/20.
+- **Documentos escaneados:** análise em `docs/planejamento/analise-documentos-escaneados-na-tela-2026-11-25.md`
+  (scans de 43,7 MB/50 páginas e 6,0 MB/7 páginas; OCR de 1,5 s por página numa Apple M5; web e worker
+  `shared-cpu-1x`/512 MB; worker com uma tarefa por vez e limite de 270 s). Sem decisão.
+- Testes: 3 em `tests/test_multisource_planned_entries.py` e o caso “um contra vários” no lote 19.
+  Regressão: `uv run pytest -q` 5832 passaram, 59 ignorados; `ruff check .` limpo.
+
+Não verificado: importação real de um lote com pares gerados de um lançamento composto (V-428 continua
+pendente); tempo de OCR na máquina de produção.
+
+## V-479 — D-422: tempo e memória do OCR na máquina web de produção (PC-33)
+
+Executor Claude Code, 25/11/2026. Máquina `web` `891e63ef665e58` (release 134, `shared-cpu-1x`, 1 vCPU AMD EPYC,
+472 MB, 208 MB livres na hora), Tesseract 5.3.0 `por`. Página sintética de 1,19 MB; scripts e página no
+scratchpad da sessão, fora do repositório.
+
+- **Calibração local (Apple M5, Tesseract 5.5.3):** psm 4 em 1,56 a 1,96 s por página, próximo do 1,5 s medido
+  nos scans reais de outubro — a página sintética representa os scans.
+- **Produção, 3 execuções:** render 0,37 a 0,59 s; psm 4 5,41 a 5,56 s; psm 6 5,82 a 6,28 s; **total por página
+  11,6 a 12,2 s** com as duas passadas (a segunda só ocorre em página cujo valor a primeira não leu). Cerca de
+  3,5× mais lento que a M5. Cabe nos 30 s da requisição com folga de ~2,5×.
+- **Memória:** pico de 75 MB no Python (render) e 75 MB no Tesseract — cabe nos 208 MB livres.
+- **Limite que a medição revelou:** a `shared-cpu-1x` tem cota de CPU de 6,25% com saldo de rajada (máximo
+  500 s, 5 s ao ligar após deploy; documentação da Fly, “CPU performance”). As 57 páginas de outubro custam
+  ~340 s de CPU só na primeira passada; isso esgota o saldo típico da máquina web, e então ela é limitada a
+  6,25%: a página passaria de ~6 s para ~90 s (estourando os 30 s) e **todo o site** ficaria lento para os
+  demais escritórios. As 3 execuções (~36 s de CPU) não chegaram a esse ponto; um teste prolongado em produção
+  não foi feito, por afetar os usuários.
+- Arquivos de teste removidos de `/tmp` da máquina; `fly status` com web e worker saudáveis depois.
+
+Não verificado: saldo de CPU real da máquina web ao longo do dia (painel do Grafana da Fly); OCR no navegador
+(opção D da análise).
+
+## V-480 — D-423: OCR no navegador (`tesseract.js`) com os scans de outubro (PC-33)
+
+Executor Claude Code, 25/11/2026, Apple M5. `tesseract.js` 7.0.0 com `tesseract.js-core` 7.0.0 e o mesmo
+`por.traineddata` (1,9 MB) do Tesseract nativo 5.5.3. As 57 páginas foram convertidas em imagem pelo mesmo
+caminho do código (pypdfium2 `scale=3`, cinza); o texto do `tesseract.js` substituiu `ocr_pdf_pages` numa
+execução local de `simular_multifontes` com as fontes reais de outubro (fora do repositório).
+
+- **Resultado da simulação:** movimentos idênticos (184; 47,3% automático; 96,2% identificados). Documentos:
+  nativo lê valor em 47 documentos de pagamento e casa os 47; `tesseract.js` lê valor em **46** e casa os
+  46 — 56 documentos lidos e a mesma classificação nos dois. Dois boletos (páginas 22 e 38 do scan de 50 páginas) ficaram sem valor no
+  `tesseract.js` por dígitos da linha digitável lidos errado; um boleto (página 16) que o nativo não lia passou
+  a ser lido e casado. Leitura incerta: 7 contra 5. Os dois motores erram dígitos em páginas diferentes —
+  variação de versão, não falha do caminho. Documento sem valor aparece como “sem pagamento encontrado” para
+  conferência, como hoje.
+- **Tempo, Node (WASM):** psm 4 mediana 2,27 s (142 s nas 57 páginas); psm 6 mediana 1,82 s.
+- **Tempo, navegador (Chromium do app, mesma máquina), página fictícia:** worker pronto em 0,07 s; psm 4 0,85 a
+  0,94 s; psm 6 0,83 a 0,85 s (núcleo `relaxedsimd`). Tudo servido localmente, sem CDN: script, worker, núcleo
+  WASM e modelo somam 5,8 MB, baixados uma vez.
+- Servidor local parado e `.claude/launch.json` do checkout principal restaurado.
+
+Não verificado: tempo num computador comum de escritório (sem `relaxedsimd`, mais lento que a M5); conversão
+do PDF em imagem dentro do navegador (pdf.js), que pode diferir da do pypdfium2; uso de memória do navegador
+com 50 páginas.
+

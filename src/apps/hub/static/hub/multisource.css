@@ -1,0 +1,20 @@
+/* Fechamento do mês (simulação, D-413): reaproveita os padrões de títulos e baixas. */
+.multisource-form fieldset .titles-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.multisource-form .field small.field-help{display:block}
+.multisource-form input[type=file]{padding:8px 10px;cursor:pointer}
+.multisource-metrics{padding:18px 22px 0}
+/* D-415: rótulos de altura diferente não desalinham os números dos cartões. */
+.multisource-metrics article{display:flex;flex-direction:column}.multisource-metrics article>span:first-child{flex:1 0 auto}
+.multisource-reason{display:block;line-height:1.5}.multisource-reason+.multisource-reason{margin-top:6px}
+.multisource-list{margin:0;padding:0 22px 18px 40px;line-height:1.6}.multisource-list li+li{margin-top:4px}
+.titles-source-details .multisource-list{padding:8px 0 0 18px}
+@media(max-width:760px){.multisource-form fieldset .titles-fields{grid-template-columns:1fr}.multisource-metrics{padding:16px 16px 0}.multisource-list{padding:0 16px 16px 32px}}
+/* D-417: movimentos do mês com a explicação de cada parte. */
+.multisource-movements{padding:0 22px 18px}.multisource-movements>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+.multisource-filter{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}.multisource-filter [aria-pressed=true]{background:var(--blue);color:var(--on-strong);border-color:var(--blue);font-weight:750}
+.multisource-movement-table .status-badge{white-space:nowrap}
+.multisource-parts{margin:0;padding-left:18px;line-height:1.5}.multisource-parts li+li{margin-top:4px}.multisource-parts small,.multisource-links{display:block;color:var(--muted)}
+.multisource-links{margin-top:4px}
+.multisource-parts .multisource-suggestion{color:var(--blue)}
+@media(max-width:760px){.multisource-movements{padding:0 16px 16px}}
+.titles-table :is(th,td).multisource-nowrap{white-space:nowrap;overflow-wrap:normal;word-break:keep-all}

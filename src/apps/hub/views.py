@@ -11213,6 +11213,13 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
         for row in context.get("conference_rows", []):
             row["outcome"] = outcomes.get(str(row["movement"].pk))
         context["direct_use_outcomes"] = outcome_counts(outcomes)
+        # D-419: ignored movements (also repeated from another file) are not "não conferidos".
+        ignored = sum(
+            1 for item in outcomes.values() if item["key"] in {"ignored", "repeated_file"}
+        )
+        unmatched = int((context.get("conference_report") or {}).get("bank_unmatched_count", 0))
+        context["direct_use_ignored"] = ignored
+        context["direct_use_unconferred"] = max(unmatched - ignored, 0)
         context["page_title"] = "Resultado do extrato"  # D-398
         context["direct_use_summary"] = _direct_use_source_summary(source, outcomes, context)
         _direct_use_export_and_rules(request, source, context, can_review_conference)
@@ -12286,11 +12293,19 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             "href": "#allocation-heading",
         }
     elif movement.review_state == NormalizedMovement.ReviewState.IGNORED:
+        from apps.hub.direct_use_ui import repeated_file
+
+        repeated_from = repeated_file(movement)  # D-416
         movement_workflow = {
             "state": "ignored",
             "eyebrow": "MOVIMENTO IGNORADO",
             "title": "Restaurar para voltar à revisão",
-            "description": "O movimento não gera lançamento enquanto estiver ignorado.",
+            "description": (
+                f"Repetido de outro extrato ({repeated_from}): mesma conta, data e valor. "
+                "Não gera lançamento; restaure só se não for repetição."
+                if repeated_from
+                else "O movimento não gera lançamento enquanto estiver ignorado."
+            ),
             "label": "Ver opção de restauração",
             "href": "#movement-secondary-actions",
         }
@@ -12432,6 +12447,11 @@ _DIRECT_USE_MOVEMENT_NEXT: dict[str, dict[str, str]] = {
         "hint": "Só consulta.",
         "action": "Ver evidências",
         "href": "#allocation-heading",
+    },
+    "repeated_file": {  # D-416
+        "hint": "Se não for repetição, restaure em Outras ações.",
+        "action": "Outras ações",
+        "href": "#movement-secondary-actions",
     },
     "ignored": {
         "hint": "Pode ser restaurado em Outras ações.",

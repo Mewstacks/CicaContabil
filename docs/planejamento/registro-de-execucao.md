@@ -1,3 +1,112 @@
+<!-- D423-V480-2026-11-25 -->
+## 25/11/2026 — D-423/V-480: OCR no navegador validado localmente (PC-33)
+
+- [x] `tesseract.js` com o mesmo modelo `por`, nas 57 páginas de outubro: 46 pagamentos encontrados (nativo 47).
+- [x] Navegador do app: ~0,9 s por página fictícia, tudo servido localmente (5,8 MB, sem CDN).
+- [ ] Tempo num computador comum de escritório e leitura do PDF no navegador — não verificados.
+- [ ] Escolha da opção para os scans na tela — do responsável.
+
+<!-- D422-V479-2026-11-25 -->
+## 25/11/2026 — D-422/V-479: OCR medido na máquina web de produção (PC-33)
+
+- [x] Página sintética no formato dos scans, calibrada localmente (1,6 s na M5, como os scans reais).
+- [x] Produção: ~6 s por passada, ~12 s com as duas; 75 MB de pico; arquivos de teste apagados.
+- [x] Análise atualizada: por página cabe nos 30 s, mas o mês inteiro esgota a cota de CPU da máquina web.
+- [ ] Escolha da opção para os scans na tela — do responsável.
+
+<!-- D421-V478-2026-11-25 -->
+## 25/11/2026 — D-421/V-478: desenho do lançamento real e do lote 19 (PC-33, grupo 1)
+
+- [x] Lançamento real: banco pelo uso direto (D-393), baixas pelo multifontes; condições para lançar registradas.
+- [x] Prévia das baixas na simulação; conta do cliente/fornecedor pelo código da posição.
+- [x] Lote 19: um lado único contra várias partidas vira pares X.
+- [x] Análise para decidir os documentos escaneados na tela (opções e números).
+- [ ] Lançamento real: depende da confirmação das contas (D-420) e da guarda das fontes do mês.
+
+<!-- D420-V477-2026-11-25 -->
+## 25/11/2026 — D-420/V-477: respostas propostas com evidência (PC-33, Q-50 a Q-66)
+
+- [x] Razão de setembro, plano 212, posições, francesinha e caixa analisados; propostas registradas nas Q.
+- [x] Simulação mostra contas sugeridas (a confirmar), usa o Seu Nº `*` e explica o Total Geral.
+- [x] Mensagem à CONTAD reescrita como pedido de confirmação (não enviada).
+- [ ] Confirmação da CONTAD e envio — dependem do responsável.
+
+<!-- D418-D419-V475-V476-2026-11-25 -->
+## 25/11/2026 — D-418/V-475 e D-419/V-476: empréstimo, cartão e resultado do extrato
+
+- [x] Empréstimo e fatura do cartão pelo comando e pela tela de fechamento; outubro: parcela 003 e fatura identificadas.
+- [x] Resultado do extrato: “Não comparável” cabe no cartão em 375 px; “N não conferidos · M ignorados” no uso direto.
+- [x] Testes, suíte completa e navegador.
+- [ ] Publicação — depende de autorização.
+
+<!-- D417-V474-2026-11-25 -->
+## 25/11/2026 — D-417/V-474: posição por NF em planilha e movimentos na tela (PC-33)
+
+- [x] `posicao-titulos.xlsx` no `.zip` da tela e na pasta do comando: uma linha por NF e parcela, com baixas e comparação com o Domínio.
+- [x] Tela de fechamento: “Movimentos do mês” com a explicação de cada movimento e filtro por situação.
+- [x] Outubro real conferido; testes, suíte completa e navegador (1366/375, claro e escuro).
+- [ ] Publicação — depende de autorização.
+
+<!-- D416-V473-2026-11-25 -->
+## 25/11/2026 — D-416/V-473: extrato repetido em dois arquivos (PC-33, C-05)
+
+- [x] Correções C do plano mapeadas: C-02, C-04, C-06, C-07 e C-08 já no `main`; C-03 em parte (D-396).
+- [x] PDF e OFX (ou dois arquivos) da mesma conta: a cópia repetida fica ignorada, com o arquivo de origem.
+- [x] Testes, suíte completa e navegador (resultado e movimento, 1366/375, claro e escuro).
+- [ ] Publicação — depende de autorização.
+
+<!-- D414-D415-V471-V472-2026-11-25 -->
+## 25/11/2026 — D-414/V-471 e D-415/V-472: leitura de documentos e transferências (PC-33)
+
+- [x] Guias e contas de consumo (48 dígitos), linha do boleto com separadores lidos errado, valor por extenso e soma conferida.
+- [x] Outubro: documentos de pagamento com valor de 40 para 47, todos com pagamento encontrado; leituras incertas de 11 para 5.
+- [x] Transferências Sicredi → CEF e Sicredi → caixa pareadas; automático de 45,1% para 47,3%.
+- [ ] Publicação — depende de autorização; contas das transferências dependem da Q-57.
+
+<!-- D413-V470-2026-11-25 -->
+## 25/11/2026 — D-413/V-470: tela de fechamento do mês (PC-33)
+
+- [x] Página de simulação a partir da Conciliação bancária; serviço compartilhado com o comando.
+- [x] Testes de permissão, “nada gravado”, `.zip` e erros; navegador em 1366/375, claro e escuro.
+- [ ] Publicação — depende de autorização; documentos escaneados na tela exigem fila.
+
+<!-- D412-V469-2026-11-24 -->
+## 24/11/2026 — D-412/V-469: documentos escaneados (PC-33, R-10/R-11)
+
+- [x] OCR local dos scans, linha digitável validada, recibos, faturas, CT-e e DANFE.
+- [x] Outubro: 40 de 40 documentos de pagamento encontrados (38 no extrato, 2 no caixa em dinheiro).
+- [x] Sem o caixa do cliente, os documentos identificam 12 pagamentos (R-10).
+
+<!-- D411-V468-2026-11-24 -->
+## 24/11/2026 — D-411/V-468: aplicação financeira e natureza divergente (PC-33, Fase 2)
+
+- [x] Leitor do extrato de aplicação Sicredi e casamento de aplicações/resgates com o banco; rendimento e IRRF listados.
+- [x] R-12: natureza diferente da habitual para o mesmo CPF/CNPJ vira sinalização.
+- [x] Outubro: 45,1% automático, 96,2% identificado, 7 sinalizações (V-468).
+
+<!-- D410-V467-2026-11-24 -->
+## 24/11/2026 — D-410/V-467: comparação com o Razão; agente sem mudança
+
+- [x] Conferido no código que o agente e o servidor já aceitam outubro (C-01 do plano não procede).
+- [x] Comparação simulação × Razão (PDF do Domínio ou ledger-csv-v1) no `simular_multifontes`, com testes.
+- [ ] Obter o Razão de outubro da SURIA e rodar a comparação.
+
+<!-- D409-V466-2026-11-24 -->
+## 24/11/2026 — D-409/V-466: simulação multifontes de outubro (PC-33, Fase 1)
+
+- [x] Decisão D-409 registrada antes do código (modo simulação, sem presumir Q-50 a Q-66).
+- [x] Leitores CP/CR `.xls`, francesinha e caixa do cliente; motor de casamento; comando `simular_multifontes`.
+- [x] Outubro da SURIA simulado com os arquivos reais: 26,1% com baixa automática, 96,2% identificados, 7 sinalizações (V-466).
+- [ ] Commit, PR e publicação — dependem de autorização. Comparação com o Razão manual depende do agente (C-01).
+
+<!-- PC33-V465-2026-11-24 -->
+## 24/11/2026 — PC-33/V-465: plano da conciliação multifontes CONTAD (Fase 0)
+
+- [x] Análise da reunião de 24/11 e dos arquivos de outubro da SURIA, sem copiar dados da cliente para o repositório (V-465).
+- [x] Plano `docs/planejamento/contad-multifontes-2026-11-24.md`, PC-33, Q-50 a Q-66 e checklist da etapa 09.
+- [x] Rascunhos (não enviados): mensagem à CONTAD e explicação do agente instalado (pedido R-23).
+- [ ] Estimativa, autorização de envio e decisão de escopo D-409 — responsável. Sem código, deploy ou mensagem externa.
+
 <!-- D401-V459-2026-11-24 -->
 ## 24/11/2026 — D-401/V-459: resultado do extrato mais explicativo
 
