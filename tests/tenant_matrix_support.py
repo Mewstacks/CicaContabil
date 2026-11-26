@@ -79,6 +79,7 @@ TENANT_APPS = frozenset(
     {
         "accounts",
         "audit",
+        "closing",
         "crosscheck",
         "hub",
         "intelligence",

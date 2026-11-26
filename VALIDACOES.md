@@ -13617,3 +13617,17 @@ Não verificado: tempo num computador comum de escritório (sem `relaxedsimd`, m
 do PDF em imagem dentro do navegador (pdf.js), que pode diferir da do pypdfium2; uso de memória do navegador
 com 50 páginas.
 
+
+
+## V-481 — D-424: fechamento por recibo (módulo `closing`)
+
+- Testes novos: `tests/test_closing_engine.py` (16), `test_closing_services_django.py` (35),
+  `test_closing_views_django.py` (15), `test_closing_commands_django.py` (4): leitura por âncora, quarentena,
+  isolamento entre escritórios, conferência, gate humano, baixa no checklist, telas, módulo desligado (403),
+  `provision_office` ligando `closing` só em Fedrizzi, importação de layouts idempotente.
+- `tests/test_tenant_isolation_matrix.py` com `closing` em `TENANT_APPS`.
+- `ruff check`/`ruff format` e `mypy` limpos nos arquivos novos.
+
+Não verificado: leitura de PDFs reais da Fedrizzi (só texto sintético); OCR (depende de Tesseract e da política do
+escritório); telas em 375px, tablet e desktop no navegador (servidor de QA não chegou a subir nesta sessão);
+`/impeccable audit`.

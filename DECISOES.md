@@ -6691,3 +6691,23 @@ Origem: responsável, 25/11/2026, “Sim, validar a D”, sobre o passo 2 da an�
 2. **Não implementa nem escolhe a opção:** o resultado (V-480) volta ao responsável. Se a D for escolhida, a
    implementação exige decisão própria (bibliotecas servidas pelo CICA, leitura do PDF no navegador e tela).
 
+
+
+## D-424 — Fechamento por recibo como módulo global (26/11/2026)
+
+Origem: dono, 26/11/2026 (via sessão de migração): o fechamento por recibo do HubFedrizzi é função GLOBAL,
+ofertada a todos os escritórios, não só Fedrizzi. Executor Claude Code.
+
+1. **Módulo `closing`** ("Fechamento por Recibo"), `ProductModule.Code.CLOSING`: desligado por padrão e fora
+   do autosserviço (`NOT_SELF_SERVICE_MODULE_CODES`, como Contraprova). Liga por console da plataforma ou
+   `provision_office` (Fedrizzi). Migrações aditivas: `hub.0093`, `hub.0094` e `closing.0001`.
+2. **Baixa só sem dúvida:** valor dentro da tolerância do layout (padrão R$ 0,99), valor zerado (se o layout
+   permitir) ou layout só de leitura baixam o item do checklist (`OperationalActivity`). Divergência e falta de
+   referência esperam uma pessoa, que aceita (motivo obrigatório, evidência humana) ou rejeita. Mais de uma guia
+   candidata não é adivinhada.
+3. **Referência da conferência:** `hub.FiscalGuide` (Integra da plataforma) ou outro documento lido
+   (EFD x guia de ICMS, ISS x DMS). Serpro próprio, Drive fiscal, fila Redis, pasta única de entrada, envio ao
+   cliente e e-mail de divergência do legado ficam fora desta versão.
+4. **Layouts** entram como rascunho (`import_closing_layouts`) e só leem depois de ativados com amostra que lê
+   todos os campos. Dados históricos (recibos já lidos) são da conversão do importador legado.
+5. **Sem deploy e sem custo** nesta decisão. Ligar o módulo em produção exige o OK do dono.

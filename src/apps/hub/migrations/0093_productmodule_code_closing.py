@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('hub', '0091_legacy_import_record'),
+        ('hub', '0092_legacy_conversion_models'),
     ]
 
     operations = [
