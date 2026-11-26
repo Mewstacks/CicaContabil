@@ -3545,3 +3545,32 @@ class Notification(OrganizationScopedModel):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()}: {self.title}"
+
+
+class LegacyImportRecord(OrganizationScopedModel):
+    """One row of a legacy system kept verbatim, so a migration never loses information.
+
+    Native models (companies, rules, documents) are filled from these rows; whatever has no
+    native home yet stays here, addressable by (system, table, pk) and checked by sha256.
+    """
+
+    source_system = models.CharField(max_length=32)
+    source_table = models.CharField(max_length=80)
+    source_pk = models.CharField(max_length=120)
+    payload = models.JSONField(default=dict)
+    payload_sha256 = models.CharField(max_length=64)
+    bundle_sha256 = models.CharField(max_length=64, blank=True, default="")
+    mapped_to = models.CharField(max_length=120, blank=True, default="")
+
+    class Meta:
+        ordering = ("source_table", "source_pk")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "source_system", "source_table", "source_pk"),
+                name="hub_unique_legacy_import_row",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "source_table"))]
+
+    def __str__(self) -> str:
+        return f"{self.source_system}:{self.source_table}:{self.source_pk}"
