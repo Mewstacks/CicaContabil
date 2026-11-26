@@ -115,6 +115,14 @@ class AdnClient:
             raise AdnAuthenticationError(
                 "O ADN recusou o certificado para este CNPJ. Confira titularidade e validade."
             )
+        # Manual dos contribuintes v1.1 (03/11/2026): 404 em GET /DFe/{NSU} com E2220/E2230 é
+        # "nenhum documento localizado", ou seja, a empresa está em dia. Tratar isso como queda
+        # do ADN jogava a empresa em `retry` com recuo de até 6 h e o aviso falso de
+        # indisponibilidade, atrasando a nota nova. O mesmo já vale no modo procuração.
+        if status == 404 and _no_document(raw):
+            return AdnPage(
+                status="NENHUM_DOCUMENTO", documents=(), last_nsu=last_nsu, max_nsu=last_nsu
+            )
         # The contributor distribution service can answer 404 at the moving
         # edge of a company's NSU stream.  It must not permanently block that
         # company (or the durable queue); retry it with the same backoff used
@@ -124,6 +132,30 @@ class AdnClient:
         if status >= 400:
             raise AdnError(f"O ADN recusou a consulta (HTTP {status}).")
         return parse_page(raw, requested_nsu=last_nsu)
+
+
+NO_DOCUMENT_CODES = frozenset({"E2220", "E2230"})
+
+
+def _no_document(raw: bytes) -> bool:
+    """True when an ADN error body carries a "nenhum documento localizado" code."""
+
+    try:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    for key in ("Erros", "erros", "Alertas", "alertas"):
+        items = payload.get(key)
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if isinstance(item, dict):
+                code = item.get("Codigo") or item.get("codigo") or ""
+                if str(code) in NO_DOCUMENT_CODES:
+                    return True
+    return False
 
 
 def parse_page(raw: bytes, *, requested_nsu: int) -> AdnPage:

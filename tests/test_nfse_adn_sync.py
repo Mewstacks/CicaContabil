@@ -152,6 +152,33 @@ def test_adn_404_is_retryable_instead_of_blocking_the_company() -> None:
     assert error.value.transient is True
 
 
+@pytest.mark.parametrize("code", ["E2220", "E2230"])
+def test_adn_404_with_no_document_code_means_caught_up_not_outage(code: str) -> None:
+    body = json.dumps({"Erros": [{"Codigo": code, "Descricao": "Nenhum documento localizado"}]})
+    client = AdnClient(
+        environment="production",
+        ssl_context=ssl.create_default_context(),
+        transport=lambda *_args, **_kwargs: (404, body.encode()),
+    )
+
+    page = client.fetch_page(last_nsu=7, cnpj="12345678000195")
+
+    assert page.documents == ()
+    assert page.last_nsu == 7 and page.max_nsu == 7
+
+
+def test_adn_404_with_unrelated_code_stays_retryable() -> None:
+    body = json.dumps({"Erros": [{"Codigo": "E9999", "Descricao": "outro"}]})
+    client = AdnClient(
+        environment="production",
+        ssl_context=ssl.create_default_context(),
+        transport=lambda *_args, **_kwargs: (404, body.encode()),
+    )
+
+    with pytest.raises(AdnTransportError):
+        client.fetch_page(last_nsu=7, cnpj="12345678000195")
+
+
 class FakeClient:
     def __init__(self, pages: list[AdnPage]) -> None:
         self.pages: Iterator[AdnPage] = iter(pages)
