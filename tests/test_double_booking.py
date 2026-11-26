@@ -195,7 +195,7 @@ def test_similar_window_free_records_and_every_company(office, django_capture_on
     assert JournalEntry.objects.exclude(state=JournalEntry.State.INVALID).count() == before
 
 
-def test_export_waits_for_a_newer_razao_and_withdraws_what_it_covers(
+def test_export_withdraws_what_a_newer_razao_covers(
     office, django_capture_on_commit_callbacks
 ):
     _history(office, django_capture_on_commit_callbacks)
@@ -210,9 +210,8 @@ def test_export_waits_for_a_newer_razao_and_withdraws_what_it_covers(
         )
     alfa = office["alfa"]
     period = dict(start=date(2026, 10, 1), end=date(2026, 10, 31))
-    with pytest.raises(ReconciliationError, match="aguardam o Razão atualizado"):
-        create_export(organization=office["org"], company=alfa["company"], **period)
-    # The office then booked 702 by hand one day later; the new Razão shows it.
+    # D-408: no newer Razão is required before exporting (the D-397 hold is gone); here the
+    # office books 702 by hand before the export, and the new Razão withdraws that entry.
     with django_capture_on_commit_callbacks(execute=True):
         _month(office, "alfa", [], [("PAGTO BOLETO 702", -6_000, "4", 11)], month=10, tag="a10b")
         run_for_account(alfa["account"])
@@ -359,3 +358,25 @@ def test_commands_refuse_an_office_that_is_not_a_uuid():
     for command in ("uso_direto", "titulos_auto"):
         with pytest.raises(CommandError):
             call_command(command, "--organization", "CONTAD")
+
+
+def test_export_does_not_wait_for_a_newer_razao(office, django_capture_on_commit_callbacks):
+    """D-408: the Razão already read is enough to export the automatic entries."""
+    _history(office, django_capture_on_commit_callbacks)
+    with django_capture_on_commit_callbacks(execute=True):
+        _month(
+            office,
+            "alfa",
+            [("LIQUIDACAO BOLETO 704", -7_000, 16)],
+            [("OUTRA", 3_000, "9", 25)],
+            month=10,
+            tag="a10",
+        )
+    alfa = office["alfa"]
+    export = create_export(
+        organization=office["org"],
+        company=alfa["company"],
+        start=date(2026, 10, 1),
+        end=date(2026, 10, 31),
+    )
+    assert export.state == AccountingExport.State.READY and len(export.entry_ids) == 1

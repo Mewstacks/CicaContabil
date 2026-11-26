@@ -164,7 +164,8 @@ def test_result_page_says_where_the_client_is_and_what_to_do(
     assert "SITUAÇÃO DO MÊS" in html
     # One CICA entry posted and not sent: sending comes first.
     assert "1 lançamento da CICA pronto para enviar ao Domínio" in html
-    assert ">Enviar ao Domínio</a>" in html
+    # D-408: one click generates and downloads the file; no newer Razão is required.
+    assert ">Baixar arquivo do Domínio</button>" in html
     assert "1. Extrato importado" in html and "3. Envio ao Domínio" in html
     assert "1 pronto para enviar" in html
     assert "Relatório (imprimir ou PDF)" in html
@@ -219,3 +220,92 @@ def test_other_offices_keep_the_conference_page(setup, django_capture_on_commit_
         source = _october(setup, OCTOBER_BANK, OCTOBER_LEDGER)
     html = _html(setup["client"], "hub:reconciliation-source-review", source.pk)
     assert "SITUAÇÃO DO MÊS" not in html and "Ver relatório" in html
+
+
+def _plain_render(monkeypatch):
+    import dataclasses
+
+    import apps.hub.reconciliation_service as service
+
+    # Synthetic chart codes are not Domínio reduced codes; the layout is covered elsewhere.
+    adapter = service.ACCOUNTING_EXPORT_ADAPTERS["dominio"]
+    monkeypatch.setitem(
+        service.ACCOUNTING_EXPORT_ADAPTERS,
+        "dominio",
+        dataclasses.replace(adapter, render=lambda entries: b"lote\r\n"),
+    )
+
+
+def test_result_page_generates_and_downloads_the_dominio_file_and_shows_rules(
+    enabled,  # noqa: F811
+    django_capture_on_commit_callbacks,
+    monkeypatch,
+):
+    """D-406: the Domínio file and the DE-PARA rules live on the same result page."""
+
+    from apps.hub.models import AccountingExport
+
+    _plain_render(monkeypatch)
+
+    source = _october_source(enabled, django_capture_on_commit_callbacks)
+    url = reverse("hub:reconciliation-source-review", args=[source.pk])
+    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
+    assert ">Baixar arquivo do Domínio</button>" in html
+    assert "Aqui você vê o que a CICA fez" not in html  # D-408
+    assert 'id="arquivo-dominio"' in html and "Arquivo para o Domínio" in html
+    assert "Nenhum arquivo gerado ainda" in html
+    assert 'id="regras-depara"' in html and "Regras DE-PARA desta conta" in html
+    assert "Histórico do extrato (DE)" in html and "Débito (PARA)" in html
+    assert "Ativar ou desativar regras" in html
+    page = enabled["client"].get(url)
+    form = page.context["direct_use_summary"]["export_form"]
+    response = enabled["client"].post(
+        reverse("hub:reconciliation-export-create"),
+        {
+            "company_id": form["company_id"],
+            "period_start": form["start"],
+            "period_end": form["end"],
+            "next": form["next"],
+        },
+    )
+    assert response.status_code == 302
+    export = AccountingExport.objects.get()
+    assert response["Location"] == f"{form['next']}?baixar={export.pk}#arquivo-dominio"
+    started = enabled["client"].get(response["Location"].split("#")[0]).content.decode()
+    download = reverse("hub:reconciliation-export-download", args=[export.pk])
+    assert f'<meta http-equiv="refresh" content="0;url={download}">' in started
+    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
+    assert f'href="{download}">Baixar arquivo</a>' in html
+    assert "http-equiv" not in html  # only right after generating
+    assert "Pronto para importar" in html
+    summary = enabled["client"].get(url).context["direct_use_summary"]
+    assert summary["href"] == download and summary["action"] == "Baixar arquivo do Domínio"
+    assert enabled["client"].get(download).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["https://example.com/app/", "//example.com/x", "/app/conciliacao/", "javascript:alert(1)"],
+)
+def test_export_return_address_only_accepts_a_result_page(
+    enabled,  # noqa: F811
+    django_capture_on_commit_callbacks,
+    monkeypatch,
+    target,
+):
+
+    _plain_render(monkeypatch)
+    source = _october_source(enabled, django_capture_on_commit_callbacks)
+    form = enabled["client"].get(
+        reverse("hub:reconciliation-source-review", args=[source.pk])
+    ).context["direct_use_summary"]["export_form"]
+    response = enabled["client"].post(
+        reverse("hub:reconciliation-export-create"),
+        {
+            "company_id": form["company_id"],
+            "period_start": form["start"],
+            "period_end": form["end"],
+            "next": target,
+        },
+    )
+    assert response["Location"] == reverse("hub:reconciliation") + "#exportacoes"

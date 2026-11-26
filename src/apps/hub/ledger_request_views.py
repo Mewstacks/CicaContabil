@@ -433,7 +433,7 @@ def ledger_request(request: HttpRequest) -> HttpResponse:
         if context.get("ledger_upload_notice"):
             messages.success(request, context["ledger_upload_notice"])
         messages.info(request, "O Razão deste mês já está sendo buscado. Acompanhe abaixo.")
-        return redirect(_url(account, month, source))
+        return redirect(_url(account, month, source) + _auto(values))
     try:
         _job, created = request_ledger(
             account=account,
@@ -450,7 +450,13 @@ def ledger_request(request: HttpRequest) -> HttpResponse:
     messages.success(
         request, "Busca do Razão solicitada." if created else "Esta solicitação já está registrada."
     )
+    if _auto(values):  # D-406: follow the search here and reopen the result when it arrives
+        return redirect(_url(account, month, source) + _auto(values))
     return redirect(_url(account, month, source) + "#ledger-requests")
+
+
+def _auto(values: Any) -> str:
+    return "&auto=1" if values.get("auto") == "1" else ""
 
 
 def _scoped_job(request: HttpRequest, identifier: UUID, *, write: bool = False) -> tuple[Any, Any]:

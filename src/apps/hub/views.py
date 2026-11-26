@@ -11215,9 +11215,98 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
         context["direct_use_outcomes"] = outcome_counts(outcomes)
         context["page_title"] = "Resultado do extrato"  # D-398
         context["direct_use_summary"] = _direct_use_source_summary(source, outcomes, context)
+        _direct_use_export_and_rules(request, source, context, can_review_conference)
     response = render(request, "hub/reconciliation_source_review.html", context)
     response["Cache-Control"] = "no-store, private"
     return response
+
+
+def _direct_use_export_and_rules(
+    request: HttpRequest,
+    source: ReconciliationSourceFile,
+    context: dict[str, Any],
+    can_export: bool,
+) -> None:
+    """D-406: the Domínio file and the DE-PARA rules on the same result page."""
+    from apps.hub.accounting_import import export_allowed
+    from apps.hub.depara_ledger_views import ledger_rule_rows
+    from apps.hub.reconciliation_service import get_accounting_export_adapter
+
+    summary = context["direct_use_summary"]
+    report = context.get("conference_report") or {}
+    start = parse_date(
+        str(report.get("period_start") or context.get("conference_period_start") or "")[:10]
+    )
+    end = parse_date(
+        str(report.get("period_end") or context.get("conference_period_end") or "")[:10]
+    )
+    exports: list[dict[str, Any]] = []
+    if start and end:
+        for item in AccountingExport.objects.filter(
+            organization_id=source.organization_id,
+            company_id=source.company_id,
+            target=AccountingExport.Target.DOMINIO,
+            state__in=[AccountingExport.State.READY, AccountingExport.State.CONFIRMED],
+            period_start__lte=end,
+            period_end__gte=start,
+        ).order_by("-created_at", "-id")[:10]:
+            exports.append(
+                {
+                    "export": item,
+                    "count": len(item.entry_ids or []),
+                    "url": reverse("hub:reconciliation-export-download", args=[item.pk]),
+                }
+            )
+    allowed = bool(
+        can_export
+        and start
+        and end
+        and export_allowed(
+            source.organization,
+            AccountingExport.Target.DOMINIO,
+            get_accounting_export_adapter(AccountingExport.Target.DOMINIO).version,
+        )
+    )
+    review_url = reverse("hub:reconciliation-source-review", args=[source.pk])
+    query = str(context.get("conference_report_querystring") or "")
+    form = None
+    if summary["state"] == "send" and allowed and start and end:
+        form = {
+            "company_id": str(source.company_id),
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+            "next": review_url + (f"?{query}" if query else ""),
+        }
+        summary["action"] = "Baixar arquivo do Domínio"
+        summary["text"] = (
+            "São movimentos do extrato que não estavam no Razão e que uma regra reconheceu. "
+            "Baixe o arquivo e importe no Domínio."
+        )
+    elif summary["state"] == "send":
+        summary["href"] = "#arquivo-dominio"
+    elif exports and summary["state"] in {"done", "attention"}:
+        # D-408: once the file exists, downloading it stays the main action of the month.
+        if summary["state"] == "attention":
+            pending = summary["title"]
+            summary["title"] = "Arquivo do Domínio pronto para baixar"
+            summary["text"] = (
+                f"{pending[:1].upper()}{pending[1:]}: a CICA não lançou esses movimentos para "
+                "não duplicar ou por não reconhecer o histórico; veja na lista abaixo."
+            )
+        summary["action"], summary["href"] = "Baixar arquivo do Domínio", exports[0]["url"]
+    wanted = request.GET.get("baixar", "")
+    context["direct_use_auto_download"] = next(
+        (row["url"] for row in exports if str(row["export"].pk) == wanted), ""
+    )
+    summary["export_form"] = form
+    account = source.financial_account
+    context.update(
+        direct_use_exports=exports,
+        direct_use_rules=ledger_rule_rows(account) if account else [],
+        direct_use_rules_url=(
+            reverse("hub:reconciliation-depara-ledger", args=[account.pk]) if account else ""
+        ),
+    )
 
 
 _MONTHS_PT = (
@@ -12514,6 +12603,23 @@ def reconciliation_preview_download(request: HttpRequest, preview_id: str) -> Ht
     return response
 
 
+def _result_page_target(request: HttpRequest, target: str) -> str:
+    """Only a local result page of a bank statement is accepted as the return address."""
+    from urllib.parse import urlsplit
+
+    from django.urls import Resolver404, resolve
+
+    if not target or "\\" in target or not target.startswith("/"):
+        return ""
+    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+        return ""
+    try:
+        match = resolve(urlsplit(target).path)
+    except Resolver404:
+        return ""
+    return target if match.url_name == "reconciliation-source-review" else ""
+
+
 @office_required
 @require_http_methods(["POST"])
 def reconciliation_export_create(request: HttpRequest) -> HttpResponse:
@@ -12525,6 +12631,8 @@ def reconciliation_export_create(request: HttpRequest) -> HttpResponse:
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     company = get_object_or_404(companies, id=request.POST.get("company_id"))
+    export: AccountingExport | None = None
+    reexport_of: AccountingExport | None = None
     try:
         start = datetime.strptime(request.POST.get("period_start", ""), "%Y-%m-%d").date()
         end = datetime.strptime(request.POST.get("period_end", ""), "%Y-%m-%d").date()
@@ -12566,6 +12674,11 @@ def reconciliation_export_create(request: HttpRequest) -> HttpResponse:
             )
             if held.held:
                 messages.info(request, held.message())
+    if target := _result_page_target(request, request.POST.get("next", "")):
+        # D-406/D-408: back to the same result page, which starts the download right away.
+        if export is not None and reexport_of is None:
+            target += ("&" if "?" in target else "?") + urlencode({"baixar": str(export.pk)})
+        return redirect(target + "#arquivo-dominio")
     return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
 
 
