@@ -98,6 +98,13 @@ def _no_store[R: HttpResponseBase](response: R) -> R:
     return response
 
 
+def _wide(context: dict[str, object]) -> bool:
+    if context.get("support_session") is not None:
+        return bool(context.get("support_can_mutate"))
+    membership = context.get("membership")
+    return isinstance(membership, Membership) and membership.role in WIDE_ROLES
+
+
 def _need_write(request: HttpRequest, context: dict[str, object]) -> HttpResponse | None:
     if not context["can_write"]:
         return refuse(request, "Seu acesso só consulta o Fechamento.")
@@ -191,7 +198,12 @@ def upload(request: HttpRequest) -> HttpResponse:
     for item in files:
         try:
             last = services.ingest_upload(
-                organization=office, actor=cast(User, request.user), upload=item, request=request
+                organization=office,
+                actor=cast(User, request.user),
+                upload=item,
+                request=request,
+                allowed_companies=_companies(context),
+                visible_documents=_visible(context, cast(User, request.user)),
             )
             accepted += 1
         except ValidationError as exc:
@@ -221,6 +233,7 @@ def document(request: HttpRequest, document_id: UUID) -> HttpResponse:
             "decision_form": DecisionForm(),
             "reads": _reads(item),
             "can_decide": bool(context["can_write"] and latest and latest.needs_person),
+            "can_make_layout": bool(context["can_write"] and _wide(context)),
         }
     )
     return render(request, "closing/document.html", context)
@@ -263,7 +276,9 @@ def document_reread(request: HttpRequest, document_id: UUID) -> HttpResponse:
         return denied
     item = _load(context, cast(User, request.user), document_id)
     try:
-        item = services.reread(item, actor=cast(User, request.user))
+        item = services.reread(
+            item, actor=cast(User, request.user), allowed_companies=_companies(context)
+        )
     except ValidationError as exc:
         messages.error(request, exc.messages[0])
     return redirect("closing:document", document_id=item.pk)
@@ -315,12 +330,14 @@ def conference_decide(request: HttpRequest, document_id: UUID, conference_id: UU
 @office_required
 @require_POST
 def document_to_layout(request: HttpRequest, document_id: UUID) -> HttpResponse:
-    """Abre um layout em rascunho usando este arquivo como amostra."""
+    """Abre um layout em rascunho usando este arquivo como amostra (só quem vê a carteira toda)."""
     context, blocked = _gate(request)
     if blocked:
         return blocked
     if denied := _need_write(request, context):
         return denied
+    if not _wide(context):
+        return refuse(request, "Só quem vê a carteira inteira cria layout a partir de um arquivo.")
     item = _load(context, cast(User, request.user), document_id)
     office = _office(context)
     base = "novo-layout"
@@ -401,7 +418,9 @@ def layout(request: HttpRequest, layout_id: UUID) -> HttpResponse:
             form.save()
             messages.success(request, "Layout guardado.")
             return redirect("closing:layout", layout_id=item.pk)
-    sample_text = item.sample_text
+    # A amostra é texto de documento de cliente: só quem vê a carteira inteira a vê.
+    can_see_sample = _wide(context)
+    sample_text = item.sample_text if can_see_sample else ""
     rows = services.diagnose(item, sample_text) if sample_text.strip() else []
     problems = services.activation_problems(item)
     context.update(
@@ -411,6 +430,7 @@ def layout(request: HttpRequest, layout_id: UUID) -> HttpResponse:
             "form": form,
             "fields": item.fields.all(),
             "field_form": FieldForm(layout=item),
+            "can_see_sample": can_see_sample,
             "sample_form": SampleForm(initial={"sample_text": sample_text}),
             "diagnosis": rows,
             "problems": problems,
@@ -474,6 +494,8 @@ def layout_sample(request: HttpRequest, layout_id: UUID) -> HttpResponse:
         return blocked
     if denied := _need_write(request, context):
         return denied
+    if not _wide(context):
+        return refuse(request, "Só quem vê a carteira inteira troca a amostra.")
     item = _layout(context, layout_id)
     form = SampleForm(request.POST, request.FILES)
     if form.is_valid():

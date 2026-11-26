@@ -53,11 +53,15 @@ _ZERO = Decimal("0.00")
 class CompanyLookup:
     """Empresa do escritório pelo identificador lido: CNPJ, raiz, IE ou IM (nunca de outro)."""
 
-    def __init__(self, organization: Organization) -> None:
+    def __init__(self, organization: Organization, allowed: Any = None) -> None:
         self.organization = organization
+        # Carteira de quem lê: empresa fora dela nunca é identificada (nem baixa o item dela).
+        self.allowed = allowed
 
     def find(self, values: dict[str, Any]) -> tuple[ClientCompany | None, str]:
         companies = ClientCompany.objects.filter(organization=self.organization, active=True)
+        if self.allowed is not None:
+            companies = companies.filter(pk__in=self.allowed.values("pk"))
         tries: list[tuple[str, str, Any]] = []
         if values.get("cnpj"):
             tries.append(("CNPJ", _mask_cnpj(str(values["cnpj"])), self._by_cnpj))
@@ -131,6 +135,8 @@ def ingest_upload(
     actor: User,
     upload: UploadedFile,
     request: object | None = None,
+    allowed_companies: Any = None,
+    visible_documents: Any = None,
 ) -> ClosingDocument:
     """Guarda o arquivo (um por conteúdo) e o lê na hora."""
     name = PurePosixPath((upload.name or "").replace("\\", "/")).name[:255]
@@ -156,6 +162,9 @@ def ingest_upload(
         .first()
     )
     if existing is not None:
+        if visible_documents is not None and not visible_documents.filter(pk=existing.pk).exists():
+            # Mesmo conteúdo já entrou numa carteira que quem envia não vê: não revela qual.
+            raise ValidationError(f"{name}: arquivo já recebido.")
         return existing
     with transaction.atomic():
         document = ClosingDocument(
@@ -175,7 +184,7 @@ def ingest_upload(
         request=request,
         metadata={"content_hash": digest, "byte_size": len(data)},
     )
-    return read_document(document, data=data)
+    return read_document(document, data=data, allowed_companies=allowed_companies)
 
 
 # --- reading -------------------------------------------------------------------------
@@ -189,7 +198,9 @@ def _document_bytes(document: ClosingDocument) -> bytes:
     return data
 
 
-def read_document(document: ClosingDocument, *, data: bytes | None = None) -> ClosingDocument:
+def read_document(
+    document: ClosingDocument, *, data: bytes | None = None, allowed_companies: Any = None
+) -> ClosingDocument:
     """Lê o arquivo e decide: quarentena (com os motivos) ou aceito (com conferência)."""
     with transaction.atomic():
         document = ClosingDocument.objects.select_for_update().get(pk=document.pk)
@@ -208,7 +219,7 @@ def read_document(document: ClosingDocument, *, data: bytes | None = None) -> Cl
         document.text = text
         _reset(document)
         if text.strip():
-            _apply_layouts(document, text, reasons)
+            _apply_layouts(document, text, reasons, allowed_companies)
         document.reasons = reasons
         document.read_at = timezone.now()
         document.state = (
@@ -238,7 +249,9 @@ def _reset(document: ClosingDocument) -> None:
     document.read_values = {}
 
 
-def _apply_layouts(document: ClosingDocument, text: str, reasons: list[str]) -> None:
+def _apply_layouts(
+    document: ClosingDocument, text: str, reasons: list[str], allowed_companies: Any = None
+) -> None:
     layouts = list(
         ClosingLayout.objects.filter(organization=document.organization).prefetch_related("fields")
     )
@@ -273,7 +286,7 @@ def _apply_layouts(document: ClosingDocument, text: str, reasons: list[str]) -> 
         document.competence = date(competence[0], competence[1], 1)
     else:
         reasons.append("competência (mês/ano)")
-    company, reason = CompanyLookup(document.organization).find(values)
+    company, reason = CompanyLookup(document.organization, allowed_companies).find(values)
     document.company = company
     if reason:
         reasons.append(reason)
@@ -551,11 +564,13 @@ def discard(
     return locked
 
 
-def reread(document: ClosingDocument, *, actor: User | None = None) -> ClosingDocument:
+def reread(
+    document: ClosingDocument, *, actor: User | None = None, allowed_companies: Any = None
+) -> ClosingDocument:
     """Relê o arquivo com os layouts de hoje (depois de ajustar ou ativar um layout)."""
     if document.state == ClosingDocument.State.DISCARDED:
         raise ValidationError("O arquivo foi descartado.")
-    return read_document(document)
+    return read_document(document, allowed_companies=allowed_companies)
 
 
 def reevaluate_waiting(

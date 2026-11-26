@@ -21,7 +21,7 @@
   <div class="cl-actions">
     {% if can_write and document.state != 'discarded' %}
     <form method="post" action="{% url 'closing:document-reread' document.pk %}" data-submit-once>{% csrf_token %}<button class="button button-quiet" type="submit">Ler de novo</button></form>
-    {% if document.state == 'quarantine' %}<form method="post" action="{% url 'closing:document-layout' document.pk %}">{% csrf_token %}<button class="button button-quiet" type="submit">Criar layout</button></form>{% endif %}
+    {% if document.state == 'quarantine' and can_make_layout %}<form method="post" action="{% url 'closing:document-layout' document.pk %}">{% csrf_token %}<button class="button button-quiet" type="submit">Criar layout</button></form>{% endif %}
     <form method="post" action="{% url 'closing:document-discard' document.pk %}" data-submit-once>{% csrf_token %}<button class="button button-quiet" type="submit">Descartar</button></form>
     {% endif %}
     <a class="button button-quiet" href="{% url 'closing:document-file' document.pk %}">Baixar original</a>

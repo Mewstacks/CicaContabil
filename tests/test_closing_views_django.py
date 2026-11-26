@@ -307,3 +307,63 @@ def test_pages_render_with_the_module_navigation(world) -> None:  # type: ignore
     nav = client.get(reverse("hub:dashboard")).content.decode()
     assert reverse("closing:index") in nav
     assert date.today().year > 2000
+
+
+def _restricted_operator(office, other_company):  # type: ignore[no-untyped-def]
+    operator = make_user(office, "scoped@closing.test", Membership.Role.OPERATOR)
+    CompanyAccessGrant.objects.create(
+        organization=office,
+        membership=Membership.objects.get(organization=office, user=operator),
+        company=other_company,
+        modules=[ProductModule.Code.CLOSING],
+    )
+    return operator
+
+
+def test_a_scoped_operator_cannot_read_or_clear_another_companys_document(world) -> None:  # type: ignore[no-untyped-def]
+    office, _, company, _, activity = world
+    make_guide(office, company)
+    _restricted_operator(office, make_company(office, "Outra Ltda", "11.222.333/0001-81"))
+    client = login("scoped@closing.test")
+    upload(client, das_text())  # CNPJ of the padaria, outside this operator's portfolio
+    document = ClosingDocument.objects.get()
+    assert document.state == ClosingDocument.State.QUARANTINE
+    assert document.company is None
+    assert not document.conferences.exists()
+    activity.refresh_from_db()
+    assert activity.work_status == OperationalActivity.WorkStatus.PENDING
+
+
+def test_a_duplicate_of_a_document_outside_the_portfolio_is_refused_neutrally(world) -> None:  # type: ignore[no-untyped-def]
+    office, owner, *_ = world
+    services.ingest_upload(organization=office, actor=owner, upload=txt_upload(das_text()))
+    _restricted_operator(office, make_company(office, "Outra Ltda", "11.222.333/0001-81"))
+    client = login("scoped@closing.test")
+    before = ClosingDocument.objects.count()
+    response = upload(client, das_text())
+    assert response.status_code == 302
+    assert ClosingDocument.objects.count() == before
+    assert response["Location"] == reverse("closing:index")
+
+
+def test_a_scoped_operator_neither_sees_samples_nor_builds_layouts_from_files(world) -> None:  # type: ignore[no-untyped-def]
+    office, owner, _, layout, _ = world
+    layout.sample_text = das_text()
+    layout.save()
+    services.ingest_upload(
+        organization=office, actor=owner, upload=txt_upload("Guia XYZ sem layout", "xyz.txt")
+    )
+    quarantined = ClosingDocument.objects.get(original_name="xyz.txt")
+    _restricted_operator(office, make_company(office, "Outra Ltda", "11.222.333/0001-81"))
+    client = login("scoped@closing.test")
+    page = client.get(reverse("closing:layout", args=[layout.pk]))
+    assert page.status_code == 200
+    assert "12.345.678/0001-95" not in page.content.decode()
+    assert "Amostra" not in page.content.decode()
+    blocked = client.post(reverse("closing:document-layout", args=[quarantined.pk]))
+    assert blocked.status_code in {403, 404}
+    assert not ClosingLayout.objects.filter(code="novo-layout").exists()
+    sample = client.post(reverse("closing:layout-sample", args=[layout.pk]), {"sample_text": "x"})
+    assert sample.status_code in {302, 403}
+    layout.refresh_from_db()
+    assert layout.sample_text == das_text()

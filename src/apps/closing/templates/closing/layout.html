@@ -56,6 +56,7 @@
   {% endif %}
 </section>
 
+{% if can_see_sample %}
 <section class="workspace-panel closing" aria-labelledby="cl-sample-title">
   <header class="workspace-panel-head"><div><h2 id="cl-sample-title">Amostra</h2></div></header>
   {% if can_write %}
@@ -80,6 +81,7 @@
   </div>
   {% endif %}
 </section>
+{% endif %}
 
 <section class="workspace-panel closing" aria-labelledby="cl-activate-title">
   <header class="workspace-panel-head"><div><h2 id="cl-activate-title">Ativação</h2></div></header>
