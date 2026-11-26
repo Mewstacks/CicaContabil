@@ -18,6 +18,9 @@ class Command(BaseCommand):
         parser.add_argument("--bundle", required=True, help="zip ou pasta do pacote")
         parser.add_argument("--dry-run", action="store_true")
         parser.add_argument(
+            "--skip", action="append", default=[], help="tabela a pular (repetível)"
+        )
+        parser.add_argument(
             "--with-users", action="store_true", help="cria usuários sem senha (reset depois)"
         )
 
@@ -34,6 +37,7 @@ class Command(BaseCommand):
                 path=path,
                 dry_run=bool(options["dry_run"]),
                 with_users=bool(options["with_users"]),
+                skip=frozenset(str(name) for name in options["skip"]),  # type: ignore[attr-defined]
             )
         except BundleError as exc:
             raise CommandError(str(exc)) from exc

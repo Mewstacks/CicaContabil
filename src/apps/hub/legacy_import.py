@@ -12,11 +12,13 @@ import json
 import re
 import zipfile
 from collections import Counter
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
@@ -42,12 +44,12 @@ class BundleError(ValueError):
 
 @dataclass
 class ImportReport:
-    tables: dict[str, Counter] = field(default_factory=dict)
-    mapped: Counter = field(default_factory=Counter)
+    tables: dict[str, Counter[str]] = field(default_factory=dict)
+    mapped: Counter[str] = field(default_factory=Counter)
     warnings: list[str] = field(default_factory=list)
     bundle_sha256: str = ""
 
-    def table(self, name: str) -> Counter:
+    def table(self, name: str) -> Counter[str]:
         return self.tables.setdefault(name, Counter())
 
     def lines(self) -> list[str]:
@@ -103,6 +105,21 @@ class Bundle:
             return self._zip.read(name)
         return (self.path / name).read_bytes()
 
+    def _open(self, name: str) -> IO[bytes]:
+        """Binary stream of one member; never loads a big table into memory."""
+        if self._zip is not None:
+            return self._zip.open(name)
+        return (self.path / name).open("rb")
+
+    def _sha256_member(self, name: str) -> tuple[str, int]:
+        digest = hashlib.sha256()
+        lines = 0
+        with self._open(name) as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+                lines += chunk.count(b"\n")
+        return digest.hexdigest(), lines
+
     def verify(self) -> list[str]:
         problems: list[str] = []
         for table, info in self.manifest.get("tables", {}).items():
@@ -111,43 +128,45 @@ class Bundle:
                 continue
             if not info.get("rows"):
                 continue
-            data = self._read(f"tables/{table}.jsonl")
-            if _sha256_bytes(data) != info["sha256"]:
+            digest, lines = self._sha256_member(f"tables/{table}.jsonl")
+            if digest != info["sha256"]:
                 raise BundleError(f"{table}: checksum diferente do manifesto (pacote alterado).")
-            if len(data.splitlines()) != info["rows"]:
+            if lines != info["rows"]:
                 raise BundleError(f"{table}: contagem de linhas diferente do manifesto.")
         mongo = self.manifest.get("mongo_nfse", {})
         if mongo.get("status") == "ok" and mongo.get("rows"):
-            data = self._read("mongo_nfse.jsonl")
-            if _sha256_bytes(data) != mongo["sha256"]:
+            digest, _lines = self._sha256_member("mongo_nfse.jsonl")
+            if digest != mongo["sha256"]:
                 raise BundleError("mongo_nfse: checksum diferente do manifesto.")
         elif mongo.get("status") not in {"ok", "ignorado"}:
             problems.append(f"mongo_nfse: {mongo.get('status')} {mongo.get('error', '')}".strip())
         return problems
 
-    def rows(self, member: str):
-        for line in self._read(member).decode("utf-8").splitlines():
-            if line.strip():
-                yield json.loads(line)
+    def rows(self, member: str) -> Iterator[dict[str, Any]]:
+        with self._open(member) as handle:
+            for raw in handle:
+                if raw.strip():
+                    yield json.loads(raw.decode("utf-8"))
 
 
 def _upsert_records(
     organization: Organization, bundle: Bundle, table: str, member: str, report: ImportReport
 ) -> None:
     counter = report.table(table)
+    # Only key + digest are loaded: a re-run over 700 MB of payloads must not fit in RAM.
     existing = {
-        rec.source_pk: rec
-        for rec in LegacyImportRecord.objects.filter(
+        pk: (rec_id, digest)
+        for rec_id, pk, digest in LegacyImportRecord.objects.filter(
             organization=organization, source_system="hubfedrizzi", source_table=table
-        )
+        ).values_list("id", "source_pk", "payload_sha256")
     }
     for item in bundle.rows(member):
         counter["read"] += 1
         pk = str(item["pk"])
         payload = _scrub(item["row"])
         digest = _sha256_bytes(_canonical(payload))
-        record = existing.get(pk)
-        if record is None:
+        found = existing.get(pk)
+        if found is None:
             LegacyImportRecord.objects.create(
                 organization=organization,
                 source_system="hubfedrizzi",
@@ -158,11 +177,13 @@ def _upsert_records(
                 bundle_sha256=bundle.sha256,
             )
             counter["created"] += 1
-        elif record.payload_sha256 != digest:
-            record.payload = payload
-            record.payload_sha256 = digest
-            record.bundle_sha256 = bundle.sha256
-            record.save(update_fields=["payload", "payload_sha256", "bundle_sha256", "updated_at"])
+        elif found[1] != digest:
+            LegacyImportRecord.objects.filter(pk=found[0]).update(
+                payload=payload,
+                payload_sha256=digest,
+                bundle_sha256=bundle.sha256,
+                updated_at=timezone.now(),
+            )
             counter["updated"] += 1
         else:
             counter["same"] += 1
@@ -236,17 +257,26 @@ def _map_users(organization: Organization, report: ImportReport) -> None:
 
 
 def import_bundle(
-    *, organization: Organization, path: Path, dry_run: bool = False, with_users: bool = False
+    *,
+    organization: Organization,
+    path: Path,
+    dry_run: bool = False,
+    with_users: bool = False,
+    skip: frozenset[str] = frozenset(),
 ) -> ImportReport:
     bundle = Bundle(path)
     report = ImportReport(bundle_sha256=bundle.sha256)
     report.warnings.extend(bundle.verify())
     with transaction.atomic():
         for table, info in sorted(bundle.manifest["tables"].items()):
-            if info.get("rows") and "error" not in info:
+            if table in skip:
+                report.warnings.append(f"{table}: pulada por pedido (continua no pacote)")
+            elif info.get("rows") and "error" not in info:
                 _upsert_records(organization, bundle, table, f"tables/{table}.jsonl", report)
         mongo = bundle.manifest.get("mongo_nfse", {})
-        if mongo.get("status") == "ok" and mongo.get("rows"):
+        if "mongo_nfse" in skip:
+            report.warnings.append("mongo_nfse: pulada por pedido (continua no pacote)")
+        elif mongo.get("status") == "ok" and mongo.get("rows"):
             _upsert_records(organization, bundle, "mongo_nfse", "mongo_nfse.jsonl", report)
         _map_companies(organization, report)
         if with_users:
