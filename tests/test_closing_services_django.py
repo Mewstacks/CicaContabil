@@ -455,3 +455,24 @@ def test_events_are_audited(world) -> None:  # type: ignore[no-untyped-def]
     office, user, *_ = world
     ingest(office, user, das_text())
     assert AuditEvent.objects.filter(action="closing.document.received").exists()
+
+
+def test_scoping_never_changes_which_company_the_identifier_names(world) -> None:  # type: ignore[no-untyped-def]
+    office, user, company, layout, _ = world
+    other = make_company(office, "Outra Ltda", "11.222.333/0001-81")
+    company.state_registration = "029/0618657"
+    company.save()
+    other.state_registration = "029/0618657"
+    other.save()
+    ClosingField.objects.create(
+        organization=office, layout=layout, variable="state_registration", anchor="IE:"
+    )
+    text = das_text() + "IE: 029/0618657\n"
+    scope = ClientCompany.objects.filter(pk=other.pk)
+    document = services.ingest_upload(
+        organization=office, actor=user, upload=txt_upload(text), allowed_companies=scope
+    )
+    # The CNPJ names the padaria (outside the scope): no fall-through to the IE of the other.
+    assert document.company is None
+    assert document.state == ClosingDocument.State.QUARANTINE
+    assert any("carteira" in reason for reason in document.reasons)

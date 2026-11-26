@@ -60,8 +60,12 @@ class CompanyLookup:
 
     def find(self, values: dict[str, Any]) -> tuple[ClientCompany | None, str]:
         companies = ClientCompany.objects.filter(organization=self.organization, active=True)
-        if self.allowed is not None:
-            companies = companies.filter(pk__in=self.allowed.values("pk"))
+        # A carteira só vale DEPOIS de casar com o escritório inteiro: filtrar antes mudaria o
+        # resultado (duplicata fora da carteira escolhida em silêncio, ou queda para um
+        # identificador mais fraco que casa com outra empresa).
+        in_portfolio = (
+            None if self.allowed is None else set(self.allowed.values_list("pk", flat=True))
+        )
         tries: list[tuple[str, str, Any]] = []
         if values.get("cnpj"):
             tries.append(("CNPJ", _mask_cnpj(str(values["cnpj"])), self._by_cnpj))
@@ -78,6 +82,11 @@ class CompanyLookup:
         for label, shown, finder in tries:
             matches = finder(companies, shown if label != "CNPJ" else str(values["cnpj"]))
             if len(matches) == 1:
+                if in_portfolio is not None and matches[0].pk not in in_portfolio:
+                    return None, (
+                        f"empresa — li o {label} {shown}, "
+                        "mas ele não é de uma empresa da sua carteira"
+                    )
                 return matches[0], ""
             if len(matches) > 1:
                 return None, f"empresa — {label} {shown} pertence a mais de uma empresa cadastrada"
