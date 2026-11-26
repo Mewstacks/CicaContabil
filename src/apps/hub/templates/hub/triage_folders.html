@@ -1,0 +1,69 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5"><link rel="stylesheet" href="{% static 'hub/triage-folders.css' %}?v=1">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% endblock %}
+
+{% block workspace_content %}
+{% if folder_error %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>{{ folder_error }}</div>{% endif %}
+<section class="workspace-panel" aria-labelledby="tf-model-title">
+  <header class="workspace-panel-head"><div><h2 id="tf-model-title">Modelo</h2>{% if folder_model %}<p>r{{ folder_model.revision }} · {% if folder_enabled %}Ativo{% else %}Inativo{% endif %}</p>{% endif %}</div>
+  {% if can_manage_folders %}<form method="post" data-submit-once>{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="enabled" value="{% if folder_enabled %}0{% else %}1{% endif %}"><button class="button {% if folder_enabled %}button-secondary{% endif %}" type="submit">{% if folder_enabled %}Desativar{% else %}Ativar{% endif %}</button></form>{% endif %}</header>
+  {% if folder_tree %}
+  <div class="tf-body">{% include "hub/partials/folder_nodes.html" with nodes=folder_tree depth=0 %}</div>
+  {% if can_manage_folders %}
+  <form class="tv2-form" method="post" novalidate>
+    {% csrf_token %}<input type="hidden" name="revision" value="{{ folder_model.revision }}">
+    <div class="tv2-grid">
+      <div class="field"><label for="tf-node">Pasta</label><select id="tf-node" name="node"><option value="">Raiz</option>{% for n in folder_nodes %}<option value="{{ n.id }}">{{ n.label }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="tf-name">Nome</label><input id="tf-name" name="name" type="text" maxlength="120" autocomplete="off"></div>
+      <div class="field"><label for="tf-var">Variável</label><select id="tf-var" name="variable"><option value="">—</option>{% for v in variables %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="tv2-actions">
+      <button class="button" type="submit" name="action" value="add">Adicionar</button>
+      <button class="button button-secondary" type="submit" name="action" value="rename">Renomear</button>
+      <button class="button button-quiet" type="submit" name="action" value="remove">Retirar</button>
+    </div>
+  </form>
+  {% endif %}
+  {% else %}
+  {% if can_manage_folders %}<form class="tv2-form" method="post" data-submit-once>{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="enabled" value="0"><div class="tv2-actions"><button class="button" type="submit">Criar modelo</button></div></form>{% endif %}
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="tf-rules-title">
+  <header class="workspace-panel-head"><div><h2 id="tf-rules-title">Regras</h2></div></header>
+  {% if folder_rules %}
+  <ul class="tv2-list">{% for row in folder_rules %}
+    <li class="tv2-row{% if not row.rule.enabled %} is-off{% endif %}"><div class="tv2-main"><strong>{{ row.rule.document_type.label }}</strong> <span class="tv2-label">{{ row.rule.get_kind_display }} · {{ row.rule.get_source_display }}{% if not row.rule.enabled %} · Desligada{% endif %}</span><p class="tv2-meta">{{ row.crumb|default:"Pasta retirada" }}</p></div>
+    {% if can_manage_folders %}<form method="post" data-submit-once>{% csrf_token %}<input type="hidden" name="action" value="rule_remove"><input type="hidden" name="rule" value="{{ row.rule.pk }}"><button class="button button-quiet" type="submit">Retirar</button></form>{% endif %}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="tv2-meta tf-empty">Nenhuma regra</p>
+  {% endif %}
+  {% if can_manage_folders and folder_tree %}
+  <form class="tv2-form" method="post" novalidate>
+    {% csrf_token %}<input type="hidden" name="action" value="rule_save">
+    <div class="tv2-grid">
+      <div class="field"><label for="tf-doc">Tipo</label><select id="tf-doc" name="document_type" required>{% for d in document_types %}<option value="{{ d.pk }}">{{ d.label }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="tf-kind">Documento</label><select id="tf-kind" name="kind">{% for value, label in rule_kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="field tv2-wide"><label for="tf-rule-node">Pasta</label><select id="tf-rule-node" name="node" required>{% for n in folder_nodes %}<option value="{{ n.id }}">{{ n.label }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="tv2-actions"><button class="button" type="submit">Guardar</button></div>
+  </form>
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="tf-clients-title">
+  <header class="workspace-panel-head"><div><h2 id="tf-clients-title">Clientes</h2><p>{{ folder_states.created }} criadas · {{ folder_states.pending }} pendentes · {{ folder_states.failed }} com falha</p></div></header>
+  {% if can_manage_folders and folder_enabled %}
+  <form class="tv2-form" method="post" data-submit-once>{% csrf_token %}
+    <div class="tv2-actions">
+      <button class="button" type="submit" name="action" value="provision">Criar pastas</button>
+      <button class="button button-secondary" type="submit" name="action" value="inventory">Inventariar</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

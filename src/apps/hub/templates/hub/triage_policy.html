@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
 
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=6">{% endblock %}
 
 {% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% endblock %}
 
@@ -18,8 +18,15 @@
     <label class="tv2-check">{{ form.auto_approve }}<span>{{ form.auto_approve.label }}</span></label>
     <div class="field{% if form.auto_sample_every.errors %} has-error{% endif %}"><label for="{{ form.auto_sample_every.id_for_label }}">{{ form.auto_sample_every.label }}</label>{{ form.auto_sample_every }}{% if form.auto_sample_every.errors %}<p class="field-error">{{ form.auto_sample_every.errors|striptags }}</p>{% endif %}</div>
     <div class="field{% if form.auto_warmup.errors %} has-error{% endif %}"><label for="{{ form.auto_warmup.id_for_label }}">{{ form.auto_warmup.label }}</label>{{ form.auto_warmup }}{% if form.auto_warmup.errors %}<p class="field-error">{{ form.auto_warmup.errors|striptags }}</p>{% endif %}</div>
+    <label class="tv2-check">{{ form.inbox_watch_enabled }}<span>{{ form.inbox_watch_enabled.label }}</span></label>
+    <div class="field{% if form.inbox_watch_path.errors %} has-error{% endif %}"><label for="{{ form.inbox_watch_path.id_for_label }}">{{ form.inbox_watch_path.label }}</label>{{ form.inbox_watch_path }}{% if form.inbox_watch_path.errors %}<p class="field-error">{{ form.inbox_watch_path.errors|striptags }}</p>{% endif %}</div>
+    <div class="field{% if form.inbox_stable_seconds.errors %} has-error{% endif %}"><label for="{{ form.inbox_stable_seconds.id_for_label }}">{{ form.inbox_stable_seconds.label }}</label>{{ form.inbox_stable_seconds }}{% if form.inbox_stable_seconds.errors %}<p class="field-error">{{ form.inbox_stable_seconds.errors|striptags }}</p>{% endif %}</div>
     {% if can_manage_policy %}<div class="tv2-actions"><button class="button" type="submit">Guardar</button></div>{% endif %}
   </form>
+</section>
+<section class="workspace-panel" aria-labelledby="tv2-scan-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-scan-title">Antimalware</h2></div><span class="tv2-state tv2-state-{{ scanner.state }}" data-scanner-state="{{ scanner.state }}">{% if scanner.state == 'up' %}Ativo{% elif scanner.state == 'down' %}Indisponível{% else %}Desligado{% endif %}</span></header>
+  {% if scanner.detail %}<p class="tv2-state-detail">{{ scanner.detail }}</p>{% endif %}
 </section>
 <section class="workspace-panel" aria-labelledby="tv2-engine-title">
   <header class="workspace-panel-head"><div><h2 id="tv2-engine-title">Motor</h2><p>v{{ engine_version }}</p></div></header>

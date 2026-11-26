@@ -8,7 +8,7 @@ from apps.accounts.models import User
 from apps.hub.models import CompanyAccessGrant, ProductModule
 from apps.organizations.models import Membership
 from apps.triage.intake_policy import policy_for
-from apps.triage.models import TriagePolicy
+from apps.triage.models import DestinationProfile, TriagePolicy
 from triage_v2_support import TriageV2Case
 
 
@@ -44,6 +44,32 @@ class PolicyViewTests(TriageV2Case):
     def test_invalid_budget_is_refused(self) -> None:
         self.assertEqual(self.client.post(self.url, {"ocr_monthly_pages": "-1"}).status_code, 400)
         self.assertFalse(TriagePolicy.objects.exists())
+
+    def test_inbox_folder_needs_a_path_and_is_saved_with_its_window(self) -> None:
+        self.assertEqual(self.client.post(self.url, {"inbox_watch_enabled": "on"}).status_code, 400)
+        DestinationProfile.objects.filter(organization=self.office).update(
+            mode=DestinationProfile.Mode.WINDOWS, windows_root=r"D:\Clientes"
+        )
+        outside = self.client.post(
+            self.url, {"inbox_watch_enabled": "on", "inbox_watch_path": r"C:\Windows"}
+        )
+        self.assertEqual(outside.status_code, 400)
+        response = self.client.post(
+            self.url,
+            {
+                "inbox_watch_enabled": "on",
+                "inbox_watch_path": r"D:\Clientes\Entrada",
+                "inbox_stable_seconds": "45",
+            },
+        )
+        self.assertRedirects(response, self.url)
+        policy = TriagePolicy.objects.get(organization=self.office)
+        self.assertTrue(policy.inbox_watch_enabled)
+        self.assertEqual(policy.inbox_stable_seconds, 45)
+
+    def test_scanner_state_is_shown_and_off_without_a_daemon(self) -> None:
+        response = self.client.get(self.url)
+        self.assertContains(response, 'data-scanner-state="off"')
 
     def test_operator_cannot_change_it(self) -> None:
         user = User.objects.create_user("op-pol@office.test", "safe-password-123")

@@ -88,6 +88,8 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
                     await new BackupProcessor(config, client).RunOnce(stoppingToken);
                     await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
+                    await InboxWatcher.RunOnceAsync(config, client, stoppingToken);
+                    await new FolderJobProcessor(config, client).RunOnce(stoppingToken);
                 }
                 // Fila própria e isolada: uma falha do Contraprova nunca derruba o ciclo
                 // nem os outros processadores (só o tipo da exceção vai ao log).

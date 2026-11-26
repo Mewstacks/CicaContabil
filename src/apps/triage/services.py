@@ -516,6 +516,11 @@ def windows_relative_destination(item: TriageItem, profile: DestinationProfile) 
     )
     period = _windows_component(item.period_label or "Sem período", fallback="Sem período")
     filename = _windows_component(item.final_name, fallback="documento")
+    from apps.triage.folders import resolve_destination
+
+    modeled = resolve_destination(item, profile)
+    if modeled:
+        return str(PureWindowsPath(modeled) / filename)
     # A folder set on the document type (the office's catalogue) wins over the office default.
     type_folder = item.document_type.folder_template if item.document_type else ""
     template = (

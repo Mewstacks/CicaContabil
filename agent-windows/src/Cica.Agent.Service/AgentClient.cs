@@ -117,5 +117,31 @@ internal sealed class AgentClient : IDisposable
         return requested;
     }
 
+    /// <summary>Envia um arquivo da pasta de entrada; devolve o status HTTP sem lançar em 4xx/5xx.</summary>
+    internal async Task<(int Status, string Detail)> UploadInboxAsync(
+        string fileName, string sha256, byte[] content, CancellationToken token)
+    {
+        using HttpRequestMessage request = Signed(HttpMethod.Post, "api/agent/v2/inbox/upload", content);
+        request.Content!.Headers.ContentType = new("application/octet-stream");
+        request.Headers.Add("X-Inbox-Filename", Uri.EscapeDataString(fileName));
+        request.Headers.Add("X-Inbox-Sha256", sha256);
+        using var response = await http.SendAsync(request, token);
+        if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+            throw new AgentAuthorizationException();
+        string detail = "";
+        if (!response.IsSuccessStatusCode)
+        {
+            try
+            {
+                using JsonDocument body = await JsonDocument.ParseAsync(
+                    await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
+                detail = body.RootElement.TryGetProperty("error", out JsonElement error)
+                    ? error.GetString() ?? "" : "";
+            }
+            catch (JsonException) { }
+        }
+        return ((int)response.StatusCode, detail);
+    }
+
     public void Dispose() => http.Dispose();
 }

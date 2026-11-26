@@ -24,5 +24,6 @@
     <Compile Include="../../src/Cica.Agent.Service/NativeCollectionCycle.cs" Link="NativeCollectionCycle.cs" />
     <Compile Include="../../src/Cica.Agent.Service/RuntimeCycleEvidence.cs" Link="RuntimeCycleEvidence.cs" />
     <Compile Include="../../src/Cica.Agent.Service/WorkerFailurePolicy.cs" Link="WorkerFailurePolicy.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/InboxRules.cs" Link="InboxRules.cs" />
   </ItemGroup>
 </Project>

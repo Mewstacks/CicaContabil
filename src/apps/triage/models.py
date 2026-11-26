@@ -193,6 +193,9 @@ class DestinationProfile(OrganizationScopedModel):
     # Only meaningful when mode == WINDOWS: the root the agent is allowed to write under.
     windows_root = models.CharField(max_length=500, blank=True)
     folder_template = models.CharField(max_length=200, blank=True)
+    # Opt-in per office: archive into the office's FolderModel tree (rules by obligation)
+    # instead of the flat folder template. Off keeps the previous behaviour.
+    folder_model_enabled = models.BooleanField(default=False, db_default=False)
 
     def __str__(self) -> str:
         return f"{self.organization_id} -> {self.get_mode_display()}"
@@ -219,6 +222,11 @@ class TriagePolicy(OrganizationScopedModel):
     auto_sample_every = models.PositiveSmallIntegerField(default=20, db_default=20)
     # No auto-approval before this many documents were archived after a person's review.
     auto_warmup = models.PositiveSmallIntegerField(default=30, db_default=30)
+    # Watched intake folder on the office's Windows machine (read by the local agent).
+    inbox_watch_enabled = models.BooleanField(default=False, db_default=False)
+    inbox_watch_path = models.CharField(max_length=500, blank=True, default="", db_default="")
+    # A file whose size and mtime stay unchanged this long is considered fully copied.
+    inbox_stable_seconds = models.PositiveSmallIntegerField(default=30, db_default=30)
 
     def __str__(self) -> str:
         return f"triage policy {self.organization_id}"
@@ -614,3 +622,116 @@ class AgentFileJob(OrganizationScopedModel):
 
     def __str__(self) -> str:
         return f"{self.triage_item_id} -> {self.destination_path} ({self.status})"
+
+
+class FolderModel(OrganizationScopedModel):
+    """The office's folder tree under each client folder (one per office, versioned).
+
+    ``tree`` is a list of nodes ``{"id", "name", "variable", "use", "children"}``. ``variable``
+    marks a placeholder level (``ano``, ``mes``, ``funcionario``, ``data``) filled per file.
+    """
+
+    tree = models.JSONField(default=list, blank=True)
+    revision = models.PositiveIntegerField(default=1)
+    active = models.BooleanField(default=False, db_default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("organization",), name="triage_one_folder_model")
+        ]
+
+    def __str__(self) -> str:
+        return f"folder model {self.organization_id} r{self.revision}"
+
+
+class ObligationFolderRule(OrganizationScopedModel):
+    """Which node of the folder tree receives a document type (guide, receipt or other)."""
+
+    class Kind(models.TextChoices):
+        GUIDE = "guide", "Guia"
+        RECEIPT = "receipt", "Recibo"
+        OTHER = "other", "Outro"
+
+    class Source(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        LEARNED = "learned", "Aprendida"
+
+    document_type = models.ForeignKey(
+        DocumentType, on_delete=models.CASCADE, related_name="folder_rules"
+    )
+    # Obligation code (hub.ActivityTemplate.code, stable across template versions).
+    template_code = models.CharField(max_length=80, blank=True, default="", db_default="")
+    kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.OTHER)
+    node_id = models.CharField(max_length=36)
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.MANUAL)
+    enabled = models.BooleanField(default=True, db_default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "document_type", "kind"),
+                name="triage_unique_folder_rule",
+            )
+        ]
+
+    def clean(self) -> None:
+        if self.document_type_id and self.document_type.organization_id != self.organization_id:
+            raise ValidationError({"document_type": "O tipo pertence a outro escritório."})
+
+
+class ClientFolder(OrganizationScopedModel):
+    """The main folder of one client company, and whether the agent created it."""
+
+    class State(models.TextChoices):
+        PENDING = "pending", "Pendente"
+        CREATED = "created", "Criada"
+        FAILED = "failed", "Falhou"
+
+    company = models.OneToOneField(
+        "hub.ClientCompany", on_delete=models.CASCADE, related_name="client_folder"
+    )
+    relative_path = models.CharField(max_length=300)
+    state = models.CharField(max_length=8, choices=State.choices, default=State.PENDING)
+    last_error = models.CharField(max_length=500, blank=True, default="", db_default="")
+    provisioned_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "state"))]
+
+    def clean(self) -> None:
+        if self.company_id and self.company.organization_id != self.organization_id:
+            raise ValidationError({"company": "A empresa pertence a outro escritório."})
+
+
+class AgentFolderJob(OrganizationScopedModel):
+    """A folder instruction for the Windows agent: create directories or inventory a tree."""
+
+    class Kind(models.TextChoices):
+        PROVISION = "provision", "Criar pastas"
+        INVENTORY = "inventory", "Inventariar"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Na fila"
+        CLAIMED = "claimed", "Reivindicado pelo agente"
+        DONE = "done", "Concluído"
+        FAILED = "failed", "Falhou"
+
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    company = models.ForeignKey(
+        "hub.ClientCompany",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="folder_jobs",
+    )
+    # Relative directories (provision) or relative roots to list (inventory).
+    paths = models.JSONField(default=list)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
+    claimed_by = models.CharField(max_length=64, blank=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    result = models.CharField(max_length=500, blank=True)
+    report = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "status"))]

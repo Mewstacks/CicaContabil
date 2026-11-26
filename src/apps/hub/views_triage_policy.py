@@ -16,8 +16,10 @@ from apps.hub.models import ProductModule
 from apps.hub.module_catalog import definition
 from apps.hub.views import _can_manage_collaborators, _module_page_context, office_required, refuse
 from apps.organizations.models import Organization
+from apps.triage.inbox import inbox_path_error
 from apps.triage.models import TriagePolicy
 from apps.triage.reclassify import bump_engine_version
+from apps.triage.security import scanner_status
 
 
 class PolicyForm(forms.Form):
@@ -34,6 +36,19 @@ class PolicyForm(forms.Form):
     auto_warmup = forms.IntegerField(
         min_value=0, max_value=10_000, required=False, label="Revisões humanas antes"
     )
+    inbox_watch_enabled = forms.BooleanField(required=False, label="Vigiar pasta")
+    inbox_watch_path = forms.CharField(max_length=500, required=False, label="Pasta de entrada")
+    inbox_stable_seconds = forms.IntegerField(
+        min_value=5, max_value=3600, required=False, label="Segundos sem mudar"
+    )
+
+    def clean(self) -> dict[str, object]:
+        data = super().clean() or {}
+        path = str(data.get("inbox_watch_path") or "").strip()
+        data["inbox_watch_path"] = path
+        if data.get("inbox_watch_enabled") and not path:
+            self.add_error("inbox_watch_path", "Informe a pasta.")
+        return data
 
 
 @office_required
@@ -53,6 +68,9 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
         "auto_approve": current.auto_approve if current else False,
         "auto_sample_every": current.auto_sample_every if current else 20,
         "auto_warmup": current.auto_warmup if current else 30,
+        "inbox_watch_enabled": current.inbox_watch_enabled if current else False,
+        "inbox_watch_path": current.inbox_watch_path if current else "",
+        "inbox_stable_seconds": current.inbox_stable_seconds if current else 30,
     }
     if request.method == "POST":
         if not can_manage:
@@ -70,6 +88,10 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
             messages.success(request, f"Reclassificado. Motor v{version}.")
             return redirect("hub:triage-policy")
         form = PolicyForm(request.POST)
+        if form.is_valid() and form.cleaned_data["inbox_watch_path"]:
+            problem = inbox_path_error(office, form.cleaned_data["inbox_watch_path"])
+            if problem:
+                form.add_error("inbox_watch_path", problem)
         if form.is_valid():
             data = form.cleaned_data
             pages = data["ocr_monthly_pages"]
@@ -83,6 +105,9 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
                     "auto_approve": data["auto_approve"],
                     "auto_sample_every": data["auto_sample_every"] or 20,
                     "auto_warmup": (data["auto_warmup"] if data["auto_warmup"] is not None else 30),
+                    "inbox_watch_enabled": data["inbox_watch_enabled"],
+                    "inbox_watch_path": data["inbox_watch_path"],
+                    "inbox_stable_seconds": data["inbox_stable_seconds"] or 30,
                 },
             )
             record_event(
@@ -99,6 +124,8 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
                     "auto_approve": policy.auto_approve,
                     "auto_sample_every": policy.auto_sample_every,
                     "auto_warmup": policy.auto_warmup,
+                    "inbox_watch_enabled": policy.inbox_watch_enabled,
+                    "inbox_stable_seconds": policy.inbox_stable_seconds,
                 },
             )
             messages.success(request, "Entrada guardada.")
@@ -113,6 +140,7 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
             "form": form,
             "can_manage_policy": can_manage,
             "engine_version": current.engine_version if current else 1,
+            "scanner": scanner_status(),
         }
     )
     return render(request, "hub/triage_policy.html", context, status=status)

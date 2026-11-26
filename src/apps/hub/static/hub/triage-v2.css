@@ -110,3 +110,10 @@ kbd{display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--
 .tv2-qrow .tv2-main{flex:1 1 auto}
 .tv2-qrow .tv2-link{text-align:left}
 .tv2-actions .button,.tv2-rule .button,.tv2-filter .button{min-height:44px}
+
+.tv2-state{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:99px;border:1px solid currentColor;font-size:12px;font-weight:650}
+.tv2-state::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.tv2-state-up{color:var(--green,#246547)}
+.tv2-state-down{color:var(--red,#92352f)}
+.tv2-state-off{color:var(--muted)}
+.tv2-state-detail{margin:0;padding:0 20px 16px;color:var(--muted);font-size:13px}

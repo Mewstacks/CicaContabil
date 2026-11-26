@@ -19,6 +19,7 @@ from apps.hub import (
     views_roster,
     views_subscription,
     views_triage_catalog,
+    views_triage_folders,
     views_triage_checklist,
     views_triage_inbox,
     views_triage_policy,
@@ -513,6 +514,7 @@ urlpatterns = [
         name="triage-inbox-rule",
     ),
     path("app/triagem/entrada/", views_triage_policy.triage_policy, name="triage-policy"),
+    path("app/triagem/pastas/", views_triage_folders.triage_folders, name="triage-folders"),
     path("app/triagem/enviar/", views_triage_upload.triage_upload, name="triage-upload"),
     path("app/triagem/catalogo/", views_triage_catalog.triage_catalog, name="triage-catalog"),
     path(

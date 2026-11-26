@@ -40,6 +40,7 @@ from apps.intelligence.agent_scope import (
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_bank_entries, sync_companies
+from apps.triage.inbox import inbox_config
 from apps.triage.models import AgentFileJob, DestinationProfile, TriageEvent, TriageItem
 from apps.triage.services import open_verified_quarantine_for_agent
 from apps.triage.transitions import TriageStatus
@@ -313,6 +314,9 @@ def next_configuration(request: HttpRequest) -> JsonResponse:
             "windows_archive_root": root,
             "sync_scope": agent.sync_scope,
             "collection_enabled": agent.status == EdgeAgent.Status.ACTIVE,
+            "inbox_watch": inbox_config(agent.organization)
+            if not agent.sync_scope
+            else {"enabled": False},
         }
     )
     response["Cache-Control"] = "no-store"

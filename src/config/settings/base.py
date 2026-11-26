@@ -99,6 +99,7 @@ LOCAL_APPS = [
     "apps.profitability",
     "apps.crosscheck",
     "apps.closing",
+    "apps.delivery",
     "apps.mcpgateway",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
@@ -721,6 +722,10 @@ CELERY_BEAT_SCHEDULE = {
     # vencidos (24 h) e resultados com mais de 90 dias (D-302).
     "recover-crosscheck-runs": {
         "task": "crosscheck.recover_runs",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
+    "dispatch-client-deliveries": {
+        "task": "delivery.dispatch_due",
         "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
     "purge-expired-crosscheck": {

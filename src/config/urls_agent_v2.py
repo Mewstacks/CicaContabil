@@ -4,6 +4,7 @@ from apps.crosscheck import agent_api as crosscheck_agent
 from apps.intelligence import agent_v2, native_ledger, native_titles
 from apps.intelligence.portfolio import company_scan
 from apps.profitability import agent_api as profitability_agent
+from apps.triage import agent_folders, agent_inbox
 
 urlpatterns = [
     path("titles/next", native_titles.next_job, name="agent-v2-titles-next"),
@@ -25,7 +26,14 @@ urlpatterns = [
         name="agent-v2-configuration-next",
     ),
     path("backups/next", agent_v2.next_backup, name="agent-v2-backup-next"),
+    path("inbox/upload", agent_inbox.upload_inbox_file, name="agent-v2-inbox-upload"),
     path("files/next", agent_v2.next_file_job, name="agent-v2-file-next"),
+    path("folders/next", agent_folders.next_folder_job, name="agent-v2-folder-next"),
+    path(
+        "folders/<uuid:job_id>/complete",
+        agent_folders.complete_folder_job,
+        name="agent-v2-folder-complete",
+    ),
     path(
         "files/<uuid:job_id>/download",
         agent_v2.download_file_job,

@@ -1,0 +1,3 @@
+<ul class="tf-tree">{% for node in nodes %}
+  <li>{% if node.children %}<details{% if depth == 0 %} open{% endif %}><summary><span class="tf-name">{{ node.name }}</span>{% if node.variable %} <span class="tf-chip">{{ node.variable }}</span>{% endif %}</summary>{% include "hub/partials/folder_nodes.html" with nodes=node.children depth=1 %}</details>{% else %}<span class="tf-leaf"><span class="tf-name">{{ node.name }}</span>{% if node.variable %} <span class="tf-chip">{{ node.variable }}</span>{% endif %}</span>{% endif %}</li>{% endfor %}
+</ul>

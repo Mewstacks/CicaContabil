@@ -76,6 +76,29 @@ class ClamdScanner:
                 "O antimalware local está indisponível. O anexo continua em quarentena."
             ) from exc
 
+    def _command(self, command: bytes) -> bytes:
+        try:
+            with self._connect() as connection:
+                connection.sendall(command)
+                reply = bytearray()
+                while len(reply) < 512:
+                    fragment = connection.recv(512 - len(reply))
+                    if not fragment:
+                        break
+                    reply.extend(fragment)
+                    if b"\0" in reply:
+                        break
+        except (OSError, TimeoutError) as exc:
+            raise ScannerUnavailable("O antimalware local está indisponível.") from exc
+        return bytes(reply).split(b"\0", 1)[0].strip()
+
+    def ping(self) -> bool:
+        """True only when clamd answers PONG to ``zPING`` (the daemon is up and reading)."""
+        return self._command(b"zPING\0") == b"PONG"
+
+    def version(self) -> str:
+        return self._command(b"zVERSION\0").decode("ascii", "replace")[:80]
+
     def scan(self, stream: BinaryIO) -> ScanVerdict:
         try:
             with self._connect() as connection:
@@ -109,8 +132,10 @@ class ClamdScanner:
 def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -> TriageSafetyScan:
     """Save a durable verdict for the exact bytes, rejecting confirmed malware."""
     with transaction.atomic():
-        item = TriageItem.objects.select_for_update(of=("self",)).select_related("blob").get(
-            id=item.id, organization=item.organization
+        item = (
+            TriageItem.objects.select_for_update(of=("self",))
+            .select_related("blob")
+            .get(id=item.id, organization=item.organization)
         )
         if item.status != TriageStatus.QUARANTINED:
             raise ValidationError("Somente anexos em quarentena podem ser varridos.")
@@ -218,3 +243,24 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
         metadata={"verdict": verdict.verdict, "engine": verdict.engine},
     )
     return verdict
+
+
+@dataclass(frozen=True)
+class ScannerStatus:
+    state: str  # "off" | "up" | "down"
+    detail: str = ""
+
+
+def scanner_status() -> ScannerStatus:
+    """Readiness of the configured engine. Fail-closed stays: ``down`` keeps items quarantined."""
+    if not (
+        getattr(settings, "TRIAGE_CLAMD_SOCKET", "") or getattr(settings, "TRIAGE_CLAMD_PORT", 0)
+    ):
+        return ScannerStatus("off")
+    try:
+        scanner = ClamdScanner.from_settings()
+        if not scanner.ping():
+            return ScannerStatus("down", "sem PONG")
+        return ScannerStatus("up", scanner.version())
+    except ScannerUnavailable as exc:
+        return ScannerStatus("down", str(exc))
