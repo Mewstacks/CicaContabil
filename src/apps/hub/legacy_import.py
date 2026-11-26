@@ -22,6 +22,12 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.hub.legacy_convert import (
+    Stats,
+    assign_responsible,
+    convert_all,
+    parity_lines,
+)
 from apps.hub.models import ClientCompany, LegacyImportRecord
 from apps.organizations.models import Membership, Organization
 
@@ -47,6 +53,7 @@ class ImportReport:
     tables: dict[str, Counter[str]] = field(default_factory=dict)
     mapped: Counter[str] = field(default_factory=Counter)
     warnings: list[str] = field(default_factory=list)
+    parity: list[str] = field(default_factory=list)
     bundle_sha256: str = ""
 
     def table(self, name: str) -> Counter[str]:
@@ -62,6 +69,7 @@ class ImportReport:
             )
         for key in sorted(self.mapped):
             out.append(f"nativo {key}: {self.mapped[key]}")
+        out.extend(self.parity)
         out.extend(f"AVISO {w}" for w in self.warnings)
         return out
 
@@ -149,6 +157,11 @@ class Bundle:
                     yield json.loads(raw.decode("utf-8"))
 
 
+# Tables whose XML goes straight to ``NfseDocument`` (see ``legacy_nfse``): the legacy row keeps
+# its metadata but not a second copy of the XML.
+XML_MOVED = {"robo_nfse_notanfse": "xml"}
+
+
 def _upsert_records(
     organization: Organization, bundle: Bundle, table: str, member: str, report: ImportReport
 ) -> None:
@@ -164,6 +177,8 @@ def _upsert_records(
         counter["read"] += 1
         pk = str(item["pk"])
         payload = _scrub(item["row"])
+        if table in XML_MOVED and isinstance(payload, dict):
+            payload[XML_MOVED[table]] = None
         digest = _sha256_bytes(_canonical(payload))
         found = existing.get(pk)
         if found is None:
@@ -189,7 +204,7 @@ def _upsert_records(
             counter["same"] += 1
 
 
-def _map_companies(organization: Organization, report: ImportReport) -> None:
+def _map_companies(organization: Organization, report: ImportReport, stats: Stats) -> None:
     rows = LegacyImportRecord.objects.filter(
         organization=organization, source_system="hubfedrizzi", source_table="core_empresa"
     )
@@ -200,6 +215,8 @@ def _map_companies(organization: Organization, report: ImportReport) -> None:
             report.warnings.append(f"core_empresa pk={record.source_pk}: sem código; só guardada")
             continue
         regime = REGIME_MAP.get(str(data.get("regime") or "").upper(), "outro")
+        release_day = data.get("dia_liberacao_email")
+        release_day = release_day if isinstance(release_day, int) else None
         values = {
             "name": str(data.get("nome") or code)[:180],
             "cnpj_masked": str(data.get("cnpj") or "")[:18],
@@ -210,6 +227,7 @@ def _map_companies(organization: Organization, report: ImportReport) -> None:
             "contact_email": str(data.get("email_cliente") or "")[:254],
             "contact_phone": str(data.get("telefone") or "")[:30],
             "external_key": f"hubfedrizzi:{record.source_pk}"[:160],
+            "email_release_day": release_day if release_day and 1 <= release_day <= 31 else None,
         }
         company = ClientCompany.objects.filter(organization=organization, dominio_code=code).first()
         if company is None:
@@ -227,6 +245,7 @@ def _map_companies(organization: Organization, report: ImportReport) -> None:
                 report.mapped["empresas completadas"] += 1
             else:
                 report.mapped["empresas iguais"] += 1
+        assign_responsible(organization, company, str(data.get("responsavel") or ""), stats)
         if record.mapped_to != f"hub.ClientCompany:{company.pk}":
             record.mapped_to = f"hub.ClientCompany:{company.pk}"
             record.save(update_fields=["mapped_to", "updated_at"])
@@ -254,6 +273,9 @@ def _map_users(organization: Organization, report: ImportReport) -> None:
             organization=organization, user=user, defaults={"role": role, "is_active": True}
         )
         report.mapped["vínculos criados" if made else "vínculos existentes"] += 1
+        if record.mapped_to != f"accounts.User:{user.pk}":
+            record.mapped_to = f"accounts.User:{user.pk}"
+            record.save(update_fields=["mapped_to", "updated_at"])
 
 
 def import_bundle(
@@ -263,6 +285,9 @@ def import_bundle(
     dry_run: bool = False,
     with_users: bool = False,
     skip: frozenset[str] = frozenset(),
+    convert: bool = True,
+    hold_generation: bool = False,
+    enable_nfse_sync: bool = False,
 ) -> ImportReport:
     bundle = Bundle(path)
     report = ImportReport(bundle_sha256=bundle.sha256)
@@ -274,13 +299,30 @@ def import_bundle(
             elif info.get("rows") and "error" not in info:
                 _upsert_records(organization, bundle, table, f"tables/{table}.jsonl", report)
         mongo = bundle.manifest.get("mongo_nfse", {})
-        if "mongo_nfse" in skip:
-            report.warnings.append("mongo_nfse: pulada por pedido (continua no pacote)")
-        elif mongo.get("status") == "ok" and mongo.get("rows"):
-            _upsert_records(organization, bundle, "mongo_nfse", "mongo_nfse.jsonl", report)
-        _map_companies(organization, report)
+        if mongo.get("status") == "ok" and mongo.get("rows"):
+            report.warnings.append(
+                f"mongo_nfse: {mongo['rows']} notas não são guardadas cruas; "
+                "entram direto em NfseDocument pelo estágio --nfse-documents"
+            )
+        stats = Stats()
+        _map_companies(organization, report, stats)
         if with_users:
             _map_users(organization, report)
+        if convert:
+            converted = convert_all(
+                organization,
+                hold_generation=hold_generation,
+                enable_nfse_sync=enable_nfse_sync,
+            )
+            for key, count in converted.created.items():
+                stats.created[key] += count
+            for key, count in converted.reused.items():
+                stats.reused[key] += count
+            for table, reasons in converted.skipped.items():
+                stats.skipped.setdefault(table, Counter()).update(reasons)
+            stats.warnings.extend(converted.warnings)
+        report.warnings.extend(stats.warnings)
+        report.parity = parity_lines(organization, stats)
         record_event(
             action="hub.legacy_import.applied" if not dry_run else "hub.legacy_import.dry_run",
             organization=organization,
@@ -288,6 +330,7 @@ def import_bundle(
                 "bundle_sha256": bundle.sha256,
                 "tables": {k: dict(v) for k, v in report.tables.items()},
                 "mapped": dict(report.mapped),
+                "parity": report.parity,
             },
         )
         if dry_run:

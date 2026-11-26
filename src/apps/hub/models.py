@@ -181,6 +181,8 @@ class ClientCompany(OrganizationScopedModel):
     contact_name = models.CharField(max_length=120, blank=True, default="", db_default="")
     contact_email = models.EmailField(max_length=254, blank=True, default="", db_default="")
     contact_phone = models.CharField(max_length=30, blank=True, default="", db_default="")
+    # Day of the month on which the office releases the client's e-mail delivery; empty = any day.
+    email_release_day = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ("name",)
@@ -2932,6 +2934,59 @@ class ActivityTemplate(OrganizationScopedModel):
     version = models.PositiveIntegerField(default=1)
     active = models.BooleanField(default=True)
 
+    class Sphere(models.TextChoices):
+        FEDERAL = "federal", "Federal"
+        STATE = "state", "Estadual"
+        MUNICIPAL = "municipal", "Municipal"
+
+    class Category(models.TextChoices):
+        ANCILLARY = "ancillary", "Obrigação acessória"
+        TAX = "tax", "Imposto"
+        VARIABLE_TAX = "variable_tax", "Imposto variável (retenção)"
+
+    class Periodicity(models.TextChoices):
+        MONTHLY = "monthly", "Mensal"
+        BIMONTHLY = "bimonthly", "Bimestral"
+        QUARTERLY = "quarterly", "Trimestral"
+        FOUR_MONTHLY = "four_monthly", "Quadrimestral"
+        SEMIANNUAL = "semiannual", "Semestral"
+        ANNUAL = "annual", "Anual"
+
+    class WeekendAdjustment(models.TextChoices):
+        PREVIOUS = "previous", "Antecipa"
+        NEXT = "next", "Posterga"
+        NONE = "none", "Mantém a data"
+
+    # Rich catalogue (HubFedrizzi migration): available to every office, empty by default.
+    abbreviation = models.CharField(max_length=40, blank=True, default="", db_default="")
+    integration_code = models.CharField(max_length=40, blank=True, default="", db_default="")
+    sphere = models.CharField(
+        max_length=12, choices=Sphere.choices, blank=True, default="", db_default=""
+    )
+    category = models.CharField(
+        max_length=16, choices=Category.choices, blank=True, default="", db_default=""
+    )
+    periodicity = models.CharField(
+        max_length=16,
+        choices=Periodicity.choices,
+        default=Periodicity.MONTHLY,
+        db_default=Periodicity.MONTHLY,
+    )
+    weekend_adjustment = models.CharField(
+        max_length=8, choices=WeekendAdjustment.choices, blank=True, default="", db_default=""
+    )
+    state_code = models.CharField(max_length=2, blank=True, default="", db_default="")
+    municipality = models.CharField(max_length=120, blank=True, default="", db_default="")
+    destination_root = models.CharField(max_length=500, blank=True, default="", db_default="")
+    destination_subfolders = models.CharField(
+        max_length=500, blank=True, default="", db_default=""
+    )
+    allows_manual_completion = models.BooleanField(default=False, db_default=False)
+    requires_human_review = models.BooleanField(default=False, db_default=False)
+    # ``ClientCompany.TaxRegime`` values the obligation applies to; empty = every regime.
+    applicable_regimes = models.JSONField(default=list, blank=True, db_default=[])
+    requires_state_registration = models.BooleanField(default=False, db_default=False)
+
     class Meta:
         ordering = ("area", "code", "-version")
         constraints = [
@@ -3030,6 +3085,84 @@ class CompanyAreaResponsible(OrganizationScopedModel):
 
     def __str__(self) -> str:
         return f"{self.company} · {self.get_area_display()}"
+
+
+class ObligationDelivery(OrganizationScopedModel):
+    """Delivery history of one obligation of one company in one competence.
+
+    Written by the HubFedrizzi import and by whoever records a delivery by hand; it never
+    drives the activity engine (``OperationalActivity``) and survives template changes.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pendente"
+        DONE = "done", "Concluído"
+        WAIVED = "waived", "Dispensado"
+
+    class EmailStatus(models.TextChoices):
+        NOT_SENT = "not_sent", "Não enviado"
+        SENT = "sent", "Enviado"
+        FAILED = "failed", "Falhou"
+
+    assignment = models.ForeignKey(
+        ActivityTemplateAssignment, on_delete=models.CASCADE, related_name="deliveries"
+    )
+    competence = models.DateField()
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.PENDING)
+    filed_on = models.DateField(null=True, blank=True)
+    responsible_name = models.CharField(max_length=120, blank=True, default="", db_default="")
+    note = models.TextField(blank=True, default="", db_default="")
+    email_status = models.CharField(
+        max_length=12, choices=EmailStatus.choices, default=EmailStatus.NOT_SENT
+    )
+    email_recipient = models.CharField(max_length=254, blank=True, default="", db_default="")
+    email_error = models.CharField(max_length=500, blank=True, default="", db_default="")
+    email_sent_by = models.CharField(max_length=120, blank=True, default="", db_default="")
+    sent_to_client_at = models.DateTimeField(null=True, blank=True)
+    # Checklist flags of the legacy delivery (eSocial, REINF, MIT, recibo DCTFWeb, guia manual).
+    checks = models.JSONField(default=dict, blank=True, db_default={})
+
+    class Meta:
+        ordering = ("-competence", "assignment__company__name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("assignment", "competence"), name="hub_unique_obligation_delivery"
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "competence", "status"))]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.assignment_id and self.assignment.organization_id != self.organization_id:
+            raise ValidationError("A entrega precisa pertencer ao mesmo escritório.")
+
+
+class CompanyPartner(OrganizationScopedModel):
+    """A partner (sócio) of a client company, as listed in its corporate record."""
+
+    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE, related_name="partners")
+    name = models.CharField(max_length=180)
+    document = models.CharField(max_length=14, blank=True, default="", db_default="")
+    share_percent = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
+    source_updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("company__name", "name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "document"),
+                condition=models.Q(document__gt=""),
+                name="hub_unique_company_partner_document",
+            )
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.company_id and self.company.organization_id != self.organization_id:
+            raise ValidationError("O sócio precisa pertencer ao mesmo escritório da empresa.")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.company_id})"
 
 
 class OperationalActivity(OrganizationScopedModel):
