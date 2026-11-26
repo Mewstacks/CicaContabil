@@ -1,0 +1,14 @@
+{% if document.state == 'quarantine' %}<span class="module-state is-warning">Quarentena</span>
+{% elif document.state == 'received' %}<span class="module-state is-muted">Aguardando leitura</span>
+{% elif document.state == 'discarded' %}<span class="module-state is-muted">Descartado</span>
+{% elif latest %}
+  {% if latest.resolution == 'accepted' %}<span class="module-state is-active">Decidido: aceito</span>
+  {% elif latest.resolution == 'rejected' %}<span class="module-state is-danger">Decidido: rejeitado</span>
+  {% elif latest.outcome == 'diverged' %}<span class="module-state is-danger">Divergência</span>
+  {% elif latest.outcome == 'waiting' %}<span class="module-state is-warning">Sem referência</span>
+  {% elif latest.outcome == 'read' and latest.layout.requires_human %}<span class="module-state is-warning">Conferir</span>
+  {% elif latest.checklist == 'done' %}<span class="module-state is-active">Baixado</span>
+  {% elif latest.checklist == 'no_item' %}<span class="module-state is-muted">Sem item no checklist</span>
+  {% elif latest.checklist == 'open' %}<span class="module-state is-warning">Item aguarda requisito</span>
+  {% else %}<span class="module-state is-active">{{ latest.get_outcome_display }}</span>{% endif %}
+{% else %}<span class="module-state is-muted">Lido</span>{% endif %}

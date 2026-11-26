@@ -17,6 +17,7 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("app/ia/", include("apps.intelligence.urls")),
     path("app/rentabilidade/", include("apps.profitability.urls")),
     path("app/contraprova/", include("apps.crosscheck.urls")),
+    path("app/fechamento/", include("apps.closing.urls")),
     path("mfa/", include("apps.accounts.urls")),
     path("platform/", include("apps.platform.urls")),
     path("api/v1/", include("config.urls_api")),

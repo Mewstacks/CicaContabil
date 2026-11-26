@@ -1,0 +1,64 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=1">{% endblock %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'closing:layouts' %}">Layouts</a>{% endblock %}
+{% block workspace_content %}
+{% if can_write %}
+<section class="workspace-panel cl-upload" aria-labelledby="cl-upload-title">
+  <form method="post" action="{% url 'closing:upload' %}" enctype="multipart/form-data" class="cl-upload-form" data-submit-once>
+    {% csrf_token %}
+    <div class="field"><label id="cl-upload-title" for="{{ upload_form.documents.id_for_label }}">Arquivos</label>{{ upload_form.documents }}</div>
+    <button class="button" type="submit">Enviar</button>
+  </form>
+</section>
+{% endif %}
+<section class="workspace-panel registry-panel closing" aria-labelledby="cl-list-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="cl-list-title">Documentos</h2></div>
+    <span class="record-count" role="status" aria-atomic="true">{% if filters_applied %}{{ page.paginator.count }} de {{ total }}{% else %}{{ total }}{% endif %}</span>
+  </header>
+  {% if total %}
+  <nav class="cl-tabs" aria-label="Situação">{% for value, label in state_filters %}<a class="cl-tab{% if filters.situacao == value %} is-current{% endif %}" href="?situacao={{ value }}{% if filters.q %}&amp;q={{ filters.q|urlencode }}{% endif %}{% if filters.mes %}&amp;mes={{ filters.mes }}{% endif %}"{% if filters.situacao == value %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+  <form method="get" class="toolbar" role="search">
+    <input type="hidden" name="situacao" value="{{ filters.situacao }}">
+    <div class="toolbar-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+      <label class="sr-only" for="cl-search">Buscar documento</label>
+      <input id="cl-search" type="search" name="q" maxlength="100" value="{{ filters.q }}" placeholder="Arquivo ou empresa" autocomplete="off" spellcheck="false">
+    </div>
+    <label class="sr-only" for="cl-month">Competência</label>
+    <input id="cl-month" type="month" name="mes" value="{{ filters.mes }}">
+    <div class="toolbar-actions">
+      <button class="button button-small" type="submit">Buscar</button>
+      {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'closing:index' %}">Limpar</a>{% endif %}
+    </div>
+  </form>
+  {% if page.object_list %}
+  <div class="data-table-wrap">
+    <table class="operational-table cl-table">
+      <caption class="sr-only">Documentos do fechamento</caption>
+      <thead><tr><th scope="col">Arquivo</th><th scope="col">Empresa</th><th scope="col">Competência</th><th scope="col" class="tnum">Valor</th><th scope="col">Situação</th></tr></thead>
+      <tbody>{% for document in page %}{% with latest=document.latest %}<tr>
+        <td data-label="Arquivo"><strong><a class="text-action" href="{% url 'closing:document' document.pk %}">{{ document.original_name }}</a></strong>{% if document.layout %}<small>{{ document.layout.label }}</small>{% endif %}</td>
+        <td data-label="Empresa">{% if document.company %}{{ document.company.name }}{% else %}—{% endif %}</td>
+        <td data-label="Competência" class="num">{% if document.competence %}{{ document.competence|date:'m/Y' }}{% else %}—{% endif %}</td>
+        <td data-label="Valor" class="tnum">{% if latest and latest.declared_amount is not None %}R$ {{ latest.declared_amount|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td data-label="Situação">{% include 'closing/_state.html' %}</td>
+      </tr>{% endwith %}{% endfor %}</tbody>
+    </table>
+  </div>
+  {% if page.has_other_pages %}
+  <nav class="pagination" aria-label="Paginação">
+    {% if page.has_previous %}<a class="button button-quiet button-small" href="?pagina={{ page.previous_page_number }}{% if query_without_page %}&amp;{{ query_without_page }}{% endif %}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+    <span class="pagination-status">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="button button-quiet button-small" href="?pagina={{ page.next_page_number }}{% if query_without_page %}&amp;{{ query_without_page }}{% endif %}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+    {% url 'closing:index' as clear_url %}{% include 'hub/partials/empty_state.html' with title="Nenhum documento encontrado" action_url=clear_url action_label="Ver tudo" %}
+  {% endif %}
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhum documento</strong></div>
+  {% endif %}
+</section>
+{% endblock %}

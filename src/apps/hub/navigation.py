@@ -138,6 +138,15 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                 routes=("new-run", "run-detail"),
             )
         )
+    if "closing" in codes:
+        fiscal.append(
+            link(
+                "Fechamento por recibo",
+                "closing:index",
+                "Recibos e guias lidos, conferidos e baixados no checklist",
+                routes=("document", "layouts", "layout"),
+            )
+        )
     group("fiscal", "Fiscal", fiscal)
     group(
         "accounting",

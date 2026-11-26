@@ -1,0 +1,62 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=1">{% endblock %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'closing:index' %}">Documentos</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel closing" aria-labelledby="cl-read-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="cl-read-title">Leitura</h2></div>
+    {% include 'closing/_state.html' %}
+  </header>
+  <dl class="cl-facts">
+    <div><dt>Arquivo</dt><dd>{{ document.original_name }}</dd></div>
+    <div><dt>Empresa</dt><dd>{% if document.company %}{{ document.company.name }}{% else %}—{% endif %}</dd></div>
+    <div><dt>Competência</dt><dd class="num">{% if document.competence %}{{ document.competence|date:'m/Y' }}{% else %}—{% endif %}</dd></div>
+    <div><dt>Layout</dt><dd>{% if document.layout %}<a class="text-action" href="{% url 'closing:layout' document.layout.pk %}">{{ document.layout.label }}</a>{% else %}—{% endif %}</dd></div>
+    {% for label, value in reads %}<div><dt>{{ label }}</dt><dd class="num">{{ value }}</dd></div>{% endfor %}
+  </dl>
+  {% if document.reasons %}
+  <div class="cl-reasons" role="status"><h3>Pendências</h3><ul>{% for reason in document.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></div>
+  {% endif %}
+  <div class="cl-actions">
+    {% if can_write and document.state != 'discarded' %}
+    <form method="post" action="{% url 'closing:document-reread' document.pk %}" data-submit-once>{% csrf_token %}<button class="button button-quiet" type="submit">Ler de novo</button></form>
+    {% if document.state == 'quarantine' %}<form method="post" action="{% url 'closing:document-layout' document.pk %}">{% csrf_token %}<button class="button button-quiet" type="submit">Criar layout</button></form>{% endif %}
+    <form method="post" action="{% url 'closing:document-discard' document.pk %}" data-submit-once>{% csrf_token %}<button class="button button-quiet" type="submit">Descartar</button></form>
+    {% endif %}
+    <a class="button button-quiet" href="{% url 'closing:document-file' document.pk %}">Baixar original</a>
+  </div>
+</section>
+
+{% if latest %}
+<section class="workspace-panel closing" aria-labelledby="cl-conf-title">
+  <header class="workspace-panel-head"><div><h2 id="cl-conf-title">Conferência</h2></div></header>
+  <div class="cl-compare">
+    <div><span class="cl-label">Documento</span><strong class="cl-amount">{% if latest.declared_amount is not None %}R$ {{ latest.declared_amount|floatformat:2 }}{% else %}—{% endif %}</strong></div>
+    <div><span class="cl-label">Referência{% if latest.reference_label %} · {{ latest.reference_label }}{% endif %}</span><strong class="cl-amount">{% if latest.reference_amount is not None %}R$ {{ latest.reference_amount|floatformat:2 }}{% else %}—{% endif %}</strong></div>
+    <div><span class="cl-label">Diferença</span><strong class="cl-amount">{% if latest.difference is not None %}R$ {{ latest.difference|floatformat:2 }}{% else %}—{% endif %}</strong></div>
+  </div>
+  {% if latest.note %}<p class="cl-note">{{ latest.note }}</p>{% endif %}
+  <dl class="cl-facts">
+    <div><dt>Resultado</dt><dd>{{ latest.get_outcome_display }}</dd></div>
+    <div><dt>Checklist</dt><dd>{% if latest.activity %}{{ latest.activity.title }} · {{ latest.get_checklist_display }}{% else %}{{ latest.get_checklist_display }}{% endif %}</dd></div>
+    {% if latest.resolution %}<div><dt>Decisão</dt><dd>{{ latest.get_resolution_display }} por {{ latest.resolved_by.display_name|default:"—" }} · {{ latest.resolution_reason }}</dd></div>{% endif %}
+  </dl>
+  {% if can_decide %}
+  <form method="post" action="{% url 'closing:conference-decide' document.pk latest.pk %}" class="cl-decision" data-submit-once>
+    {% csrf_token %}
+    <div class="field"><label for="cl-reason">Motivo</label><textarea id="cl-reason" name="reason" rows="2" maxlength="500" required></textarea></div>
+    <div class="cl-actions">
+      <button class="button" type="submit" name="decision" value="accept">Aceitar</button>
+      <button class="button button-quiet" type="submit" name="decision" value="reject">Rejeitar</button>
+    </div>
+  </form>
+  {% endif %}
+  {% if history %}
+  <details class="cl-history"><summary>Histórico</summary>
+    <ul>{% for item in history %}<li><time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:'d/m/Y H:i' }}</time> · {{ item.get_outcome_display }}{% if item.resolution %} · {{ item.get_resolution_display }}{% endif %}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

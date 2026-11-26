@@ -110,6 +110,7 @@ class ProductModule(OrganizationScopedModel):
         TRIAGE = "triage", "Triagem de Arquivos"
         PROFITABILITY = "profitability", "Rentabilidade por Cliente"
         CROSSCHECK = "crosscheck", "Contraprova"
+        CLOSING = "closing", "Fechamento por Recibo"
 
     code = models.CharField(max_length=32, choices=Code.choices)
     enabled = models.BooleanField(default=False)

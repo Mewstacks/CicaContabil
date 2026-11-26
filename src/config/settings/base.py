@@ -98,6 +98,7 @@ LOCAL_APPS = [
     "apps.triage",
     "apps.profitability",
     "apps.crosscheck",
+    "apps.closing",
     "apps.mcpgateway",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]

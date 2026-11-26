@@ -1,0 +1,26 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=1">{% endblock %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'closing:index' %}">Documentos</a>{% if can_write %}<a class="button" href="{% url 'closing:layout-new' %}">Novo layout</a>{% endif %}{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel registry-panel closing" aria-labelledby="cl-layouts-title">
+  <header class="workspace-panel-head"><div><h2 id="cl-layouts-title">Layouts</h2></div></header>
+  {% if layouts %}
+  <div class="data-table-wrap">
+    <table class="operational-table cl-table">
+      <caption class="sr-only">Layouts de leitura</caption>
+      <thead><tr><th scope="col">Nome</th><th scope="col">Documento</th><th scope="col">Conferir com</th><th scope="col">Item do checklist</th><th scope="col">Situação</th></tr></thead>
+      <tbody>{% for item in layouts %}<tr>
+        <td data-label="Nome"><strong><a class="text-action" href="{% url 'closing:layout' item.pk %}">{{ item.label }}</a></strong><small>{{ item.code }}</small></td>
+        <td data-label="Documento">{{ item.get_kind_display }}</td>
+        <td data-label="Conferir com">{{ item.get_compare_display }}</td>
+        <td data-label="Item do checklist">{{ item.activity_code|default:"—" }}</td>
+        <td data-label="Situação">{% if item.active %}<span class="module-state is-active">Ativo</span>{% else %}<span class="module-state is-muted">Rascunho</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhum layout</strong>{% if can_write %}<a class="button button-small" href="{% url 'closing:layout-new' %}">Novo layout</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

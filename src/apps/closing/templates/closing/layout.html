@@ -1,0 +1,96 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=1">{% endblock %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'closing:layouts' %}">Layouts</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel closing" aria-labelledby="cl-layout-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="cl-layout-title">Layout</h2></div>
+    {% if not creating %}{% if layout.active %}<span class="module-state is-active">Ativo</span>{% else %}<span class="module-state is-muted">Rascunho</span>{% endif %}{% endif %}
+  </header>
+  <form method="post" class="cl-form" novalidate data-submit-once>
+    {% csrf_token %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Revise os campos indicados.</div>{% endif %}
+    <div class="cl-grid">
+      {% for field in form.visible_fields %}
+      <div class="field{% if field.errors %} has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} cl-check{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+        {% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if can_write %}<div class="cl-actions"><button class="button" type="submit">Guardar</button></div>{% endif %}
+  </form>
+</section>
+
+{% if not creating %}
+<section class="workspace-panel closing" aria-labelledby="cl-fields-title">
+  <header class="workspace-panel-head"><div><h2 id="cl-fields-title">Campos</h2></div></header>
+  {% if fields %}
+  <div class="data-table-wrap">
+    <table class="operational-table cl-table">
+      <caption class="sr-only">Campos do layout</caption>
+      <thead><tr><th scope="col">Campo</th><th scope="col">Texto de referência</th><th scope="col" class="tnum">Ocorrência</th><th scope="col" class="tnum">Somar</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+      <tbody>{% for field in fields %}<tr>
+        <td data-label="Campo">{{ field.variable }}{% if field.nullified %} · sem valor{% endif %}</td>
+        <td data-label="Texto de referência">{{ field.anchor|default:"—" }}</td>
+        <td data-label="Ocorrência" class="tnum">{{ field.occurrence }}</td>
+        <td data-label="Somar" class="tnum">{{ field.sum_count }}</td>
+        <td data-label="">{% if can_write %}<form method="post" action="{% url 'closing:layout-field-remove' layout.pk field.pk %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Remover<span class="sr-only"> {{ field.variable }}</span></button></form>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhum campo</strong></div>
+  {% endif %}
+  {% if can_write %}
+  <form method="post" action="{% url 'closing:layout-field-add' layout.pk %}" class="cl-form cl-add" data-submit-once>
+    {% csrf_token %}
+    <div class="cl-grid cl-grid-field">
+      {% for field in field_form.visible_fields %}
+      <div class="field{% if field.field.widget.input_type == 'checkbox' %} cl-check{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>
+      {% endfor %}
+    </div>
+    <div class="cl-actions"><button class="button button-secondary" type="submit">Adicionar</button></div>
+  </form>
+  {% endif %}
+</section>
+
+<section class="workspace-panel closing" aria-labelledby="cl-sample-title">
+  <header class="workspace-panel-head"><div><h2 id="cl-sample-title">Amostra</h2></div></header>
+  {% if can_write %}
+  <form method="post" action="{% url 'closing:layout-sample' layout.pk %}" enctype="multipart/form-data" class="cl-form" data-submit-once>
+    {% csrf_token %}
+    <div class="field"><label for="{{ sample_form.sample.id_for_label }}">{{ sample_form.sample.label }}</label>{{ sample_form.sample }}</div>
+    <div class="field"><label for="{{ sample_form.sample_text.id_for_label }}">{{ sample_form.sample_text.label }}</label>{{ sample_form.sample_text }}</div>
+    <div class="cl-actions"><button class="button button-secondary" type="submit">Testar leitura</button></div>
+  </form>
+  {% endif %}
+  {% if diagnosis %}
+  <div class="data-table-wrap">
+    <table class="operational-table cl-table">
+      <caption class="sr-only">Leitura da amostra</caption>
+      <thead><tr><th scope="col">Campo</th><th scope="col">Lido</th><th scope="col">Situação</th></tr></thead>
+      <tbody>{% for row in diagnosis %}<tr>
+        <td data-label="Campo">{{ row.label }}</td>
+        <td data-label="Lido" class="num">{{ row.value|default:"—" }}</td>
+        <td data-label="Situação">{% if row.found %}<span class="module-state is-active">Lido</span>{% else %}<span class="module-state is-danger">Não achou</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel closing" aria-labelledby="cl-activate-title">
+  <header class="workspace-panel-head"><div><h2 id="cl-activate-title">Ativação</h2></div></header>
+  {% if problems and not layout.active %}<ul class="cl-problems" role="status">{% for problem in problems %}<li>{{ problem }}</li>{% endfor %}</ul>{% endif %}
+  {% if can_write %}
+  <form method="post" action="{% url 'closing:layout-activate' layout.pk %}" class="cl-form" data-submit-once>
+    {% csrf_token %}
+    {% if layout.active %}<button class="button button-quiet" type="submit" name="action" value="deactivate">Desativar</button>
+    {% else %}<button class="button" type="submit" name="action" value="activate">Ativar</button>{% endif %}
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

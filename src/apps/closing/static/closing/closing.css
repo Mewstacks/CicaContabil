@@ -1,0 +1,61 @@
+/* Fechamento por Recibo. Só tokens de hub/theme.css; nenhuma cor literal. */
+.closing .tnum{font-variant-numeric:tabular-nums;text-align:right}
+.closing th.tnum{text-align:right}
+.closing .num{font-variant-numeric:tabular-nums}
+.closing .module-state{margin-left:0;padding:4px 9px;font-size:12px}
+.closing.workspace-panel,.cl-upload.workspace-panel{margin-bottom:16px}
+.cl-table td small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+.cl-upload-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:16px 22px}
+.cl-upload-form .field{display:grid;gap:6px;flex:1 1 280px;min-width:0}
+.cl-upload-form label,.cl-form label{font-size:13px;font-weight:650}
+.cl-upload-form input[type=file]{box-sizing:border-box;width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--control-border,var(--line));border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.cl-upload-form .button{min-height:44px}
+.cl-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:0 22px 12px}
+.cl-tab{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:99px;color:var(--muted);font-size:13px;font-weight:650;text-decoration:none}
+.cl-tab:hover{background:var(--soft);color:var(--ink)}
+.cl-tab.is-current{background:var(--soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.cl-tab:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.cl-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 22px;margin:0;padding:4px 22px 18px}
+.cl-facts div{display:grid;gap:2px;min-width:0}
+.cl-facts dt,.cl-label{color:var(--muted);font-size:12px;font-weight:650}
+.cl-facts dd{margin:0;overflow-wrap:anywhere}
+.cl-reasons{margin:0 22px 16px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--soft)}
+.cl-reasons h3{margin:0 0 6px;font-size:14px}
+.cl-reasons ul,.cl-problems{margin:0;padding-left:18px}
+.cl-problems{margin:0 22px 14px}
+.cl-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:0 22px 20px}
+.cl-actions form{margin:0}
+.cl-actions .button{min-height:44px}
+.cl-compare{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:4px 22px 12px}
+.cl-compare>div{display:grid;gap:4px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.cl-amount{font-size:20px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cl-note{margin:0;padding:0 22px 12px;color:var(--ink)}
+.cl-decision{display:grid;gap:12px;padding:0;border-top:1px solid var(--line);margin:0 22px}
+.cl-decision .field{display:grid;gap:6px;padding-top:14px}
+.cl-decision .cl-actions{padding:0 0 18px}
+.cl-decision label{font-size:13px;font-weight:650}
+.cl-decision textarea,.cl-form textarea,.cl-form input[type=text],.cl-form input[type=number],.cl-form input[type=file],.cl-form select{box-sizing:border-box;width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--control-border,var(--line));border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.cl-form textarea,.cl-decision textarea{min-height:84px;resize:vertical}
+.cl-decision textarea:focus-visible,.cl-form :is(input,select,textarea):focus-visible,.cl-upload-form input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.cl-form{display:grid;gap:14px;padding:4px 22px 18px}
+.cl-form .field{display:grid;gap:6px;min-width:0}
+.cl-form .has-error :is(input,select,textarea){border-color:var(--red)}
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.cl-grid-field{grid-template-columns:minmax(180px,1.2fr) minmax(220px,2fr) repeat(2,minmax(110px,.6fr)) auto}
+.cl-check{display:flex!important;align-items:center;gap:8px;min-height:44px}
+.cl-check input{width:24px;height:24px;margin:0;accent-color:var(--blue)}
+.cl-check label{order:2;font-weight:500}
+.cl-add{border-top:1px solid var(--line)}
+.cl-form .cl-actions{padding:0}
+.cl-history{padding:0 22px 18px}
+.cl-history summary{display:inline-flex;align-items:center;min-height:36px;color:var(--blue);font-weight:650;cursor:pointer}
+.cl-history ul{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:13px}
+@media(max-width:760px){
+  .cl-upload-form,.cl-form,.cl-facts,.cl-compare,.cl-actions,.cl-tabs,.cl-history{padding-left:16px;padding-right:16px}
+  .cl-decision,.cl-reasons,.cl-note,.cl-problems{margin-left:16px;margin-right:16px}
+  .cl-form .cl-actions{padding-left:0;padding-right:0}
+  .cl-compare{grid-template-columns:1fr}
+  .cl-grid-field{grid-template-columns:1fr}
+  .cl-tabs{overflow-x:auto;flex-wrap:nowrap}
+  .cl-tab{flex:none}
+}

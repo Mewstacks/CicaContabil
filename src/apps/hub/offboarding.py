@@ -53,6 +53,7 @@ HUB_EXCLUDED = {
 OTHER_APPS = {
     "profitability": "dado derivado de horas e honorários; exportação sob pedido",
     "crosscheck": "conferência derivada dos arquivos do cliente; exportação sob pedido",
+    "closing": "recibos, guias lidas e conferências do fechamento; exportação sob pedido",
     "triage": "metadados de caixa de entrada e anexos em armazenamento; exportação sob pedido",
     "intelligence": "espelho, conversas e conhecimento derivados; exportação sob pedido",
     "platform": "contrato, fatura, convite e cobrança: a Mewstack retém (registro contábil)",

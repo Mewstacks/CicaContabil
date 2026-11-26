@@ -111,6 +111,17 @@ MODULES: dict[str, ModuleDefinition] = {
         required_capabilities=(),
         icon="CP",
     ),
+    ProductModule.Code.CLOSING: ModuleDefinition(
+        code=ProductModule.Code.CLOSING,
+        label="Fechamento por Recibo",
+        short_label="Fechamento",
+        description=(
+            "Leia recibos e guias, confira valores e dê baixa no checklist do escritório."
+        ),
+        route_name="closing:index",
+        required_capabilities=(),
+        icon="FR",
+    ),
 }
 
 
@@ -141,7 +152,7 @@ OFFERED_MODULE_CHOICES: tuple[tuple[str, str], ...] = tuple(
 # fiscal sobre as regras de conferência (Q-46) e sem a consulta ao Domínio homologada
 # (Q-47); `docs/cica-module-truth.md` não autoriza texto público sobre ele.
 NOT_SELF_SERVICE_MODULE_CODES: frozenset[str] = frozenset(
-    {ProductModule.Code.PROFITABILITY, ProductModule.Code.CROSSCHECK}
+    {ProductModule.Code.PROFITABILITY, ProductModule.Code.CROSSCHECK, ProductModule.Code.CLOSING}
 )
 
 
