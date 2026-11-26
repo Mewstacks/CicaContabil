@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("hub", "0093_productmodule_code_delivery"),
+        ("hub", "0095_productmodule_code_delivery"),
         ("organizations", "0006_membership_role_labels_pt"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

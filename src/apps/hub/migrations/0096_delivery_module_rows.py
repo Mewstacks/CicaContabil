@@ -26,7 +26,7 @@ def add_disabled_rows(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("hub", "0093_productmodule_code_delivery"),
+        ("hub", "0095_productmodule_code_delivery"),
     ]
 
     operations = [

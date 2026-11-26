@@ -59,7 +59,10 @@ REVIEWED_EXCEPTIONS: dict[str, str] = {
 # Novo código de módulo = AlterField só de `choices` em hub_productmodule.code (mesmo
 # max_length): o Django não emite SQL para isso, então não há bloqueio nem reescrita de tabela.
 # Mesmo caminho das migrações 0075/0076, que já estão na linha de base. REVISÃO HUMANA PENDENTE.
-REVIEWED_EXCEPTIONS["hub.0093_productmodule_code_delivery"] = (
+REVIEWED_EXCEPTIONS["hub.0093_productmodule_code_closing"] = (
+    "só `choices` de productmodule.code; sem SQL (módulo Fechamento por Recibo)"
+)
+REVIEWED_EXCEPTIONS["hub.0095_productmodule_code_delivery"] = (
     "só `choices` de productmodule.code; sem SQL (módulo Envio ao cliente)"
 )
 
