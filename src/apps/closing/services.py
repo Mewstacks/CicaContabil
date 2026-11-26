@@ -81,19 +81,20 @@ class CompanyLookup:
             )
         if not tries:
             return None, ("empresa — não li CNPJ, raiz do CNPJ nem inscrição estadual ou municipal")
+        first_label, first_shown, _first = tries[0]
         for label, shown, finder in tries:
             matches = finder(companies, shown if label != "CNPJ" else str(values["cnpj"]))
             outside = in_portfolio is not None and any(c.pk not in in_portfolio for c in matches)
             if outside:
                 # Uma mensagem só para "não existe", "é de fora da carteira" e "duplicado com
                 # empresa de fora": quem tem carteira restrita não descobre o que há fora dela.
-                return None, f"empresa — li o {label} {shown}, {self.NOT_IN_PORTFOLIO}"
+                # O texto nasce do primeiro identificador lido, não do que casou fora da carteira.
+                return None, f"empresa — li o {first_label} {first_shown}, {self.NOT_IN_PORTFOLIO}"
             if len(matches) == 1:
                 return matches[0], ""
             if len(matches) > 1:
                 return None, f"empresa — {label} {shown} pertence a mais de uma empresa cadastrada"
-        label, shown, _finder = tries[0]
-        return None, f"empresa — li o {label} {shown}, {self.NOT_IN_PORTFOLIO}"
+        return None, f"empresa — li o {first_label} {first_shown}, {self.NOT_IN_PORTFOLIO}"
 
     @staticmethod
     def _by_cnpj(companies: Any, cnpj: str) -> list[ClientCompany]:
