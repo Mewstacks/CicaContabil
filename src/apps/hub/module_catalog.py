@@ -122,6 +122,15 @@ MODULES: dict[str, ModuleDefinition] = {
         required_capabilities=(),
         icon="FR",
     ),
+    ProductModule.Code.DELIVERY: ModuleDefinition(
+        code=ProductModule.Code.DELIVERY,
+        label="Envio ao cliente",
+        short_label="Envios",
+        description="Envie guias e relatórios por e-mail e acompanhe cada entrega.",
+        route_name="delivery:index",
+        required_capabilities=(),
+        icon="EN",
+    ),
 }
 
 
@@ -152,7 +161,12 @@ OFFERED_MODULE_CHOICES: tuple[tuple[str, str], ...] = tuple(
 # fiscal sobre as regras de conferência (Q-46) e sem a consulta ao Domínio homologada
 # (Q-47); `docs/cica-module-truth.md` não autoriza texto público sobre ele.
 NOT_SELF_SERVICE_MODULE_CODES: frozenset[str] = frozenset(
-    {ProductModule.Code.PROFITABILITY, ProductModule.Code.CROSSCHECK, ProductModule.Code.CLOSING}
+    {
+        ProductModule.Code.PROFITABILITY,
+        ProductModule.Code.CROSSCHECK,
+        ProductModule.Code.CLOSING,
+        ProductModule.Code.DELIVERY,
+    }
 )
 
 

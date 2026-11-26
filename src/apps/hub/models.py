@@ -111,6 +111,7 @@ class ProductModule(OrganizationScopedModel):
         PROFITABILITY = "profitability", "Rentabilidade por Cliente"
         CROSSCHECK = "crosscheck", "Contraprova"
         CLOSING = "closing", "Fechamento por Recibo"
+        DELIVERY = "delivery", "Envio ao cliente"
 
     code = models.CharField(max_length=32, choices=Code.choices)
     enabled = models.BooleanField(default=False)

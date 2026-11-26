@@ -147,6 +147,15 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                 routes=("document", "layouts", "layout"),
             )
         )
+    if "delivery" in codes:
+        fiscal.append(
+            link(
+                "Envio ao cliente",
+                "delivery:index",
+                "Guias e relatórios por e-mail, com histórico",
+                routes=("compose", "detail", "account", "release-days"),
+            )
+        )
     group("fiscal", "Fiscal", fiscal)
     group(
         "accounting",

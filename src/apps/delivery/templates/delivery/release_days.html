@@ -1,0 +1,25 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel registry-panel" aria-labelledby="release-heading">
+  <header class="workspace-panel-head"><div><h2 id="release-heading">Dia de liberação</h2></div></header>
+  {% include 'delivery/_tabs.html' with tab='release' %}
+  {% if messages %}{% for message in messages %}<div class="form-errors" role="status">{{ message }}</div>{% endfor %}{% endif %}
+  <form method="get" class="toolbar" role="search">
+    <div class="toolbar-search"><label class="sr-only" for="release-search">Buscar empresa</label><input id="release-search" type="search" name="q" maxlength="100" value="{{ q }}" placeholder="Empresa ou CNPJ" autocomplete="off"></div>
+    <div class="toolbar-actions"><button class="button button-small" type="submit">Buscar</button>{% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'delivery:release-days' %}">Limpar</a>{% endif %}</div>
+  </form>
+  {% if page.object_list %}
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Dia de liberação por empresa</caption>
+    <thead><tr><th scope="col">Empresa</th><th scope="col">Contato</th><th scope="col">Dia</th></tr></thead>
+    <tbody>{% for company in page %}<tr>
+      <td data-label="Empresa"><strong>{{ company.name }}</strong></td>
+      <td data-label="Contato">{{ company.contact_email|default:"—" }}</td>
+      <td data-label="Dia">{% if can_write %}<form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="company" value="{{ company.id }}"><label class="sr-only" for="day-{{ company.id }}">Dia de {{ company.name }}</label><input id="day-{{ company.id }}" type="number" name="day" min="1" max="31" value="{{ company.email_release_day|default_if_none:'' }}" inputmode="numeric" placeholder="1-31"><button class="button button-quiet button-small" type="submit">Guardar</button></form>{% else %}{{ company.email_release_day|default_if_none:"—" }}{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}
+    {% url 'delivery:release-days' as clear_url %}{% include 'hub/partials/empty_state.html' with title="Nenhuma empresa encontrada" action_url=clear_url action_label="Ver todas" %}
+  {% endif %}
+</section>
+{% endblock %}

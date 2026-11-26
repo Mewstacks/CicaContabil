@@ -56,6 +56,12 @@ _OAUTH_TOOLKIT_MIGRATIONS = (
 REVIEWED_EXCEPTIONS: dict[str, str] = {
     f"oauth2_provider.{name}": _OAUTH_TOOLKIT_REASON for name in _OAUTH_TOOLKIT_MIGRATIONS
 }
+# Novo código de módulo = AlterField só de `choices` em hub_productmodule.code (mesmo
+# max_length): o Django não emite SQL para isso, então não há bloqueio nem reescrita de tabela.
+# Mesmo caminho das migrações 0075/0076, que já estão na linha de base. REVISÃO HUMANA PENDENTE.
+REVIEWED_EXCEPTIONS["hub.0093_productmodule_code_delivery"] = (
+    "só `choices` de productmodule.code; sem SQL (módulo Envio ao cliente)"
+)
 
 ALWAYS_ALLOWED = {
     "CreateModel",

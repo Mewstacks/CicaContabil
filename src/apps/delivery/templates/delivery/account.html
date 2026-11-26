@@ -1,0 +1,26 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="account-heading">
+  <header class="workspace-panel-head"><div><h2 id="account-heading">Conta de envio</h2></div>{% if account.last_test_at %}<span class="module-state {% if account.last_test_error %}is-danger{% else %}is-active{% endif %}">{% if account.last_test_error %}Falhou{% else %}Conferida{% endif %}</span>{% endif %}</header>
+  {% include 'delivery/_tabs.html' with tab='account' %}
+  {% if messages %}{% for message in messages %}<div class="form-errors" role="status">{{ message }}</div>{% endfor %}{% endif %}
+  <form method="post" class="form-stack" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors><strong>Confira os campos indicados.</strong>{% for error in form.non_field_errors %}<span class="form-error-line">{{ error }}</span>{% endfor %}</div>{% endif %}
+    {% for field in form %}{% if field.name != 'active' %}
+    <div class="field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.name == 'smtp_password' and form.has_password or field.name == 'graph_client_secret' and form.has_secret %}<small>Guardada</small>{% endif %}
+      {% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}{% endfor %}
+    <div class="field"><label><input type="checkbox" name="active"{% if form.active.value %} checked{% endif %}> Ativa</label></div>
+    {% if account.last_test_error %}<p class="field-error" role="alert">{{ account.last_test_error }}</p>{% endif %}
+    <div class="form-actions">
+      <button class="button" type="submit" name="action" value="save">Guardar</button>
+      <button class="button button-quiet" type="submit" name="action" value="test">Guardar e testar</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

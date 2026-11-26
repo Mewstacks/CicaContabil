@@ -1,0 +1,5 @@
+<nav class="toolbar-actions" aria-label="Envio ao cliente">
+  <a class="button button-quiet button-small" href="{% url 'delivery:index' %}"{% if tab == 'index' %} aria-current="page"{% endif %}>Histórico</a>
+  <a class="button button-quiet button-small" href="{% url 'delivery:release-days' %}"{% if tab == 'release' %} aria-current="page"{% endif %}>Liberação</a>
+  {% if can_configure %}<a class="button button-quiet button-small" href="{% url 'delivery:account' %}"{% if tab == 'account' %} aria-current="page"{% endif %}>Conta</a>{% endif %}
+</nav>

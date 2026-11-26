@@ -1,0 +1,48 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="compose-heading">
+  <header class="workspace-panel-head"><div><h2 id="compose-heading">Novo envio</h2></div></header>
+  {% if not account_ready %}<div class="form-errors" role="alert"><strong>Sem conta de envio ativa.</strong></div>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="form-stack" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors><strong>Confira os campos indicados.</strong>{% for error in form.non_field_errors %}<span class="form-error-line">{{ error }}</span>{% endfor %}</div>{% endif %}
+    <div class="field">
+      <label for="id_company">Empresa</label>
+      <select name="company" id="id_company" required{% if form.company.errors %} aria-invalid="true"{% endif %}>
+        <option value="">Escolher</option>
+        {% for company in form.fields.company.queryset %}<option value="{{ company.id }}"{% if form.company.value|stringformat:'s' == company.id|stringformat:'s' %} selected{% endif %}>{{ company.name }}{% if company.cnpj_masked %} · {{ company.cnpj_masked }}{% endif %}</option>{% endfor %}
+      </select>
+      {% for error in form.company.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="field">
+      <label for="id_recipients">Para</label>
+      <input type="text" name="recipients" id="id_recipients" value="{{ form.recipients.value|default_if_none:'' }}" placeholder="vírgula separa" maxlength="1000" autocomplete="off" required{% if form.recipients.errors %} aria-invalid="true"{% endif %}>
+      {% for error in form.recipients.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="field">
+      <label for="id_competence">Competência</label>
+      <input type="month" name="competence" id="id_competence" value="{{ form.competence.value|default_if_none:'' }}">
+      {% for error in form.competence.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="field">
+      <label for="id_subject">Assunto</label>
+      <input type="text" name="subject" id="id_subject" value="{{ form.subject.value|default_if_none:'' }}" maxlength="200" required{% if form.subject.errors %} aria-invalid="true"{% endif %}>
+      {% for error in form.subject.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="field">
+      <label for="id_body">Mensagem</label>
+      <textarea name="body" id="id_body" rows="8" required{% if form.body.errors %} aria-invalid="true"{% endif %}>{{ form.body.value|default_if_none:'' }}</textarea>
+      {% for error in form.body.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="field">
+      <label for="id_files">Anexos</label>
+      <input type="file" name="files" id="id_files" multiple>
+      <small>Até 30 MB</small>
+    </div>
+    <div class="form-actions">
+      <button class="button" type="submit">Enviar</button>
+      <a class="button button-quiet" href="{% url 'delivery:index' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

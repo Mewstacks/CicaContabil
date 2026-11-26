@@ -1,0 +1,39 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="delivery-heading">
+  <header class="workspace-panel-head">
+    <div><h2 id="delivery-heading">{{ delivery.subject }}</h2></div>
+    {% include 'delivery/_state.html' %}
+  </header>
+  {% if messages %}{% for message in messages %}<div class="form-errors" role="status">{{ message }}</div>{% endfor %}{% endif %}
+  <dl class="detail-list">
+    <div><dt>Empresa</dt><dd>{{ delivery.company.name }}</dd></div>
+    <div><dt>Para</dt><dd>{{ delivery.recipients|join:", " }}</dd></div>
+    {% if delivery.sender %}<div><dt>De</dt><dd>{{ delivery.sender }}</dd></div>{% endif %}
+    {% if delivery.competence %}<div><dt>Competência</dt><dd>{{ delivery.competence|date:'m/Y' }}</dd></div>{% endif %}
+    {% if delivery.release_on %}<div><dt>Liberação</dt><dd>{{ delivery.release_on|date:'d/m/Y' }}</dd></div>{% endif %}
+    <div><dt>Tentativas</dt><dd>{{ delivery.attempts }}</dd></div>
+    {% if delivery.sent_at %}<div><dt>Enviado</dt><dd>{{ delivery.sent_at|date:'d/m/Y H:i' }}</dd></div>{% endif %}
+    {% if delivery.last_error %}<div><dt>Erro</dt><dd>{{ delivery.last_error }}</dd></div>{% endif %}
+    {% if delivery.requested_by %}<div><dt>Por</dt><dd>{{ delivery.requested_by.display_name }}</dd></div>{% endif %}
+    {% if delivery.resend_of %}<div><dt>Reenvio de</dt><dd><a class="text-action" href="{% url 'delivery:detail' delivery.resend_of_id %}">{{ delivery.resend_of.created_at|date:'d/m/Y H:i' }}</a></dd></div>{% endif %}
+  </dl>
+  <h3>Anexos</h3>
+  {% if delivery.attachments.all %}
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Anexos</caption>
+    <thead><tr><th scope="col">Arquivo</th><th scope="col" class="tnum">Tamanho</th></tr></thead>
+    <tbody>{% for item in delivery.attachments.all %}<tr><td data-label="Arquivo">{{ item.filename }}</td><td data-label="Tamanho" class="tnum">{{ item.byte_size|filesizeformat }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>Sem anexos</strong></div>{% endif %}
+  <pre class="message-body">{{ delivery.body }}</pre>
+  {% if resends %}<h3>Reenvios</h3><ul>{% for item in resends %}<li><a class="text-action" href="{% url 'delivery:detail' item.id %}">{{ item.created_at|date:'d/m/Y H:i' }}</a> · {{ item.get_status_display }}</li>{% endfor %}</ul>{% endif %}
+  <div class="form-actions">
+    {% if can_write %}
+      {% if delivery.status == 'sent' or delivery.status == 'failed' %}<form method="post" action="{% url 'delivery:resend' delivery.id %}">{% csrf_token %}<button class="button" type="submit">Reenviar</button></form>{% endif %}
+      {% if delivery.status == 'scheduled' or delivery.status == 'queued' or delivery.status == 'failed' %}<form method="post" action="{% url 'delivery:cancel' delivery.id %}">{% csrf_token %}<button class="button button-quiet" type="submit">Cancelar</button></form>{% endif %}
+    {% endif %}
+    <a class="button button-quiet" href="{% url 'delivery:index' %}">Voltar</a>
+  </div>
+</section>
+{% endblock %}
