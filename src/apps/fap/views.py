@@ -112,6 +112,12 @@ def batch_action(request: HttpRequest, batch_id: UUID) -> HttpResponse:
     if denied := ui.need_write(request, context):
         return denied
     item = _batch(context, request, batch_id)
+    if (
+        not context.get("can_admin")
+        and item.items.exclude(company__in=ui.companies(context)).exists()
+    ):
+        messages.error(request, "O lote tem empresas fora da sua carteira.")
+        return redirect("fap:batch", batch_id=item.pk)
     try:
         if request.POST.get("acao") == "pausar":
             services.pause(item, user=cast(User, request.user))

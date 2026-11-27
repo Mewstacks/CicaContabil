@@ -18,7 +18,7 @@ from apps.rpa import ui
 from apps.rpa.registry import RpaError
 
 from . import services
-from .models import FgtsBatch, FgtsItem
+from .models import FgtsItem
 
 CODE = ProductModule.Code.FGTS
 
@@ -70,7 +70,6 @@ def index(request: HttpRequest) -> HttpResponse:
             "month_value": f"{year}-{month:02d}",
             "source": source,
             "groups": groups,
-            "batches": FgtsBatch.objects.filter(organization=org).order_by("-created_at")[:20],
             "items": FgtsItem.objects.filter(
                 ui.scope(context), organization=org, year=year, month=month
             )
@@ -120,13 +119,23 @@ def batch_new(request: HttpRequest) -> HttpResponse:
     year, month = _competence_from(request.POST.get("mes", ""))
     try:
         deadline = datetime.strptime(request.POST.get("limite", ""), "%d/%m/%Y").date()
+        roots = request.POST.getlist("raizes")
+        src = services.latest_source(ui.office(context), year, month)
+        visible = set(ui.companies(context).values_list("dominio_code", flat=True))
+        allowed = {
+            g["root"]
+            for g in (src.groups if src else [])
+            if context.get("can_admin") or visible & {str(c) for c in g.get("codes", [])}
+        }
+        if set(roots) - allowed:
+            raise services.FgtsError("Há grupo fora da sua carteira.")
         services.create_batch(
             organization=ui.office(context),
             user=cast(User, request.user),
             year=year,
             month=month,
             deadline=deadline,
-            roots=request.POST.getlist("raizes"),
+            roots=roots,
         )
     except ValueError:
         messages.error(request, "Informe a data limite como DD/MM/AAAA.")

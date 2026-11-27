@@ -169,3 +169,41 @@ def test_operator_never_reaches_another_companys_rows() -> None:
     assert client.get(f"/app/admissoes/{admission.pk}/").status_code == 200
     assert client.get(f"/app/fap/lotes/{fap_batch.pk}/").status_code == 200
     assert client.get(f"/app/folha/ciclos/{cycle.pk}/").status_code == 200
+
+
+def test_operator_cannot_batch_foreign_groups_or_pause_mixed_batch() -> None:
+    from apps.fap.models import FapBatch, FapItem
+    from apps.fgts.models import FgtsItem, FgtsSource
+
+    org = Organization.objects.create(name="fed2", slug="fed2")
+    for code in RPA_MODULES:
+        ProductModule.objects.create(organization=org, code=code, enabled=True)
+    client, _mine, theirs = _restricted(org)
+    Membership.objects.filter(organization=org).update(role="admin")
+    Membership.objects.filter(organization=org).update(role="operator")
+    FgtsSource.objects.create(
+        organization=org,
+        year=2026,
+        month=9,
+        groups=[
+            {
+                "root": "11222333",
+                "name": "A",
+                "cnpj": "11222333000181",
+                "codes": ["2"],
+                "amount_cents": 1,
+            }
+        ],
+    )
+    client.post(
+        "/app/fgts/lotes/novo/",
+        {"mes": "2026-09", "limite": "07/10/2026", "raizes": ["11222333"]},
+    )
+    assert not FgtsItem.objects.exists()
+    batch = FapBatch.objects.create(organization=org, year=2027, state="queued")
+    FapItem.objects.create(
+        organization=org, batch=batch, company=theirs, code="2", name="x", year=2027
+    )
+    client.post(f"/app/fap/lotes/{batch.pk}/acao/", {"acao": "pausar"})
+    batch.refresh_from_db()
+    assert batch.state == "queued"
