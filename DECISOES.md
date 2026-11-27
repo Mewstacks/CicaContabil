@@ -6711,3 +6711,21 @@ ofertada a todos os escritórios, não só Fedrizzi. Executor Claude Code.
 4. **Layouts** entram como rascunho (`import_closing_layouts`) e só leem depois de ativados com amostra que lê
    todos os campos. Dados históricos (recibos já lidos) são da conversão do importador legado.
 5. **Sem deploy e sem custo** nesta decisão. Ligar o módulo em produção exige o OK do dono.
+
+
+## D-430 — Blocos RPA do HubFedrizzi como módulos por escritório (26/11/2026)
+
+Origem: dono, 26/11/2026 (sessão de migração): folha, planilha da folha, FGTS Digital, DET, FAP e
+Admissões são funções SÓ da Fedrizzi, por flag de escritório. Executor Claude Code.
+
+1. **Fila RPA genérica** (`apps.rpa`) com reserva por token rotativo, heartbeat, fases sem volta
+   (`incerto`, nunca repete sozinho), grupo exclusivo do desktop, artefatos com hash e segredo
+   barrado na carga/resultado. Rotas `/api/agent/v2/rpa/`, atrás de `RPA_AGENT_ENABLED` (desligado).
+2. **Cinco módulos** (`folha`, `fgts`, `det`, `fap`, `admissions`), desligados por padrão, fora do
+   autosserviço; `provision_office` os liga. Migrações aditivas (`hub.0095/0096` + uma por app).
+3. **Travas do legado mantidas** e movidas para o servidor: lista autorizada por escritório,
+   confirmação do cálculo, conferência de valor feita pelo servidor, três travas de emissão do FGTS,
+   PDF do FAP validado pelo servidor, DET só lista de não lidas, admissão com revisão humana.
+4. **Fora desta decisão:** motor pywinauto/Playwright (executor externo do agente), validação em
+   Domínio/portal reais (V-490), integração com `closing`/`delivery`/pastas (outras sessões).
+5. Sem deploy e sem custo. Ligar qualquer módulo em produção exige OK do dono.

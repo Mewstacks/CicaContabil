@@ -156,6 +156,30 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                 routes=("compose", "detail", "account", "release-days"),
             )
         )
+    if "folha" in codes:
+        fiscal.append(
+            link(
+                "Folha",
+                "folha:index",
+                "Relatórios no Domínio, conferência e envio ao cliente",
+                routes=("cycle", "send", "config"),
+            )
+        )
+    if "admissions" in codes:
+        fiscal.append(
+            link(
+                "Admissões",
+                "admissions:index",
+                "Ficha revisada e cadastro no Domínio",
+                routes=("detail",),
+            )
+        )
+    if "fap" in codes:
+        fiscal.append(link("FAP", "fap:index", "Consulta anual e PDF oficial", routes=("batch",)))
+    if "det" in codes:
+        fiscal.append(link("DET", "det:index", "Mensagens não lidas, sem abrir", routes=("query",)))
+    if "fgts" in codes:
+        fiscal.append(link("FGTS Digital", "fgts:index", "Apuração, conferência no portal e guia"))
     group("fiscal", "Fiscal", fiscal)
     group(
         "accounting",

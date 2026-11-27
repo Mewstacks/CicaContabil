@@ -131,6 +131,53 @@ MODULES: dict[str, ModuleDefinition] = {
         required_capabilities=(),
         icon="EN",
     ),
+    ProductModule.Code.DET: ModuleDefinition(
+        code=ProductModule.Code.DET,
+        label="DET",
+        short_label="DET",
+        description="Leia a lista de mensagens não lidas do DET sem abrir nenhuma.",
+        route_name="det:index",
+        required_capabilities=(),
+        icon="DT",
+    ),
+    ProductModule.Code.ADMISSIONS: ModuleDefinition(
+        code=ProductModule.Code.ADMISSIONS,
+        label="Admissões",
+        short_label="Admissões",
+        description="Revise a ficha e cadastre o empregado novo na Folha do Domínio.",
+        route_name="admissions:index",
+        required_capabilities=(),
+        icon="AD",
+    ),
+    ProductModule.Code.FAP: ModuleDefinition(
+        code=ProductModule.Code.FAP,
+        label="FAP",
+        short_label="FAP",
+        description="Consulte o FAP de cada empresa no portal e guarde o PDF oficial conferido.",
+        route_name="fap:index",
+        required_capabilities=(),
+        icon="FP",
+    ),
+    ProductModule.Code.FGTS: ModuleDefinition(
+        code=ProductModule.Code.FGTS,
+        label="FGTS Digital",
+        short_label="FGTS",
+        description="Confira a apuração do Domínio com o portal e emita a guia com travas.",
+        route_name="fgts:index",
+        required_capabilities=(),
+        icon="FG",
+    ),
+    ProductModule.Code.FOLHA: ModuleDefinition(
+        code=ProductModule.Code.FOLHA,
+        label="Folha: relatórios no Domínio",
+        short_label="Folha",
+        description=(
+            "Emita relatórios da folha no Domínio pelo agente Windows, confira e envie ao cliente."
+        ),
+        route_name="folha:index",
+        required_capabilities=(),
+        icon="FO",
+    ),
 }
 
 
@@ -166,6 +213,11 @@ NOT_SELF_SERVICE_MODULE_CODES: frozenset[str] = frozenset(
         ProductModule.Code.CROSSCHECK,
         ProductModule.Code.CLOSING,
         ProductModule.Code.DELIVERY,
+        ProductModule.Code.FOLHA,
+        ProductModule.Code.FGTS,
+        ProductModule.Code.DET,
+        ProductModule.Code.FAP,
+        ProductModule.Code.ADMISSIONS,
     }
 )
 

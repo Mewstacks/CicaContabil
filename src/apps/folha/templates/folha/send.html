@@ -1,0 +1,49 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'folha:cycle' cycle.pk %}">Ciclo</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="fo-send-title">
+  <header class="workspace-panel-head"><div><h2 id="fo-send-title">{{ company.name }}</h2></div>{% if email %}<span class="module-state {% if email.state == 'sent' %}is-active{% elif email.state == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ email.get_state_display }}</span>{% endif %}</header>
+  {% if not email %}
+    {% if decision.situation == 'sem_email' or decision.situation == 'ambiguo' %}<p class="form-error" role="alert">{{ decision.reason }}</p>{% endif %}
+    {% if can_write %}
+    <form method="post" class="stack-form" data-submit-once>
+      {% csrf_token %}<input type="hidden" name="acao" value="criar">
+      {% if decision.situation == 'unico' or decision.situation == 'marcado' %}
+        <div class="field"><span class="field-label">Para</span><span>{{ decision.recipients|join:', ' }}</span></div>
+      {% elif decision.situation == 'ambiguo' %}
+        <fieldset class="field"><legend>Para</legend>{% for address in decision.candidates %}<label class="check-row"><input type="checkbox" name="destinatario" value="{{ address }}"> {{ address }}</label>{% endfor %}</fieldset>
+      {% else %}
+        <div class="field"><label for="fo-manual">E-mail</label><input id="fo-manual" type="email" name="manual" placeholder="nome@empresa.com.br"></div>
+      {% endif %}
+      <div class="field"><label for="fo-pay">Pagamento</label><input id="fo-pay" name="pagamento" placeholder="DD/MM/AAAA" inputmode="numeric" required></div>
+      <div class="field"><label for="fo-inss">Vencimento INSS</label><input id="fo-inss" name="inss" placeholder="DD/MM/AAAA" inputmode="numeric" required></div>
+      <button class="button" type="submit">Montar rascunho</button>
+    </form>
+    {% endif %}
+  {% else %}
+  <dl class="detail-list">
+    <div><dt>De</dt><dd>{{ email.sender }}</dd></div>
+    <div><dt>Para</dt><dd>{{ email.recipients|join:', ' }}</dd></div>
+    <div><dt>Assunto</dt><dd>{{ email.subject }}</dd></div>
+    <div><dt>Anexos</dt><dd>{% for a in email.attachments %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>
+  </dl>
+  <pre class="mail-preview">{{ email.body }}</pre>
+  {% if email.error %}<p class="form-error" role="alert">{{ email.error }}</p>{% endif %}
+  {% if can_write %}
+    {% if email.state == 'draft' %}<form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="acao" value="aprovar"><button class="button" type="submit">Aprovar</button></form>{% endif %}
+    {% if email.state == 'approved' %}<form method="post" class="inline-form" data-submit-once>{% csrf_token %}<input type="hidden" name="acao" value="enviar"><button class="button" type="submit">Enviar</button></form>{% endif %}
+    {% if email.state == 'failed' and can_admin %}
+    <form method="post" class="stack-form">{% csrf_token %}<input type="hidden" name="acao" value="reconciliar">
+      <fieldset class="field"><legend>Situação na caixa</legend>
+        <label class="check-row"><input type="radio" name="enviado" value="sim"> Saiu</label>
+        <label class="check-row"><input type="radio" name="enviado" value="nao" checked> Não saiu</label>
+      </fieldset>
+      <div class="field"><label for="fo-msg">Id da mensagem</label><input id="fo-msg" name="mensagem"></div>
+      <div class="field"><label for="fo-why">Justificativa</label><input id="fo-why" name="justificativa" required></div>
+      <button class="button" type="submit">Reconciliar</button>
+    </form>
+    {% endif %}
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

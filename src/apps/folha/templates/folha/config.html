@@ -1,0 +1,29 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'folha:index' %}">Ciclos</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="fo-cfg-title">
+  <header class="workspace-panel-head"><div><h2 id="fo-cfg-title">Empresas e agenda</h2></div></header>
+  <form method="post" class="stack-form" data-submit-once>
+    {% csrf_token %}
+    <div class="field"><label for="fo-auth">Autorizadas</label><textarea id="fo-auth" name="autorizadas" rows="3" placeholder="códigos do Domínio, vírgula separa">{{ authorized_text }}</textarea></div>
+    <label class="check-row"><input type="checkbox" name="agenda" value="sim"{% if cfg.schedule_enabled %} checked{% endif %}> Agenda diária (rascunho)</label>
+    <div class="field"><label for="fo-day">Dia do mês</label><input id="fo-day" type="number" name="dia" min="1" max="28" value="{{ cfg.schedule_day }}"></div>
+    <div class="field"><label for="fo-sched">Empresas da agenda</label><textarea id="fo-sched" name="agenda_empresas" rows="2" placeholder="vírgula separa">{{ schedule_text }}</textarea></div>
+    <fieldset class="field"><legend>Itens da agenda</legend>{% for value, label in item_choices %}<label class="check-row"><input type="checkbox" name="itens" value="{{ value }}"{% if value in cfg.schedule_items %} checked{% endif %}> {{ label }}</label>{% endfor %}</fieldset>
+    <label class="check-row"><input type="checkbox" name="planilha" value="sim"{% if cfg.sheets_enabled %} checked{% endif %}> Planilha de controle</label>
+    <div class="field"><label for="fo-sheet">Id da planilha</label><input id="fo-sheet" name="planilha_id" value="{{ cfg.sheets_spreadsheet_id }}" maxlength="120"></div>
+    <div class="field"><label for="fo-tab">Modelo da aba</label><input id="fo-tab" name="planilha_aba" value="{{ cfg.sheets_tab_template }}" placeholder="{mm}/{aaaa}"></div>
+    <button class="button" type="submit">Guardar</button>
+  </form>
+</section>
+{% if marks %}
+<section class="workspace-panel registry-panel" aria-labelledby="fo-marks-title">
+  <header class="workspace-panel-head"><div><h2 id="fo-marks-title">Planilha</h2></div></header>
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Marcações da planilha</caption>
+    <thead><tr><th scope="col">Competência</th><th scope="col">Empresa</th><th scope="col">Etapa</th><th scope="col">Situação</th></tr></thead>
+    <tbody>{% for m in marks %}<tr><td data-label="Competência">{{ m.competence|date:'m/Y' }}</td><td data-label="Empresa">{{ m.company_code }}</td><td data-label="Etapa">{{ m.get_stage_display }}</td><td data-label="Situação"><span class="module-state {% if m.state == 'done' %}is-active{% elif m.state == 'final_error' %}is-danger{% else %}is-warning{% endif %}">{{ m.get_state_display }}</span>{% if m.error %}<small>{{ m.error }}</small>{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

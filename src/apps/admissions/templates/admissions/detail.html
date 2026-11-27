@@ -1,0 +1,47 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'admissions:index' %}">Fichas</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="ad-d-title">
+  <header class="workspace-panel-head"><div><h2 id="ad-d-title">{{ item.company.name }}</h2></div>
+    <span class="module-state {% if item.state == 'done' %}is-active{% elif item.state == 'failed' or item.state == 'uncertain' %}is-danger{% else %}is-warning{% endif %}">{{ item.get_state_display }}</span></header>
+  {% if item.error %}<p class="form-error" role="alert">{{ item.error }}</p>{% endif %}
+  {% if item.domain_code %}<p class="tnum">Código no Domínio: {{ item.domain_code }}</p>{% endif %}
+  {% if item.pending %}<p class="form-error" role="alert">Falta: {{ item.pending|join:', ' }}</p>{% endif %}
+</section>
+{% if item.state == 'review' and can_write %}
+<section class="workspace-panel" aria-labelledby="ad-f-title">
+  <header class="workspace-panel-head"><div><h2 id="ad-f-title">Ficha</h2></div></header>
+  <form method="post" action="{% url 'admissions:action' item.pk %}" class="stack-form" data-submit-once autocomplete="off">
+    {% csrf_token %}<input type="hidden" name="acao" value="salvar">
+    {% for key, label, value in fields %}<div class="field"><label for="ad-{{ key }}">{{ label }}</label><input id="ad-{{ key }}" name="{{ key }}" value="{{ value }}"{% if key == 'cpf' %} inputmode="numeric"{% endif %}></div>{% endfor %}
+    <div class="field"><label for="ad-salary">Salário</label><input id="ad-salary" name="salary" value="{{ salary }}" inputmode="decimal" placeholder="0,00"></div>
+    <label class="check-row"><input type="checkbox" name="has_children" value="SIM"{% if has_children %} checked{% endif %}> Filhos menores</label>
+    <div class="field"><label for="ad-dep">Dependentes</label><textarea id="ad-dep" name="dependents" rows="3" placeholder="CPF;DD/MM/AAAA;Nome">{{ dependents_text }}</textarea></div>
+    <label class="check-row"><input type="checkbox" name="transport_voucher" value="SIM"{% if transport_voucher %} checked{% endif %}> Vale-transporte</label>
+    <div class="field"><label for="ad-tr">Transportes</label><textarea id="ad-tr" name="transports" rows="3" placeholder="Linha;Por dia;MM/AAAA">{{ transports_text }}</textarea></div>
+    <button class="button" type="submit">Guardar revisão</button>
+  </form>
+  <form method="post" action="{% url 'admissions:action' item.pk %}" class="stack-form" data-submit-once>
+    {% csrf_token %}<input type="hidden" name="acao" value="executar">
+    {% if is_example %}<label class="check-row"><input type="checkbox" name="teste" value="sim"> Confirmo o teste na empresa de exemplo</label>{% endif %}
+    <button class="button"{% if not can_execute %} disabled title="{{ execute_blocked_reason }}"{% endif %} type="submit">Executar no Domínio</button>
+  </form>
+</section>
+{% endif %}
+{% if can_write %}
+<section class="workspace-panel" aria-labelledby="ad-a-title">
+  <header class="workspace-panel-head"><div><h2 id="ad-a-title">Ações</h2></div></header>
+  {% if item.state == 'review' or item.state == 'queued' %}
+  <form method="post" action="{% url 'admissions:action' item.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="acao" value="cancelar"><button class="button button-quiet" type="submit">Cancelar</button></form>
+  {% endif %}
+  {% if item.state == 'uncertain' %}
+  <form method="post" action="{% url 'admissions:action' item.pk %}" class="stack-form">{% csrf_token %}<input type="hidden" name="acao" value="resolver">
+    <fieldset class="field"><legend>No Domínio</legend><label class="check-row"><input type="radio" name="cadastrado" value="sim"> Cadastrado</label><label class="check-row"><input type="radio" name="cadastrado" value="nao" checked> Não cadastrado</label></fieldset>
+    <div class="field"><label for="ad-code">Código</label><input id="ad-code" name="codigo" inputmode="numeric"></div>
+    <div class="field"><label for="ad-conf">Conferido</label><input id="ad-conf" name="conferido" required></div>
+    <button class="button" type="submit">Resolver</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

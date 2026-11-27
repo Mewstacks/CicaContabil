@@ -1,0 +1,43 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}{% if can_admin %}<a class="button button-quiet" href="{% url 'folha:config' %}">Configuração</a>{% endif %}{% endblock %}
+{% block workspace_content %}
+{% if can_write %}
+<section class="workspace-panel" aria-labelledby="fo-new-title">
+  <header class="workspace-panel-head"><div><h2 id="fo-new-title">Novo ciclo</h2></div></header>
+  {% if companies_choices %}
+  <form method="post" action="{% url 'folha:cycle-new' %}" class="stack-form" data-submit-once>
+    {% csrf_token %}
+    <div class="field"><label for="fo-month">Competência</label><input id="fo-month" type="month" name="competencia" value="{{ default_month }}" required></div>
+    <fieldset class="field"><legend>Empresas</legend>
+      {% for company in companies_choices %}<label class="check-row"><input type="checkbox" name="empresas" value="{{ company.pk }}"> {{ company.dominio_code }} · {{ company.name }}</label>{% endfor %}
+    </fieldset>
+    <fieldset class="field"><legend>Itens</legend>
+      {% for value, label in item_choices %}<label class="check-row"><input type="checkbox" name="itens" value="{{ value }}"{% if value != 'calculo' %} checked{% endif %}> {{ label }}</label>{% endfor %}
+    </fieldset>
+    <label class="check-row"><input type="checkbox" name="confirmo_calculo" value="sim"> Confirmo o cálculo no Domínio</label>
+    <button class="button" type="submit">Criar ciclo</button>
+  </form>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhuma empresa autorizada</strong>{% if can_admin %}<a class="button button-small" href="{% url 'folha:config' %}">Autorizar</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endif %}
+<section class="workspace-panel registry-panel" aria-labelledby="fo-list-title">
+  <header class="workspace-panel-head"><div><h2 id="fo-list-title">Ciclos</h2></div><span class="record-count" role="status">{{ cycles|length }}</span></header>
+  {% if cycles %}
+  <div class="data-table-wrap">
+    <table class="operational-table">
+      <caption class="sr-only">Ciclos da folha</caption>
+      <thead><tr><th scope="col">Competência</th><th scope="col">Situação</th><th scope="col">Origem</th></tr></thead>
+      <tbody>{% for cycle in cycles %}<tr>
+        <td data-label="Competência"><strong><a class="text-action" href="{% url 'folha:cycle' cycle.pk %}">{{ cycle.competence|date:'m/Y' }}</a></strong></td>
+        <td data-label="Situação"><span class="module-state {% if cycle.status == 'done' %}is-active{% elif cycle.status == 'partial' or cycle.status == 'cancelled' %}is-danger{% else %}is-warning{% endif %}">{{ cycle.get_status_display }}</span></td>
+        <td data-label="Origem">{% if cycle.from_schedule %}Agenda{% else %}Manual{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhum ciclo</strong></div>
+  {% endif %}
+</section>
+{% endblock %}

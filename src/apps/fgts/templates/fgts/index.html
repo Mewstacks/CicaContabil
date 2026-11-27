@@ -1,0 +1,70 @@
+{% extends 'hub/workspace.html' %}
+{% load rpa_format %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="fg-src-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="fg-src-title">Apuração {{ month|stringformat:'02d' }}/{{ year }}</h2></div>
+    <form method="get" class="inline-form"><label class="sr-only" for="fg-month">Competência</label><input id="fg-month" type="month" name="mes" value="{{ month_value }}"><button class="button button-quiet button-small" type="submit">Ver</button></form>
+  </header>
+  {% if can_write %}
+  <form method="post" action="{% url 'fgts:source' %}" class="inline-form" data-submit-once>{% csrf_token %}<input type="hidden" name="mes" value="{{ month_value }}"><button class="button" type="submit">Consultar Domínio</button></form>
+  {% endif %}
+  {% if source %}
+    {% if groups %}
+    <form method="post" action="{% url 'fgts:batch-new' %}" class="stack-form" data-submit-once>
+      {% csrf_token %}<input type="hidden" name="mes" value="{{ month_value }}">
+      <div class="data-table-wrap"><table class="operational-table">
+        <caption class="sr-only">Grupos da apuração</caption>
+        <thead><tr><th scope="col"><span class="sr-only">Escolher</span></th><th scope="col">Raiz</th><th scope="col">Empresa</th><th scope="col" class="tnum">Valor</th></tr></thead>
+        <tbody>{% for g in groups %}<tr>
+          <td data-label="Escolher">{% if can_write %}<input type="checkbox" name="raizes" value="{{ g.root }}" aria-label="Escolher {{ g.name }}">{% endif %}</td>
+          <td data-label="Raiz">{{ g.root }}</td><td data-label="Empresa">{{ g.name }}</td>
+          <td data-label="Valor" class="tnum">R$ {{ g.amount_cents|cents }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% if can_write %}
+      <div class="field"><label for="fg-limit">Data limite</label><input id="fg-limit" name="limite" placeholder="DD/MM/AAAA" inputmode="numeric" required></div>
+      <button class="button" type="submit">Conferir no portal</button>
+      {% endif %}
+    </form>
+    {% else %}<div class="empty-block operational-empty"><strong>Nenhum grupo livre</strong></div>{% endif %}
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Sem apuração desta competência</strong></div>
+  {% endif %}
+</section>
+<section class="workspace-panel registry-panel" aria-labelledby="fg-items-title">
+  <header class="workspace-panel-head"><div><h2 id="fg-items-title">Guias</h2></div>
+    <span class="module-state {% if emission_allowed %}is-active{% else %}is-muted{% endif %}">{% if emission_allowed %}Emissão liberada{% else %}Emissão bloqueada{% endif %}</span></header>
+  {% if items %}
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Guias da competência</caption>
+    <thead><tr><th scope="col">Raiz</th><th scope="col">Empresa</th><th scope="col" class="tnum">Domínio</th><th scope="col" class="tnum">Portal</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+    <tbody>{% for item in items %}<tr>
+      <td data-label="Raiz">{{ item.root }}</td><td data-label="Empresa">{{ item.company_name }}</td>
+      <td data-label="Domínio" class="tnum">{{ item.expected_cents|cents }}</td>
+      <td data-label="Portal" class="tnum">{{ item.portal_cents|cents }}</td>
+      <td data-label="Situação"><span class="module-state {% if item.state == 'review' %}is-active{% elif item.state == 'divergence' or item.state == 'uncertain' or item.state == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ item.get_state_display }}</span>{% if item.message %}<small>{{ item.message }}</small>{% endif %}</td>
+      <td data-label="Ações">{% if can_write %}
+        {% if item.state == 'prepared' %}<form method="post" action="{% url 'fgts:item' item.pk %}" class="inline-form" data-submit-once>{% csrf_token %}<input type="hidden" name="acao" value="emitir"><button class="button button-small"{% if not emission_allowed %} disabled title="{{ emission_blocked_reason }}"{% endif %} type="submit">Emitir</button></form>{% endif %}
+        {% if item.state == 'uncertain' %}<form method="post" action="{% url 'fgts:item' item.pk %}" enctype="multipart/form-data" class="stack-form">{% csrf_token %}<input type="hidden" name="acao" value="resolver">
+          <fieldset class="field"><legend>Portal</legend><label class="check-row"><input type="radio" name="emitida" value="sim"> Tem guia</label><label class="check-row"><input type="radio" name="emitida" value="nao" checked> Sem guia</label></fieldset>
+          <div class="field"><label for="fg-pdf-{{ item.pk }}">PDF</label><input id="fg-pdf-{{ item.pk }}" type="file" name="pdf" accept="application/pdf"></div>
+          <div class="field"><label for="fg-note-{{ item.pk }}">Conferido</label><input id="fg-note-{{ item.pk }}" name="conferido" required></div>
+          <button class="button button-small" type="submit">Resolver</button></form>{% endif %}
+        {% if item.state == 'review' %}<form method="post" action="{% url 'fgts:item' item.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="acao" value="revisar"><button class="button button-small" type="submit">Revisar</button></form>{% endif %}
+      {% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>Nenhuma guia</strong></div>{% endif %}
+</section>
+{% if can_admin %}
+<section class="workspace-panel" aria-labelledby="fg-cfg-title">
+  <header class="workspace-panel-head"><div><h2 id="fg-cfg-title">Travas</h2></div></header>
+  <form method="post" action="{% url 'fgts:config' %}" class="stack-form">{% csrf_token %}
+    <label class="check-row"><input type="checkbox" name="fonte_validada" value="sim"{% if cfg.source_validated %} checked{% endif %}> Fonte validada com guias reais</label>
+    <label class="check-row"><input type="checkbox" name="emissao" value="sim"{% if cfg.emission_enabled %} checked{% endif %}> Emissão liberada</label>
+    <button class="button" type="submit">Guardar</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

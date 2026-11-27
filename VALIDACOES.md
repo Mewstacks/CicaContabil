@@ -13631,3 +13631,12 @@ com 50 páginas.
 Não verificado: leitura de PDFs reais da Fedrizzi (só texto sintético); OCR (depende de Tesseract e da política do
 escritório); telas em 375px, tablet e desktop no navegador (servidor de QA não chegou a subir nesta sessão);
 `/impeccable audit`.
+
+
+## V-490 — Blocos RPA: o que só se valida no servidor da Fedrizzi (26/11/2026)
+
+Testes automáticos usam executor falso (Python: 4 blocos + fila; .NET: `RpaJobRunnerTests`).
+Pendente, com roteiro em `docs/rpa-fedrizzi.md`: Domínio desktop (relatórios, contatos, admissão),
+portais reais (FGTS Digital, DET, FAP), catálogo de campos da folha, planilha com conta de serviço,
+e-mail real, fonte do FGTS contra guias reais, comportamento após queda do agente. **A emissão do
+FGTS e a execução de admissões seguem bloqueadas** até essas validações.

@@ -1,0 +1,50 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'folha:index' %}">Ciclos</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="fo-cycle-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="fo-cycle-title">{{ cycle.competence|date:'m/Y' }}</h2></div>
+    <span class="module-state {% if cycle.status == 'done' %}is-active{% elif cycle.status == 'partial' or cycle.status == 'cancelled' %}is-danger{% else %}is-warning{% endif %}">{{ cycle.get_status_display }}</span>
+  </header>
+  {% if can_write and cycle.status == 'draft' %}
+  <form method="post" action="{% url 'folha:cycle-action' cycle.pk %}" class="inline-form" data-submit-once>
+    {% csrf_token %}<input type="hidden" name="acao" value="confirmar">
+    <label class="check-row"><input type="checkbox" name="confirmo_calculo" value="sim"> Confirmo o cálculo no Domínio</label>
+    <button class="button" type="submit">Enviar à fila</button>
+  </form>
+  {% endif %}
+  {% if can_write and cycle.status != 'done' and cycle.status != 'cancelled' %}
+  <form method="post" action="{% url 'folha:cycle-action' cycle.pk %}" class="inline-form">
+    {% csrf_token %}<input type="hidden" name="acao" value="cancelar">
+    <button class="button button-quiet button-small" type="submit">Cancelar pendentes</button>
+  </form>
+  {% endif %}
+</section>
+{% for row in rows %}
+<section class="workspace-panel registry-panel" aria-labelledby="fo-co-{{ row.company.pk }}">
+  <header class="workspace-panel-head">
+    <div><h2 id="fo-co-{{ row.company.pk }}">{{ row.company.dominio_code }} · {{ row.company.name }}</h2></div>
+    {% if cycle.status != 'draft' %}<a class="button button-small button-quiet" href="{% url 'folha:send' cycle.pk row.company.pk %}">{% if row.email %}{{ row.email.get_state_display }}{% else %}Envio{% endif %}</a>{% endif %}
+  </header>
+  <div class="data-table-wrap">
+    <table class="operational-table">
+      <caption class="sr-only">Relatórios de {{ row.company.name }}</caption>
+      <thead><tr><th scope="col">Relatório</th><th scope="col">Situação</th><th scope="col">Conferência</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+      <tbody>{% for task in row.tasks %}<tr>
+        <td data-label="Relatório">{{ task.label }}</td>
+        <td data-label="Situação"><span class="module-state {% if task.status == 'ok' %}is-active{% elif task.status == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ task.get_status_display }}</span>{% if task.error %}<small>{{ task.error }}</small>{% endif %}</td>
+        <td data-label="Conferência">{% if task.report_row %}{{ task.report_row.get_state_display }}{% if task.report_row.problems %}<small>{{ task.report_row.problems|join:'; ' }}</small>{% endif %}{% else %}—{% endif %}</td>
+        <td data-label="Ações">{% if can_write %}
+          {% if task.status == 'ok' or task.status == 'failed' or task.status == 'empty' or task.status == 'cancelled' %}
+          <form method="post" action="{% url 'folha:cycle-action' cycle.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="acao" value="reprocessar"><input type="hidden" name="tarefa" value="{{ task.pk }}">{% if task.item == 'calculo' %}<label class="check-row"><input type="checkbox" name="confirmo_calculo" value="sim"> Confirmo</label>{% endif %}<button class="button button-small button-quiet" type="submit">Reprocessar</button></form>
+          {% endif %}
+          {% if task.report_row and task.report_row.state == 'pending' %}
+          <form method="post" action="{% url 'folha:cycle-action' cycle.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="acao" value="aprovar_relatorio"><input type="hidden" name="relatorio" value="{{ task.report_row.pk }}"><button class="button button-small" type="submit">Aprovar</button></form>
+          {% endif %}
+        {% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

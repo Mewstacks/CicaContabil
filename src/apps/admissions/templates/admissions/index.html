@@ -1,0 +1,41 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+{% if can_write %}
+<section class="workspace-panel" aria-labelledby="ad-new-title">
+  <header class="workspace-panel-head"><div><h2 id="ad-new-title">Nova ficha</h2></div></header>
+  <form method="post" action="{% url 'admissions:new' %}" enctype="multipart/form-data" class="stack-form" data-submit-once>
+    {% csrf_token %}
+    <div class="field"><label for="ad-company">Empresa</label>
+      <select id="ad-company" name="empresa" required>{% for company in choices %}<option value="{{ company.pk }}">{{ company.dominio_code }} · {{ company.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="ad-file">Ficha</label><input id="ad-file" type="file" name="ficha" accept="application/pdf,image/*"></div>
+    <button class="button" type="submit">Abrir ficha</button>
+  </form>
+</section>
+{% endif %}
+<section class="workspace-panel registry-panel" aria-labelledby="ad-list-title">
+  <header class="workspace-panel-head"><div><h2 id="ad-list-title">Fichas</h2></div>
+    <span class="module-state {% if cfg.execution_enabled %}is-active{% else %}is-muted{% endif %}">{% if cfg.execution_enabled %}Execução ligada{% else %}Execução desligada{% endif %}</span></header>
+  {% if items %}
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Fichas de admissão</caption>
+    <thead><tr><th scope="col">Empresa</th><th scope="col">Situação</th><th scope="col">Criada</th></tr></thead>
+    <tbody>{% for a in items %}<tr>
+      <td data-label="Empresa"><strong><a class="text-action" href="{% url 'admissions:detail' a.pk %}">{{ a.company.name }}</a></strong></td>
+      <td data-label="Situação"><span class="module-state {% if a.state == 'done' %}is-active{% elif a.state == 'failed' or a.state == 'uncertain' %}is-danger{% elif a.state == 'cancelled' or a.state == 'expired' %}is-muted{% else %}is-warning{% endif %}">{{ a.get_state_display }}</span></td>
+      <td data-label="Criada">{{ a.created_at|date:'d/m/Y' }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>Nenhuma ficha</strong></div>{% endif %}
+</section>
+{% if can_admin %}
+<section class="workspace-panel" aria-labelledby="ad-cfg-title">
+  <header class="workspace-panel-head"><div><h2 id="ad-cfg-title">Travas</h2></div></header>
+  <form method="post" action="{% url 'admissions:config' %}" class="stack-form">{% csrf_token %}
+    <div class="field"><label for="ad-allowed">Autorizadas</label><textarea id="ad-allowed" name="autorizadas" rows="2" placeholder="códigos do Domínio, vírgula separa">{{ cfg.allowed_codes|join:', ' }}</textarea></div>
+    <div class="field"><label for="ad-example">Empresa de exemplo</label><input id="ad-example" name="exemplo" value="{{ cfg.example_code }}"></div>
+    <label class="check-row"><input type="checkbox" name="execucao" value="sim"{% if cfg.execution_enabled %} checked{% endif %}> Execução ligada</label>
+    <button class="button" type="submit">Guardar</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

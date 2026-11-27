@@ -1,0 +1,33 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'fap:index' %}">Lotes</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="fap-b-title">
+  <header class="workspace-panel-head"><div><h2 id="fap-b-title">Vigência {{ batch.year }}</h2></div>
+    <span class="module-state {% if batch.state == 'done' %}is-active{% elif batch.state == 'attention' %}is-danger{% else %}is-warning{% endif %}">{{ batch.get_state_display }}</span></header>
+  {% if can_write %}
+  <form method="post" action="{% url 'fap:batch-action' batch.pk %}" class="inline-form">{% csrf_token %}
+    {% if batch.state == 'paused' %}<input type="hidden" name="acao" value="retomar"><button class="button" type="submit">Retomar</button>
+    {% elif batch.state == 'queued' or batch.state == 'running' %}<input type="hidden" name="acao" value="pausar"><button class="button button-quiet" type="submit">Pausar</button>{% endif %}
+  </form>
+  {% endif %}
+</section>
+<section class="workspace-panel registry-panel" aria-labelledby="fap-i-title">
+  <header class="workspace-panel-head"><div><h2 id="fap-i-title">Empresas</h2></div><span class="record-count">{{ items|length }}</span></header>
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Itens do lote</caption>
+    <thead><tr><th scope="col">Empresa</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+    <tbody>{% for item in items %}<tr>
+      <td data-label="Empresa">{{ item.code }} · {{ item.name }}</td>
+      <td data-label="Situação"><span class="module-state {% if item.state == 'done' %}is-active{% elif item.state == 'pending' or item.state == 'querying' %}is-warning{% else %}is-danger{% endif %}">{{ item.get_state_display }}</span>{% if item.message %}<small>{{ item.message }}</small>{% endif %}</td>
+      <td data-label="Ações">
+        {% if item.pdf %}<a class="button button-small button-quiet" href="{% url 'fap:item-file' item.pk %}">PDF</a>{% endif %}
+        {% if can_write and item.state != 'pending' and item.state != 'querying' and item.state != 'done' %}
+        <form method="post" action="{% url 'fap:item-reprocess' item.pk %}" class="inline-form">{% csrf_token %}
+          <label class="sr-only" for="fap-why-{{ item.pk }}">Motivo</label><input id="fap-why-{{ item.pk }}" name="motivo" placeholder="Motivo" required>
+          <button class="button button-small" type="submit">Reprocessar</button></form>
+        {% endif %}
+      </td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

@@ -100,6 +100,12 @@ LOCAL_APPS = [
     "apps.crosscheck",
     "apps.closing",
     "apps.delivery",
+    "apps.rpa",
+    "apps.folha",
+    "apps.fgts",
+    "apps.det",
+    "apps.fap",
+    "apps.admissions",
     "apps.mcpgateway",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
@@ -116,6 +122,14 @@ PROFITABILITY_SYNC_ENABLED = env_bool("PROFITABILITY_SYNC_ENABLED", False)
 # `validated: false`). Desligada por padrão (D-300): com ela em falso a tela só oferece o
 # arquivo CSV/XLSX e as rotas do agente respondem 404.
 CONTRAPROVA_AGENT_ENABLED = env_bool("CONTRAPROVA_AGENT_ENABLED", False)
+# Fila RPA do agente Windows (folha, FGTS, DET, FAP, admissões). Desligada por padrão: com ela
+# em falso as rotas `/api/agent/v2/rpa/` respondem 404 e nenhum trabalho é entregue.
+RPA_AGENT_ENABLED = env_bool("RPA_AGENT_ENABLED", False)
+# Chave global do clique de emitir guia no FGTS Digital. Desligada por padrão; além dela o
+# escritório precisa ter fonte validada e emissão liberada (`apps.fgts.models.FgtsSettings`).
+FGTS_EMISSAO_HABILITADA = env_bool("FGTS_EMISSAO_HABILITADA", False)
+# Credencial (conta de serviço) da planilha de controle da folha; vazio = marcações adiadas.
+PLANILHA_FOLHA_CREDENTIALS_FILE = env_str("PLANILHA_FOLHA_CREDENTIALS_FILE", "")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -727,6 +741,23 @@ CELERY_BEAT_SCHEDULE = {
     "dispatch-client-deliveries": {
         "task": "delivery.dispatch_due",
         "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
+    # Fila RPA do agente Windows e blocos por escritório (todos desligados por padrão).
+    "rpa-release-expired": {
+        "task": "rpa.release_expired",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
+    "folha-schedule-daily": {
+        "task": "folha.schedule_daily",
+        "schedule": crontab(hour=6, minute=0),
+    },
+    "folha-flush-sheet-marks": {
+        "task": "folha.flush_sheet_marks",
+        "schedule": aligned_periodic_minutes(5),
+    },
+    "admissions-expire": {
+        "task": "admissions.expire",
+        "schedule": crontab(hour=3, minute=50),
     },
     "purge-expired-crosscheck": {
         "task": "crosscheck.purge_expired",

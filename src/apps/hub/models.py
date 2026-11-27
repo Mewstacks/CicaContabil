@@ -112,6 +112,11 @@ class ProductModule(OrganizationScopedModel):
         CROSSCHECK = "crosscheck", "Contraprova"
         CLOSING = "closing", "Fechamento por Recibo"
         DELIVERY = "delivery", "Envio ao cliente"
+        FOLHA = "folha", "Folha: relatórios no Domínio"
+        FGTS = "fgts", "FGTS Digital"
+        DET = "det", "DET"
+        FAP = "fap", "FAP"
+        ADMISSIONS = "admissions", "Admissões"
 
     code = models.CharField(max_length=32, choices=Code.choices)
     enabled = models.BooleanField(default=False)
@@ -177,9 +182,7 @@ class ClientCompany(OrganizationScopedModel):
         max_length=16, choices=TaxRegime.choices, blank=True, default="", db_default=""
     )
     state_registration = models.CharField(max_length=30, blank=True, default="", db_default="")
-    municipal_registration = models.CharField(
-        max_length=30, blank=True, default="", db_default=""
-    )
+    municipal_registration = models.CharField(max_length=30, blank=True, default="", db_default="")
     contact_name = models.CharField(max_length=120, blank=True, default="", db_default="")
     contact_email = models.EmailField(max_length=254, blank=True, default="", db_default="")
     contact_phone = models.CharField(max_length=30, blank=True, default="", db_default="")
@@ -1725,7 +1728,9 @@ class ReconciliationLedgerMapping(OrganizationScopedModel):
     """Private, explicit review of the Domínio scope used by monthly collections."""
 
     financial_account = models.OneToOneField(
-        FinancialAccount, on_delete=models.PROTECT, related_name="ledger_mapping",
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        related_name="ledger_mapping",
     )
     scope = models.JSONField()
     account_identity = models.JSONField()
@@ -1759,11 +1764,17 @@ class ReconciliationAccountCandidate(OrganizationScopedModel):
     evidence = models.JSONField(default=dict)
     state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
     financial_account = models.ForeignKey(
-        FinancialAccount, null=True, blank=True, on_delete=models.PROTECT,
+        FinancialAccount,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name="source_candidates",
     )
     reviewed_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.PROTECT,
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name="reviewed_account_candidates",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
@@ -1782,15 +1793,18 @@ class ReconciliationAccountCandidate(OrganizationScopedModel):
                 fields=("organization", "source_key"), name="hub_unique_account_candidate_source"
             ),
         ]
-        indexes = [models.Index(
-            fields=("organization", "company", "state"), name="hub_account_candidate_state"
-        )]
+        indexes = [
+            models.Index(
+                fields=("organization", "company", "state"), name="hub_account_candidate_state"
+            )
+        ]
 
     def clean(self) -> None:
         super().clean()
-        if self.source_key != ":".join(str(value) for value in (
-            self.source_company_code, self.chart_company_code, self.account_code
-        )):
+        if self.source_key != ":".join(
+            str(value)
+            for value in (self.source_company_code, self.chart_company_code, self.account_code)
+        ):
             raise ValidationError({"source_key": "A chave precisa corresponder à origem da conta."})
         if self.company_id and (
             self.company.organization_id != self.organization_id
@@ -1799,8 +1813,7 @@ class ReconciliationAccountCandidate(OrganizationScopedModel):
             raise ValidationError({"company": "Empresa fora do escritório ou da origem da conta."})
         account = self.financial_account
         if account is not None and (
-            account.organization_id != self.organization_id
-            or account.company_id != self.company_id
+            account.organization_id != self.organization_id or account.company_id != self.company_id
         ):
             raise ValidationError({"financial_account": "Conta financeira fora da empresa."})
 
@@ -1822,13 +1835,18 @@ class ReconciliationAccountSourceDetail(ImmutableOrganizationModel):
 
     class Meta:
         ordering = ("-source_observed_at", "-created_at")
-        constraints = [models.UniqueConstraint(
-            fields=("candidate", "source_file_sha256"), name="hub_unique_candidate_source_detail"
-        )]
-        indexes = [models.Index(
-            fields=("organization", "candidate", "source_observed_at"),
-            name="hub_candidate_detail_observed",
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("candidate", "source_file_sha256"),
+                name="hub_unique_candidate_source_detail",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "candidate", "source_observed_at"),
+                name="hub_candidate_detail_observed",
+            )
+        ]
 
     def clean(self) -> None:
         super().clean()
@@ -1858,12 +1876,16 @@ class ReconciliationAccountDiscovery(ImmutableOrganizationModel):
 
     class Meta:
         ordering = ("-source_observed_at", "source_file_sha256")
-        constraints = [models.UniqueConstraint(
-            fields=("organization", "source_file_sha256"), name="hub_unique_account_discovery"
-        )]
-        indexes = [models.Index(
-            fields=("organization", "source_observed_at"), name="hub_discovery_observed"
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "source_file_sha256"), name="hub_unique_account_discovery"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "source_observed_at"), name="hub_discovery_observed"
+            )
+        ]
 
     def save(self, **kwargs: Any) -> None:
         self.full_clean()
@@ -1882,7 +1904,8 @@ class DiscoveryChartQuerySet(AppendOnlyQuerySet[Any]):
             # Database FKs and uniqueness remain enforced for the entire atomic insert.
             row.full_clean(
                 exclude=("organization", "discovery"),
-                validate_unique=False, validate_constraints=False,
+                validate_unique=False,
+                validate_constraints=False,
             )
         return models.QuerySet.bulk_create(self, rows, batch_size=batch_size)
 
@@ -1901,14 +1924,18 @@ class ReconciliationDiscoveredChartAccount(ImmutableOrganizationModel):
 
     class Meta:
         ordering = ("chart_company_code", "account_code")
-        constraints = [models.UniqueConstraint(
-            fields=("discovery", "chart_company_code", "account_code"),
-            name="hub_unique_discovered_chart_account",
-        )]
-        indexes = [models.Index(
-            fields=("organization", "discovery", "chart_company_code"),
-            name="hub_discovered_chart_scope",
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("discovery", "chart_company_code", "account_code"),
+                name="hub_unique_discovered_chart_account",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "discovery", "chart_company_code"),
+                name="hub_discovered_chart_scope",
+            )
+        ]
 
     def clean(self) -> None:
         super().clean()
@@ -1948,12 +1975,16 @@ class ReconciliationDiscoverySourceBlock(ImmutableOrganizationModel):
 
     class Meta:
         ordering = ("table_name", "ordinal")
-        constraints = [models.UniqueConstraint(
-            fields=("discovery", "table_name", "ordinal"), name="hub_unique_discovery_block"
-        )]
-        indexes = [models.Index(
-            fields=("organization", "discovery", "table_name"), name="hub_discovery_block_scope"
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("discovery", "table_name", "ordinal"), name="hub_unique_discovery_block"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "discovery", "table_name"), name="hub_discovery_block_scope"
+            )
+        ]
 
     def clean(self) -> None:
         super().clean()
@@ -2005,13 +2036,17 @@ class ReconciliationCompanyDiscovery(ImmutableOrganizationModel):
 
     class Meta:
         ordering = ("source_company_code",)
-        constraints = [models.UniqueConstraint(
-            fields=("discovery", "company"), name="hub_unique_company_discovery"
-        )]
-        indexes = [models.Index(
-            fields=("organization", "discovery", "coverage_state"),
-            name="hub_company_discovery_state",
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("discovery", "company"), name="hub_unique_company_discovery"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "discovery", "coverage_state"),
+                name="hub_company_discovery_state",
+            )
+        ]
 
     def clean(self) -> None:
         super().clean()
@@ -2474,19 +2509,27 @@ class AccountingExportHomologation(ImmutableOrganizationModel):
     evidence = models.JSONField()
     fingerprint = models.CharField(max_length=64)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL,
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name="accounting_homologations",
     )
 
     class Meta:
         ordering = ("-created_at", "-id")
-        constraints = [models.UniqueConstraint(
-            fields=("organization", "request_key"), name="hub_unique_homologation_request",
-        )]
-        indexes = [models.Index(
-            fields=("organization", "target", "adapter_version", "created_at"),
-            name="hub_homologation_scope",
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "request_key"),
+                name="hub_unique_homologation_request",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "target", "adapter_version", "created_at"),
+                name="hub_homologation_scope",
+            )
+        ]
 
     def save(self, **kwargs: Any) -> None:
         self.full_clean()
@@ -2503,13 +2546,21 @@ class AccountingImportReceipt(ImmutableOrganizationModel):
         UNCERTAIN = "uncertain", "Resultado a conferir"
 
     export = models.ForeignKey(
-        AccountingExport, on_delete=models.PROTECT, related_name="import_receipts",
+        AccountingExport,
+        on_delete=models.PROTECT,
+        related_name="import_receipts",
     )
     submitted_export = models.ForeignKey(
-        AccountingExport, on_delete=models.PROTECT, related_name="submitted_import_receipts",
+        AccountingExport,
+        on_delete=models.PROTECT,
+        related_name="submitted_import_receipts",
     )
     previous = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="successors",
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="successors",
     )
     request_key = models.UUIDField()
     content_hash = models.CharField(max_length=64)
@@ -2518,7 +2569,9 @@ class AccountingImportReceipt(ImmutableOrganizationModel):
     evidence = models.JSONField()
     fingerprint = models.CharField(max_length=64)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, on_delete=models.SET_NULL,
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
         related_name="accounting_import_receipts",
     )
 
@@ -2526,14 +2579,17 @@ class AccountingImportReceipt(ImmutableOrganizationModel):
         ordering = ("-created_at", "-id")
         constraints = [
             models.UniqueConstraint(
-                fields=("organization", "request_key"), name="hub_unique_import_receipt_request",
+                fields=("organization", "request_key"),
+                name="hub_unique_import_receipt_request",
             ),
             models.UniqueConstraint(
-                fields=("previous",), condition=models.Q(previous__isnull=False),
+                fields=("previous",),
+                condition=models.Q(previous__isnull=False),
                 name="hub_unique_import_receipt_successor",
             ),
             models.UniqueConstraint(
-                fields=("export",), condition=models.Q(previous__isnull=True),
+                fields=("export",),
+                condition=models.Q(previous__isnull=True),
                 name="hub_unique_import_receipt_root",
             ),
         ]
@@ -2572,7 +2628,9 @@ class AccountingExportPreview(ImmutableOrganizationModel):
     content_hash = models.CharField(max_length=64)
     content = models.FileField(upload_to=private_reconciliation_path)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, on_delete=models.SET_NULL,
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
         related_name="accounting_export_previews",
     )
 
@@ -2980,9 +3038,7 @@ class ActivityTemplate(OrganizationScopedModel):
     state_code = models.CharField(max_length=2, blank=True, default="", db_default="")
     municipality = models.CharField(max_length=120, blank=True, default="", db_default="")
     destination_root = models.CharField(max_length=500, blank=True, default="", db_default="")
-    destination_subfolders = models.CharField(
-        max_length=500, blank=True, default="", db_default=""
-    )
+    destination_subfolders = models.CharField(max_length=500, blank=True, default="", db_default="")
     allows_manual_completion = models.BooleanField(default=False, db_default=False)
     requires_human_review = models.BooleanField(default=False, db_default=False)
     # ``ClientCompany.TaxRegime`` values the obligation applies to; empty = every regime.

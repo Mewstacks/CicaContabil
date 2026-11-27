@@ -1,0 +1,25 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'det:index' %}">Consultas</a>{% if results %}<a class="button" href="{% url 'det:sheet' query.pk %}">Planilha</a>{% endif %}{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="det-q-title" aria-live="polite">
+  <header class="workspace-panel-head"><div><h2 id="det-q-title">{{ query.created_at|date:'d/m/Y H:i' }}</h2></div>
+    <span class="module-state {% if query.state == 'done' %}is-active{% elif query.state == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ query.get_state_display }}</span></header>
+  <p class="tnum">{{ done_count }} de {{ total }}</p>
+  {% if waiting_for_person %}<p class="form-error" role="alert">O agente espera uma pessoa na máquina do Domínio (captcha ou certificado).</p>{% endif %}
+  {% if query.notice %}<p class="form-error" role="alert">{{ query.notice }}</p>{% endif %}
+</section>
+<section class="workspace-panel registry-panel" aria-labelledby="det-r-title">
+  <header class="workspace-panel-head"><div><h2 id="det-r-title">Resultado</h2></div><span class="record-count">{{ query.total_messages }}</span></header>
+  {% if results %}
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Resultado por empresa</caption>
+    <thead><tr><th scope="col">Empresa</th><th scope="col">Situação</th><th scope="col">Mensagens</th></tr></thead>
+    <tbody>{% for r in results %}<tr>
+      <td data-label="Empresa">{{ r.company_code }} · {{ r.company_name }}</td>
+      <td data-label="Situação"><span class="module-state {% if r.situation == 'unread' %}is-warning{% elif r.situation == 'none' %}is-active{% else %}is-danger{% endif %}">{{ r.get_situation_display }}</span>{% if r.detail %}<small>{{ r.detail }}</small>{% endif %}</td>
+      <td data-label="Mensagens">{% for m in r.messages %}<div><strong>{{ m.title }}</strong><small>{{ m.sender }} · {{ m.sent_at }}</small></div>{% empty %}—{% endfor %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>Aguardando o agente</strong></div>{% endif %}
+</section>
+{% endblock %}

@@ -5,8 +5,14 @@ from apps.intelligence import agent_v2, native_ledger, native_titles
 from apps.intelligence.portfolio import company_scan
 from apps.profitability import agent_api as profitability_agent
 from apps.triage import agent_folders, agent_inbox
+from apps.rpa import agent_api as rpa_agent
 
 urlpatterns = [
+    path("rpa/next", rpa_agent.next_job, name="agent-v2-rpa-next"),
+    path("rpa/<uuid:job_id>/heartbeat", rpa_agent.heartbeat, name="agent-v2-rpa-heartbeat"),
+    path("rpa/<uuid:job_id>/artifacts", rpa_agent.artifact, name="agent-v2-rpa-artifact"),
+    path("rpa/<uuid:job_id>/complete", rpa_agent.complete, name="agent-v2-rpa-complete"),
+    path("rpa/<uuid:job_id>/failure", rpa_agent.failure, name="agent-v2-rpa-failure"),
     path("titles/next", native_titles.next_job, name="agent-v2-titles-next"),
     path(
         "titles/<uuid:job_id>/complete", native_titles.complete_job, name="agent-v2-titles-complete"

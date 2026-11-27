@@ -71,6 +71,7 @@ WORLD_SETTINGS: dict[str, Any] = {
     "CICA_REPORTING_SHARED_SECRET": "segredo-so-de-teste",
     "RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED": True,
     "CONTRAPROVA_AGENT_ENABLED": True,
+    "RPA_AGENT_ENABLED": True,
     "PROFITABILITY_SYNC_ENABLED": True,
 }
 
@@ -78,16 +79,22 @@ WORLD_SETTINGS: dict[str, Any] = {
 TENANT_APPS = frozenset(
     {
         "accounts",
+        "admissions",
         "audit",
         "closing",
         "crosscheck",
         "delivery",
+        "det",
+        "fap",
+        "fgts",
+        "folha",
         "hub",
         "intelligence",
         "organizations",
         "platform",
         "privacy",
         "profitability",
+        "rpa",
         "triage",
     }
 )
@@ -697,6 +704,7 @@ def apply_fixups(factory: Factory) -> None:
         )
 
     _triage_chain(factory)
+    _fap_chain(factory)
     _agent_work(factory)
     _failed_collection(tenant)
     DreMappingSet.objects.filter(organization=tenant.office).update(is_active=True)
@@ -734,9 +742,53 @@ def _agent_work(factory: Factory) -> None:
             {"kind": "dominio_backup", "status": "processing", "mapping": {"claimed_by": claimed}},
         ),
         ("crosscheck.CrosscheckAgentJob", {"state": "claimed", "claimed_by": claimed}),
+        (
+            "rpa.RpaJob",
+            {
+                "state": "leased",
+                "leased_by": claimed,
+                "lease_token_hash": "a" * 64,
+                "kind": "folha.relatorio",
+            },
+        ),
     )
     for label, forced in work:
         _recipe(factory, label, **forced)
+
+
+def _fap_chain(factory: Factory) -> None:
+    """Item do FAP com PDF guardado: é o que a rota de download abre."""
+
+    from apps.rpa.models import RpaArtifact
+
+    tenant = factory.tenant
+    batch = _recipe(factory, "fap.FapBatch", year=2027)
+    job = _recipe(factory, "rpa.RpaJob", kind="fap.consultar", state="succeeded")
+    if batch is None or job is None:
+        return
+    payload = f"{tenant.mark} FAP".encode()
+    digest = hashlib.sha256(payload).hexdigest()
+    artifact = RpaArtifact(
+        organization=tenant.office,
+        job=job,
+        name="fap.pdf",
+        sha256=digest,
+        byte_size=len(payload),
+        content_type="application/pdf",
+    )
+    artifact.file.save(f"{digest}.bin", ContentFile(payload), save=False)
+    artifact.save()
+    _recipe(
+        factory,
+        "fap.FapItem",
+        batch=batch,
+        year=2027,
+        state="done",
+        pdf=artifact,
+        sha256=digest,
+        cnpj="11222333000181",
+        code=f"{tenant.key}-1",
+    )
 
 
 def _triage_chain(factory: Factory) -> None:
@@ -1263,6 +1315,17 @@ AGENT_PAYLOADS: dict[str, tuple[dict[str, Any], ...]] = {
     "agent-v2-profitability-run-failure": ({"code": "agent_failure"},),
     "agent-v2-file-complete": ({"success": False, "detail": "falha de teste"},),
     "agent-v2-folder-complete": ({"success": False, "detail": "falha de teste"},),
+    "agent-v2-rpa-heartbeat": ({"lease_token": "errado", "phase": "lendo"},),
+    "agent-v2-rpa-complete": ({"lease_token": "errado", "result": {}},),
+    "agent-v2-rpa-failure": ({"lease_token": "errado", "code": "agent_error"},),
+    "agent-v2-rpa-artifact": (
+        {
+            "lease_token": "errado",
+            "name": "a.pdf",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "content_base64": "",
+        },
+    ),
 }
 
 

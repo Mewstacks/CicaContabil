@@ -103,6 +103,17 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     logger.LogWarning(
                         "CICA agent contraprova queue failed with code {Code}", error.GetType().Name);
                 }
+                // Fila RPA (folha, FGTS, DET, FAP, admissões): também isolada das outras.
+                try
+                {
+                    await new RpaProcessor(config, client).RunOnce(stoppingToken);
+                }
+                catch (Exception error) when (
+                    error is not OperationCanceledException and not AgentAuthorizationException)
+                {
+                    logger.LogWarning(
+                        "CICA agent rpa queue failed with code {Code}", error.GetType().Name);
+                }
                 await RenewCertificateIfNeeded(config, client, stoppingToken);
                 string serverVersion = heartbeat.RootElement.GetProperty("update").GetString() ?? "";
                 if (nativeReview)

@@ -21,7 +21,12 @@ internal sealed record AgentConfig(
     string? SourceSystem = null,
     bool UseDsnAuthentication = false,
     AgentSyncScope? SyncScope = null,
-    string AuthenticationMode = AgentAuthentication.Mtls)
+    string AuthenticationMode = AgentAuthentication.Mtls,
+    // Tipos de trabalho RPA que esta máquina executa: tipo -> programa local (caminho absoluto).
+    // Só a configuração local decide; a nuvem nunca escolhe o que roda aqui.
+    IReadOnlyDictionary<string, string>? RpaExecutors = null,
+    // Pasta aprovada de onde os executores RPA podem entregar arquivos.
+    string? RpaOutputRoot = null)
 {
     internal string EffectiveSourceSystem =>
         string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;
@@ -61,6 +66,16 @@ internal sealed record AgentConfig(
             && !IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
             throw new InvalidDataException(
                 "O driver SQL Anywhere configurado não está disponível em 64 bits.");
+        if (RpaExecutors is { Count: > 0 })
+        {
+            foreach ((string kind, string executable) in RpaExecutors)
+                if (kind.Length is 0 or > 48 || !Path.IsPathFullyQualified(executable)
+                    || executable.StartsWith("\\\\", StringComparison.Ordinal))
+                    throw new InvalidDataException("Executor RPA precisa ser um caminho absoluto de disco local.");
+            if (string.IsNullOrWhiteSpace(RpaOutputRoot) || !Path.IsPathFullyQualified(RpaOutputRoot)
+                || RpaOutputRoot.StartsWith("\\\\", StringComparison.Ordinal))
+                throw new InvalidDataException("A pasta de saída do RPA precisa ser um caminho absoluto de disco local.");
+        }
         if (!string.IsNullOrWhiteSpace(WindowsArchiveRoot) && (!Path.IsPathFullyQualified(WindowsArchiveRoot)
             || WindowsArchiveRoot.StartsWith("\\\\", StringComparison.Ordinal)))
             throw new InvalidDataException("A pasta de arquivos aprovada precisa ser um caminho absoluto do Windows.");

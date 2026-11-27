@@ -1,0 +1,33 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+{% if can_write %}
+<section class="workspace-panel" aria-labelledby="det-new-title">
+  <header class="workspace-panel-head"><div><h2 id="det-new-title">Nova consulta</h2></div></header>
+  {% if choices %}
+  <form method="post" action="{% url 'det:query-new' %}" class="stack-form" data-submit-once>
+    {% csrf_token %}
+    <fieldset class="field"><legend>Empresas</legend>
+      {% for company in choices %}<label class="check-row"><input type="checkbox" name="empresas" value="{{ company.pk }}"> {{ company.dominio_code }} · {{ company.name }}</label>{% endfor %}
+    </fieldset>
+    <button class="button" type="submit">Consultar</button>
+  </form>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhuma empresa com CNPJ</strong></div>
+  {% endif %}
+</section>
+{% endif %}
+<section class="workspace-panel registry-panel" aria-labelledby="det-list-title">
+  <header class="workspace-panel-head"><div><h2 id="det-list-title">Consultas</h2></div><span class="record-count" role="status">{{ queries|length }}</span></header>
+  {% if queries %}
+  <div class="data-table-wrap"><table class="operational-table">
+    <caption class="sr-only">Consultas do DET</caption>
+    <thead><tr><th scope="col">Data</th><th scope="col">Situação</th><th scope="col" class="tnum">Mensagens</th></tr></thead>
+    <tbody>{% for q in queries %}<tr>
+      <td data-label="Data"><strong><a class="text-action" href="{% url 'det:query' q.pk %}">{{ q.created_at|date:'d/m/Y H:i' }}</a></strong></td>
+      <td data-label="Situação"><span class="module-state {% if q.state == 'done' %}is-active{% elif q.state == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ q.get_state_display }}</span></td>
+      <td data-label="Mensagens" class="tnum">{{ q.total_messages }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>Nenhuma consulta</strong></div>{% endif %}
+</section>
+{% endblock %}
