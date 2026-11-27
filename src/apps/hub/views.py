@@ -203,6 +203,14 @@ from apps.hub.nfse_reports import (
     generate_retention_xlsx,
 )
 from apps.hub.office_certificate import uses_procuracao
+from apps.hub.office_certificate_ui import (
+    ACTIONS as ECNPJ_ACTIONS,
+)
+from apps.hub.office_certificate_ui import (
+    can_manage_certificate,
+    certificate_summary,
+    handle_certificate_post,
+)
 from apps.hub.onboarding import TOURS_BY_ID, tour_for_url_name
 from apps.hub.operations import (
     activity_is_overdue,
@@ -15913,6 +15921,8 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             else "Já existe um chamado aberto para esta falha.",
         )
         return redirect("hub:settings")
+    if request.method == "POST" and request.POST.get("action") in ECNPJ_ACTIONS:
+        return handle_certificate_post(request, office, context, refuse)
     if request.method == "POST":
         # The legacy generic form accepted credentials for connectors that have no
         # adapter or verification path. Refuse direct posts too, so the UI is not
@@ -15953,6 +15963,11 @@ def settings_view(request: HttpRequest) -> HttpResponse:
     )
     for meter in token_active_meters:
         meter.overage_brl = Decimal(meter.overage_tokens * meter.token_price_cents) / 100  # type: ignore[attr-defined]
+    if uses_procuracao(office):
+        context["ecnpj"] = certificate_summary(office, timezone.now())
+        context["can_manage_certificate"] = can_manage_certificate(context) and bool(
+            context["support_can_mutate"]
+        )
     context.update(
         {
             "page_title": "Integrações",

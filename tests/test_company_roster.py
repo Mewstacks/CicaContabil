@@ -788,7 +788,7 @@ def test_the_certificate_step_needs_a_valid_ecnpj_not_a_revoked_one() -> None:
     world.upload(client)
     assert steps(world)["Enviar e-CNPJ"]["done"] is True
 
-    client.post(reverse("hub:procuracoes"), {"action": "revoke-certificate"})
+    client.post(reverse("hub:settings"), {"action": "revoke-certificate"})
     assert steps(world)["Enviar e-CNPJ"]["done"] is False
 
 

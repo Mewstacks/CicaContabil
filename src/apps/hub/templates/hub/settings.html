@@ -1,8 +1,56 @@
 {% extends 'hub/workspace.html' %}
 
+{% block extra_head %}{{ block.super }}{% load static %}<link rel="stylesheet" href="{% static 'hub/ecnpj.css' %}?v=2">{% endblock %}
+
 {% block workspace_content %}
-<nav class="section-links" aria-label="Seções das configurações"><a href="#dominio">Integração Domínio</a><a href="#meu-plano">Contrato e módulos</a><a href="#consumo">Consumo</a><a href="{% url 'hub:triage-connections' %}">Caixas de e-mail</a><a href="{% url 'mcp-connector' %}">Conector MCP</a><a href="{% url 'hub:setup' %}">Primeiros passos</a></nav>
-<section class="workspace-panel" id="meu-plano" aria-labelledby="plan-heading"><header class="workspace-panel-head"><div><h2 id="plan-heading">Condições do escritório</h2>{% if office.is_internal_test_partner %}<p>Parceiro interno de homologação: sem contrato, cobrança ou consumo externo automático.</p>{% else %}<p>Teste: módulos liberados por 14 dias</p>{% endif %}</div></header>{% if active_token_book %}<div class="settings-plan-notice" role="status"><strong>{% if token_book_in_effect %}Tokens vigentes desde {{ active_token_book.effective_from|date:"m/Y" }}{% else %}Tokens programados para {{ active_token_book.effective_from|date:"m/Y" }}{% endif %}</strong><p>1 token = R$ {{ active_token_book.token_price_brl|floatformat:2 }} · teto mensal de excedente R$ {{ active_token_book.monthly_overage_cap_brl|floatformat:2 }}.{% if not token_book_in_effect %} Até a vigência, nenhuma operação nova será cobrada por tokens.{% endif %}</p><dl class="active-token-terms">{% for rate in active_token_rates %}<div><dt>{{ rate.label }}</dt><dd>R$ {{ rate.monthly_base_brl|floatformat:2 }}/mês · {{ rate.included_tokens }} tokens incluídos</dd></div>{% endfor %}</dl></div>{% elif token_draft and token_draft_rates %}<div class="token-offer-review"><div><strong>Proposta de tokens aguardando sua decisão</strong><p>Revise todos os termos. O aceite agenda a vigência; ele não faz uma chamada externa nem gera uma cobrança imediata.</p></div><dl class="detail-list"><div><dt>Valor do token</dt><dd>R$ {{ token_draft.token_price_brl|floatformat:2 }}</dd></div>{% for rate in token_draft_rates %}<div><dt>Mensalidade {{ rate.label }}</dt><dd>R$ {{ rate.monthly_base_brl|floatformat:2 }}</dd></div><div><dt>Franquia {{ rate.label }}</dt><dd>{{ rate.included_tokens }} tokens</dd></div>{% endfor %}<div><dt>Teto mensal de excedente</dt><dd>R$ {{ token_draft.monthly_overage_cap_brl|floatformat:2 }}</dd></div></dl><div class="token-weight-list"><strong>Pesos por operação</strong>{% for rate in token_draft_rates %}<span class="token-module-label">{{ rate.label }}</span>{% for weight in rate.action_weights.all %}<span><span>{{ weight.label }}</span><b>{{ weight.tokens }} token{{ weight.tokens|pluralize }}</b></span>{% endfor %}{% endfor %}</div>{% if can_manage_usage_policy %}<form method="post" class="token-accept-form">{% csrf_token %}<input type="hidden" name="action" value="accept-token-offer"><div class="field"><label for="token-effective-from">Vigência</label><input id="token-effective-from" name="effective_from" type="date" min="{{ token_effective_min }}" value="{{ token_effective_min }}" required></div><label class="checkbox-field" for="accept-token-terms"><input id="accept-token-terms" name="accept_token_terms" type="checkbox" required>Confirmo o valor do token, a mensalidade, a franquia, os pesos e o teto mensal.</label><button class="button" type="submit">Aceitar termos para a vigência escolhida</button></form>{% else %}<p>Somente dono ou administrador pode aceitar estes termos.</p>{% endif %}</div>{% else %}<p class="settings-plan-notice settings-plan-empty">Operações tarifadas bloqueadas · sem proposta de tokens</p>{% endif %}</section>
+<nav class="section-links" aria-label="Seções das configurações">{% if ecnpj %}<a href="#ecnpj">e-CNPJ</a>{% endif %}<a href="#dominio">Integração Domínio</a><a href="#meu-plano">Contrato e módulos</a><a href="#consumo">Consumo</a><a href="{% url 'hub:triage-connections' %}">Caixas de e-mail</a><a href="{% url 'mcp-connector' %}">Conector MCP</a><a href="{% url 'hub:setup' %}">Primeiros passos</a></nav>
+{% if ecnpj %}
+<section class="workspace-panel ecnpj-panel" id="ecnpj" aria-labelledby="ecnpj-title">
+  <header class="workspace-panel-head"><div><h2 id="ecnpj-title">e-CNPJ</h2></div><span class="module-state {{ ecnpj.tone }}" role="status">{{ ecnpj.label|capfirst }}</span></header>
+  <div class="ecnpj-body">
+    {% if ecnpj.state == 'none' %}
+      <strong>Sem certificado</strong>
+    {% else %}
+      <dl class="ecnpj-facts">
+        <div><dt>CNPJ</dt><dd>{{ ecnpj.cnpj }}</dd></div>
+        {% if ecnpj.certificate %}<div><dt>Vence</dt><dd>{{ ecnpj.certificate.valid_until|date:"d/m/Y" }} · {{ ecnpj.days_left }} dia{{ ecnpj.days_left|pluralize }}</dd></div>{% endif %}
+      </dl>
+    {% endif %}
+    {% if ecnpj.quarantined %}<span class="module-state is-warning" role="status">Bloqueado por alguns minutos</span>{% endif %}
+    {% if can_manage_certificate %}
+    <div class="ecnpj-actions">
+      <button class="button{% if ecnpj.state == 'valid' %} button-quiet{% endif %}" type="button" data-modal-open="ecnpj-upload">{% if ecnpj.certificate %}Trocar{% else %}Enviar{% endif %}</button>
+      {% if ecnpj.certificate %}<button class="button button-quiet" type="button" data-modal-open="ecnpj-revoke">Revogar</button>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% if can_manage_certificate %}
+<div id="ecnpj-upload" class="modal-backdrop" data-modal hidden>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="ecnpj-upload-title">
+    <header class="modal-head"><div><h2 id="ecnpj-upload-title">{% if ecnpj.certificate %}Trocar e-CNPJ{% else %}Enviar e-CNPJ{% endif %}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" enctype="multipart/form-data" class="form-stack" autocomplete="off">{% csrf_token %}
+      <input type="hidden" name="action" value="upload-certificate">
+      <div class="field"><label for="ecnpj-pfx">Arquivo .pfx ou .p12</label><input id="ecnpj-pfx" type="file" name="pfx" accept=".pfx,.p12" required></div>
+      <div class="field certificate-password-field"><label for="ecnpj-password">Senha</label><div class="certificate-password-control"><input id="ecnpj-password" type="password" name="password" autocomplete="new-password" spellcheck="false"><button type="button" data-password-toggle="ecnpj-password" aria-pressed="false">Mostrar</button></div></div>
+      <div class="modal-actions"><button class="button" type="submit">Enviar</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% if ecnpj.certificate %}
+<div id="ecnpj-revoke" class="modal-backdrop" data-modal hidden>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="ecnpj-revoke-title">
+    <header class="modal-head"><div><h2 id="ecnpj-revoke-title">Revogar e-CNPJ</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">{% csrf_token %}
+      <input type="hidden" name="action" value="revoke-certificate">
+      <div class="modal-actions"><button class="button" type="submit">Revogar</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
+{% endif %}
+{% endif %}
+<section class="workspace-panel" id="meu-plano"aria-labelledby="plan-heading"><header class="workspace-panel-head"><div><h2 id="plan-heading">Condições do escritório</h2>{% if office.is_internal_test_partner %}<p>Parceiro interno de homologação: sem contrato, cobrança ou consumo externo automático.</p>{% else %}<p>Teste: módulos liberados por 14 dias</p>{% endif %}</div></header>{% if active_token_book %}<div class="settings-plan-notice" role="status"><strong>{% if token_book_in_effect %}Tokens vigentes desde {{ active_token_book.effective_from|date:"m/Y" }}{% else %}Tokens programados para {{ active_token_book.effective_from|date:"m/Y" }}{% endif %}</strong><p>1 token = R$ {{ active_token_book.token_price_brl|floatformat:2 }} · teto mensal de excedente R$ {{ active_token_book.monthly_overage_cap_brl|floatformat:2 }}.{% if not token_book_in_effect %} Até a vigência, nenhuma operação nova será cobrada por tokens.{% endif %}</p><dl class="active-token-terms">{% for rate in active_token_rates %}<div><dt>{{ rate.label }}</dt><dd>R$ {{ rate.monthly_base_brl|floatformat:2 }}/mês · {{ rate.included_tokens }} tokens incluídos</dd></div>{% endfor %}</dl></div>{% elif token_draft and token_draft_rates %}<div class="token-offer-review"><div><strong>Proposta de tokens aguardando sua decisão</strong><p>Revise todos os termos. O aceite agenda a vigência; ele não faz uma chamada externa nem gera uma cobrança imediata.</p></div><dl class="detail-list"><div><dt>Valor do token</dt><dd>R$ {{ token_draft.token_price_brl|floatformat:2 }}</dd></div>{% for rate in token_draft_rates %}<div><dt>Mensalidade {{ rate.label }}</dt><dd>R$ {{ rate.monthly_base_brl|floatformat:2 }}</dd></div><div><dt>Franquia {{ rate.label }}</dt><dd>{{ rate.included_tokens }} tokens</dd></div>{% endfor %}<div><dt>Teto mensal de excedente</dt><dd>R$ {{ token_draft.monthly_overage_cap_brl|floatformat:2 }}</dd></div></dl><div class="token-weight-list"><strong>Pesos por operação</strong>{% for rate in token_draft_rates %}<span class="token-module-label">{{ rate.label }}</span>{% for weight in rate.action_weights.all %}<span><span>{{ weight.label }}</span><b>{{ weight.tokens }} token{{ weight.tokens|pluralize }}</b></span>{% endfor %}{% endfor %}</div>{% if can_manage_usage_policy %}<form method="post" class="token-accept-form">{% csrf_token %}<input type="hidden" name="action" value="accept-token-offer"><div class="field"><label for="token-effective-from">Vigência</label><input id="token-effective-from" name="effective_from" type="date" min="{{ token_effective_min }}" value="{{ token_effective_min }}" required></div><label class="checkbox-field" for="accept-token-terms"><input id="accept-token-terms" name="accept_token_terms" type="checkbox" required>Confirmo o valor do token, a mensalidade, a franquia, os pesos e o teto mensal.</label><button class="button" type="submit">Aceitar termos para a vigência escolhida</button></form>{% else %}<p>Somente dono ou administrador pode aceitar estes termos.</p>{% endif %}</div>{% else %}<p class="settings-plan-notice settings-plan-empty">Operações tarifadas bloqueadas · sem proposta de tokens</p>{% endif %}</section>
 <section class="settings-intro settings-intro-compact">
   <div>
     <h2>Conexões</h2>

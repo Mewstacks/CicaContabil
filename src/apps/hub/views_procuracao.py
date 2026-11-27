@@ -29,15 +29,17 @@ from apps.hub.models import (
     NfseDocument,
     NfseProcuracaoRequest,
     NfseSync,
-    OfficeCertificate,
     ProductModule,
 )
-from apps.hub.nfse_procuracao import current_office_certificate, seed_procuracao_syncs
-from apps.hub.office_certificate import (
-    OfficeCertificateError,
-    revoke_office_certificate,
-    store_office_certificate,
-    uses_procuracao,
+from apps.hub.nfse_procuracao import seed_procuracao_syncs
+from apps.hub.office_certificate import uses_procuracao
+from apps.hub.office_certificate_ui import (
+    ACTIONS,
+    certificate_summary,
+    mask_cnpj,
+)
+from apps.hub.office_certificate_ui import (
+    can_manage_certificate as _can_manage_certificate,
 )
 from apps.hub.procuracao_requests import request_procuracao
 from apps.hub.tasks_procuracao import lane_enabled, lane_paused
@@ -51,8 +53,6 @@ from apps.hub.views_roster import _blocked_reason
 from apps.organizations.models import Membership, Organization
 
 PAGE_SIZE = 25
-MAX_PFX_BYTES = 512_000
-EXPIRING_DAYS = 30
 STATUS_TABS = (
     ("all", "Todas"),
     ("missing", "Sem procuração"),
@@ -66,7 +66,6 @@ STATUS_BADGE = {
     NfseSync.ProcuracaoStatus.UNKNOWN: "is-muted",
     NfseSync.ProcuracaoStatus.ERROR: "is-danger",
 }
-CERTIFICATE_MANAGERS = {Membership.Role.OWNER, Membership.Role.ADMIN}
 REQUESTERS = {
     Membership.Role.OWNER,
     Membership.Role.ADMIN,
@@ -75,11 +74,7 @@ REQUESTERS = {
 }
 
 
-def _mask(cnpj: str) -> str:
-    digits = "".join(ch for ch in cnpj if ch.isalnum())
-    if len(digits) != 14:
-        return cnpj
-    return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
+_mask = mask_cnpj
 
 
 def _lane(request: HttpRequest) -> dict[str, str]:
@@ -92,32 +87,6 @@ def _lane(request: HttpRequest) -> dict[str, str]:
     if lane_paused():
         return {"label": "Coleta em pausa", "tone": "is-warning"}
     return {"label": "Coleta ligada", "tone": "is-active"}
-
-
-def _certificate_summary(office: Organization, now: Any) -> dict[str, Any]:
-    current = current_office_certificate(office.pk, now=now)
-    if current is not None:
-        days = (current.valid_until - now).days
-        return {
-            "certificate": current,
-            "state": "expiring" if days <= EXPIRING_DAYS else "valid",
-            "label": "vence em breve" if days <= EXPIRING_DAYS else "válido",
-            "tone": "is-warning" if days <= EXPIRING_DAYS else "is-active",
-            "days_left": days,
-            "cnpj": _mask(current.cnpj),
-            "quarantined": bool(current.quarantined_until and current.quarantined_until > now),
-        }
-    latest = OfficeCertificate.objects.filter(organization=office).order_by("-valid_until").first()
-    if latest is None:
-        return {"certificate": None, "state": "none", "label": "ausente", "tone": "is-danger"}
-    revoked = latest.revoked_at is not None
-    return {
-        "certificate": None,
-        "state": "revoked" if revoked else "expired",
-        "label": "revogado" if revoked else "vencido",
-        "tone": "is-danger",
-        "cnpj": _mask(latest.cnpj),
-    }
 
 
 def _return_url(request: HttpRequest) -> str:
@@ -234,9 +203,7 @@ def nfse_procuracoes(request: HttpRequest) -> HttpResponseBase:
         return redirect("hub:certificates")
     membership = context["membership"]
     member = isinstance(membership, Membership) and context["support_session"] is None
-    can_manage_certificate = bool(
-        member and cast(Membership, membership).role in CERTIFICATE_MANAGERS
-    )
+    can_manage_certificate = _can_manage_certificate(context)
     can_request = bool(
         member and context["support_can_mutate"] and cast(Membership, membership).role in REQUESTERS
     )
@@ -244,36 +211,8 @@ def nfse_procuracoes(request: HttpRequest) -> HttpResponseBase:
 
     if request.method == "POST":
         action = request.POST.get("action", "")
-        if action in {"upload-certificate", "revoke-certificate"}:
-            if not can_manage_certificate:
-                return refuse(request, "Somente owners e administradores cuidam do e-CNPJ.")
-            if action == "revoke-certificate":
-                certificate = current_office_certificate(office.pk)
-                if certificate is not None:
-                    revoke_office_certificate(certificate, actor=request.user, request=request)
-                    messages.success(request, "e-CNPJ revogado. A coleta do escritório parou.")
-                return redirect(_return_url(request))
-            upload = request.FILES.get("pfx")
-            if upload is None or not (upload.name or "").lower().endswith((".pfx", ".p12")):
-                messages.error(request, "Selecione o arquivo .pfx ou .p12 do e-CNPJ.")
-            elif (upload.size or 0) > MAX_PFX_BYTES:
-                messages.error(request, "O arquivo é maior que o esperado para um e-CNPJ A1.")
-            else:
-                try:
-                    stored = store_office_certificate(
-                        organization=office,
-                        pfx_bytes=upload.read(),
-                        password=request.POST.get("password", ""),
-                        actor=request.user,
-                        request=request,
-                    )
-                except OfficeCertificateError as exc:
-                    messages.error(request, str(exc))
-                else:
-                    messages.success(
-                        request, f"e-CNPJ enviado, válido até {stored.valid_until:%d/%m/%Y}."
-                    )
-            return redirect(_return_url(request))
+        if action in ACTIONS:
+            return redirect(f"{reverse('hub:settings')}#ecnpj")
         if action in {"request", "request-pending", "verify", "verify-all"}:
             if not can_request:
                 return refuse(request, "Seu perfil não pede procurações.")
@@ -404,7 +343,7 @@ def nfse_procuracoes(request: HttpRequest) -> HttpResponseBase:
     for row in page.object_list:
         row.badge = STATUS_BADGE[NfseSync.ProcuracaoStatus(row.procuracao_status)]
         row.cnpj_display = _mask(row.company.cnpj_masked)
-    summary = _certificate_summary(office, now)
+    summary = certificate_summary(office, now)
     context.update(
         {
             "page_title": "Procurações",

@@ -34,6 +34,7 @@ from test_nfse_procuracao import (
 
 PASSWORD = "senha-do-escritorio"
 URL = "hub:procuracoes"
+SETTINGS = "hub:settings"
 
 
 def login(user: User, office: Organization) -> Client:
@@ -78,7 +79,7 @@ class World:
     def upload(self, client: Client, **extra: Any) -> Any:
         pfx = extra.pop("pfx", make_pfx(password=PASSWORD, cnpj=OFFICE_CNPJ))
         return client.post(
-            reverse(URL),
+            reverse(SETTINGS),
             {
                 "action": "upload-certificate",
                 "pfx": SimpleUploadedFile(extra.pop("name", "escritorio.pfx"), pfx),
@@ -238,7 +239,8 @@ def test_the_owner_uploads_the_e_cnpj_and_the_page_reflects_it(world: World) -> 
 
     assert any("e-CNPJ enviado" in text for text in texts(response))
     certificate = OfficeCertificate.objects.get(organization=world.office)
-    html = response.content.decode()
+    assert "19.131.243/0001-97" in response.content.decode()
+    html = client.get(reverse(URL)).content.decode()
     assert "e-CNPJ válido" in html and "19.131.243/0001-97" in html
     assert "Trocar e-CNPJ" in html
     assert PASSWORD not in html and certificate.pfx_blob not in html
@@ -268,7 +270,7 @@ def test_only_owners_and_admins_touch_the_e_cnpj(world: World) -> None:
     for user in (world.operator, world.auditor):
         client = login(user, world.office)
         response = client.post(
-            reverse(URL),
+            reverse(SETTINGS),
             {
                 "action": "upload-certificate",
                 "pfx": SimpleUploadedFile("a.pfx", make_pfx(password=PASSWORD, cnpj=OFFICE_CNPJ)),
@@ -285,7 +287,7 @@ def test_the_owner_revokes_and_the_state_says_so(world: World) -> None:
     client = login(world.owner, world.office)
     world.upload(client)
 
-    response = client.post(reverse(URL), {"action": "revoke-certificate"}, follow=True)
+    response = client.post(reverse(SETTINGS), {"action": "revoke-certificate"}, follow=True)
 
     assert any("revogado" in text for text in texts(response))
     assert "e-CNPJ revogado" in response.content.decode()
@@ -501,7 +503,7 @@ def test_an_oversized_or_missing_file_is_refused_with_a_clear_message(world: Wor
     client = login(world.owner, world.office)
 
     too_big = client.post(
-        reverse(URL),
+        reverse(SETTINGS),
         {
             "action": "upload-certificate",
             "pfx": SimpleUploadedFile("grande.pfx", b"0" * 600_000),
@@ -509,7 +511,7 @@ def test_an_oversized_or_missing_file_is_refused_with_a_clear_message(world: Wor
         },
         follow=True,
     )
-    missing = client.post(reverse(URL), {"action": "upload-certificate"}, follow=True)
+    missing = client.post(reverse(SETTINGS), {"action": "upload-certificate"}, follow=True)
 
     assert any("maior que o esperado" in text for text in texts(too_big))
     assert any("Selecione o arquivo" in text for text in texts(missing))
@@ -520,7 +522,7 @@ def test_an_oversized_or_missing_file_is_refused_with_a_clear_message(world: Wor
 def test_revoking_without_an_e_cnpj_and_unknown_actions_change_nothing(world: World) -> None:
     client = login(world.owner, world.office)
 
-    first = client.post(reverse(URL), {"action": "revoke-certificate"})
+    first = client.post(reverse(SETTINGS), {"action": "revoke-certificate"})
     second = client.post(reverse(URL), {"action": "inventada"})
 
     assert first.status_code == second.status_code == 302
