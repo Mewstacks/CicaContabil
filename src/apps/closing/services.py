@@ -70,7 +70,7 @@ class CompanyLookup:
         )
         tries: list[tuple[str, str, Any]] = []
         if values.get("cnpj"):
-            tries.append(("CNPJ", _mask_cnpj(str(values["cnpj"])), self._by_cnpj))
+            tries.append(("CNPJ", mask_cnpj(str(values["cnpj"])), self._by_cnpj))
         if values.get("cnpj_root"):
             tries.append(("raiz de CNPJ", str(values["cnpj_root"]), self._by_root))
         if values.get("state_registration"):
@@ -121,7 +121,7 @@ class CompanyLookup:
         return [c for c in companies if re.sub(r"\D", "", c.municipal_registration) == target]
 
 
-def _mask_cnpj(digits: str) -> str:
+def mask_cnpj(digits: str) -> str:
     if len(digits) == 14:
         return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
     return digits
@@ -478,6 +478,12 @@ def _route(conference: ClosingConference) -> None:
     if conference.outcome == Outcome.READ and layout is not None and layout.requires_human:
         return
     checklist.clear(conference)
+
+
+def format_money(value: Decimal) -> str:
+    whole, _, cents = f"{value:.2f}".partition(".")
+    groups = f"{int(whole):,}".replace(",", ".")
+    return f"{groups},{cents}"
 
 
 def _money(value: Decimal | None) -> str:

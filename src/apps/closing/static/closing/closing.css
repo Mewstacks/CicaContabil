@@ -43,14 +43,29 @@
 .cl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .cl-grid-field{grid-template-columns:minmax(180px,1.2fr) minmax(220px,2fr) repeat(2,minmax(110px,.6fr)) auto}
 .cl-check{display:flex!important;align-items:center;gap:8px;min-height:44px}
-.cl-check input{width:24px;height:24px;margin:0;accent-color:var(--blue)}
+.cl-check input{flex:none;box-sizing:border-box;width:24px;min-width:24px;height:24px;margin:0;accent-color:var(--blue)}
 .cl-check label{order:2;font-weight:500}
 .cl-add{border-top:1px solid var(--line)}
 .cl-form .cl-actions{padding:0}
 .cl-history{padding:0 22px 18px}
 .cl-history summary{display:inline-flex;align-items:center;min-height:36px;color:var(--blue);font-weight:650;cursor:pointer}
 .cl-history ul{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:13px}
+.closing .toolbar input[type=month]{box-sizing:border-box;min-height:44px;padding:9px 11px;border:1px solid var(--control-border,var(--line));border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.closing .toolbar input[type=month]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 @media(max-width:760px){
+  .closing .data-table-wrap{overflow:visible}
+  .cl-table,.cl-table tbody{display:block;width:100%;min-width:0!important;max-width:100%}
+  .cl-table td .module-state{justify-self:start;width:fit-content;max-width:100%}
+  .cl-table thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  .cl-table tr{box-sizing:border-box;display:grid;gap:8px;width:100%;padding:14px 16px;border-top:1px solid var(--line)}
+  .cl-table td{box-sizing:border-box;display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr);gap:8px 10px;width:100%;padding:0;border:0;overflow-wrap:anywhere}
+  .cl-table td::before{content:attr(data-label);color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase}
+  .cl-table td:first-child{display:block}
+  .cl-table td:first-child::before{content:none}
+  .cl-table td[data-label=""]{display:block}
+  .cl-table td[data-label=""]::before{content:none}
+  .cl-table td.tnum{text-align:left}
+  .closing .toolbar input[type=month]{width:100%}
   .cl-upload-form,.cl-form,.cl-facts,.cl-compare,.cl-actions,.cl-tabs,.cl-history{padding-left:16px;padding-right:16px}
   .cl-decision,.cl-reasons,.cl-note,.cl-problems{margin-left:16px;margin-right:16px}
   .cl-form .cl-actions{padding-left:0;padding-right:0}

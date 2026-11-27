@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=1">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=3">{% endblock %}
 {% block page_action %}<a class="button button-quiet" href="{% url 'closing:layouts' %}">Layouts</a>{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel closing" aria-labelledby="cl-layout-title">
@@ -32,11 +32,11 @@
       <caption class="sr-only">Campos do layout</caption>
       <thead><tr><th scope="col">Campo</th><th scope="col">Texto de referência</th><th scope="col" class="tnum">Ocorrência</th><th scope="col" class="tnum">Somar</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
       <tbody>{% for field in fields %}<tr>
-        <td data-label="Campo">{{ field.variable }}{% if field.nullified %} · sem valor{% endif %}</td>
+        <td data-label="Campo">{{ field.label }}{% if field.nullified %} · sem valor{% endif %}</td>
         <td data-label="Texto de referência">{{ field.anchor|default:"—" }}</td>
         <td data-label="Ocorrência" class="tnum">{{ field.occurrence }}</td>
         <td data-label="Somar" class="tnum">{{ field.sum_count }}</td>
-        <td data-label="">{% if can_write %}<form method="post" action="{% url 'closing:layout-field-remove' layout.pk field.pk %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Remover<span class="sr-only"> {{ field.variable }}</span></button></form>{% endif %}</td>
+        <td data-label="">{% if can_write %}<form method="post" action="{% url 'closing:layout-field-remove' layout.pk field.pk %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Remover<span class="sr-only"> {{ field.label }}</span></button></form>{% endif %}</td>
       </tr>{% endfor %}</tbody>
     </table>
   </div>

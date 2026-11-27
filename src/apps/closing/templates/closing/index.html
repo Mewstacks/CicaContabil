@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=1">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'closing/closing.css' %}?v=3">{% endblock %}
 {% block page_action %}<a class="button button-quiet" href="{% url 'closing:layouts' %}">Layouts</a>{% endblock %}
 {% block workspace_content %}
 {% if can_write %}

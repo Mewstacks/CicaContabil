@@ -142,6 +142,13 @@ class ClosingField(OrganizationScopedModel):
     def __str__(self) -> str:
         return f"{self.layout_id}/{self.variable}"
 
+    @property
+    def label(self) -> str:
+        if is_marker(self.variable):
+            suffix = self.variable.removeprefix(MARKER_PREFIX)
+            return f"Identificador {suffix}" if suffix.isdigit() else "Identificador"
+        return Variable(self.variable).label if self.variable in Variable.values else self.variable
+
     def clean(self) -> None:
         super().clean()
         if self.layout_id and self.layout.organization_id != self.organization_id:

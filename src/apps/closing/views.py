@@ -8,6 +8,7 @@ também papel operacional (dono, administrador, gestor ou operador) ou suporte a
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID
@@ -244,8 +245,15 @@ def _reads(item: ClosingDocument) -> list[tuple[str, str]]:
 
     rows: list[tuple[str, str]] = []
     for variable, value in item.read_values.items():
+        if variable == Variable.COMPETENCE:
+            continue  # já aparece nos dados do arquivo
         label = Variable(variable).label if variable in Variable.values else variable
-        rows.append((label, str(value)))
+        text = str(value)
+        if variable == Variable.CNPJ:
+            text = services.mask_cnpj(text)
+        elif engine.kind_of(variable) == "money":
+            text = f"R$ {services.format_money(Decimal(text))}"
+        rows.append((label, text))
     return rows
 
 
