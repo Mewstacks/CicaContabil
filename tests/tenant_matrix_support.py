@@ -81,6 +81,7 @@ TENANT_APPS = frozenset(
         "audit",
         "closing",
         "crosscheck",
+        "delivery",
         "hub",
         "intelligence",
         "organizations",
@@ -727,6 +728,7 @@ def _agent_work(factory: Factory) -> None:
     Connector.objects.filter(organization=tenant.office, kind="dominio_agent").update(enabled=True)
     work = (
         ("triage.AgentFileJob", {"status": "claimed", "claimed_by": claimed}),
+        ("triage.AgentFolderJob", {"status": "claimed", "claimed_by": claimed}),
         (
             "hub.ImportBatch",
             {"kind": "dominio_backup", "status": "processing", "mapping": {"claimed_by": claimed}},
@@ -1260,6 +1262,7 @@ AGENT_PAYLOADS: dict[str, tuple[dict[str, Any], ...]] = {
     "agent-v2-profitability-run-complete": ({"row_count": 0},),
     "agent-v2-profitability-run-failure": ({"code": "agent_failure"},),
     "agent-v2-file-complete": ({"success": False, "detail": "falha de teste"},),
+    "agent-v2-folder-complete": ({"success": False, "detail": "falha de teste"},),
 }
 
 

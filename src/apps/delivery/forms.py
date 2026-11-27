@@ -10,6 +10,7 @@ from django.db.models import QuerySet
 
 from apps.delivery.models import MAX_ATTACHMENT_BYTES, DeliveryAccount
 from apps.delivery.services import parse_recipients
+from apps.delivery.transports import smtp_host_error
 from apps.hub.models import ClientCompany
 
 
@@ -96,13 +97,25 @@ class AccountForm(forms.ModelForm):  # type: ignore[type-arg]
 
     def clean(self) -> dict[str, Any]:
         data = super().clean() or {}
-        # Campo em branco mantém o segredo já guardado: ele nunca volta à tela.
-        if not data.get("smtp_password") and self.instance.pk:
+        # Campo em branco mantém o segredo já guardado: ele nunca volta à tela. Mudou o
+        # destino da credencial (servidor, porta, login, diretório ou aplicativo)? Quem
+        # edita redigita o segredo, senão a senha guardada seguiria para outro servidor.
+        smtp_moved = bool(
+            {"smtp_host", "smtp_port", "smtp_security", "smtp_username", "provider"}
+            & set(self.changed_data)
+        )
+        graph_moved = bool(
+            {"graph_tenant_id", "graph_client_id", "provider"} & set(self.changed_data)
+        )
+        if not data.get("smtp_password") and self.instance.pk and not smtp_moved:
             data["smtp_password"] = self.instance.smtp_password
-        if not data.get("graph_client_secret") and self.instance.pk:
+        if not data.get("graph_client_secret") and self.instance.pk and not graph_moved:
             data["graph_client_secret"] = self.instance.graph_client_secret
         provider = data.get("provider")
         if provider == DeliveryAccount.Provider.SMTP:
+            refusal = smtp_host_error(data.get("smtp_host", ""), data.get("smtp_port") or 0)
+            if refusal:
+                self.add_error("smtp_host", refusal)
             if not data.get("smtp_password") and data.get("smtp_username"):
                 self.add_error("smtp_password", "Informe a senha.")
         elif provider == DeliveryAccount.Provider.GRAPH and not data.get("graph_client_secret"):

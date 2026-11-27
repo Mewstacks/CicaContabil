@@ -7,9 +7,11 @@ curta: nunca resposta do provedor, token, senha ou endereço de cliente.
 from __future__ import annotations
 
 import base64
+import ipaddress
 import json
 import mimetypes
 import smtplib
+import socket
 import ssl
 from collections.abc import Callable
 from email.message import EmailMessage
@@ -24,6 +26,33 @@ from apps.delivery.models import DeliveryAccount
 TIMEOUT_SECONDS = 30
 _GRAPH = "https://graph.microsoft.com/v1.0"
 _LOGIN = "https://login.microsoftonline.com"
+
+
+ALLOWED_SMTP_PORTS = frozenset({25, 465, 587})
+
+
+def resolve_host(host: str) -> list[str]:
+    try:
+        return sorted({str(info[4][0]) for info in socket.getaddrinfo(host, None)})
+    except OSError:
+        return []
+
+
+def smtp_host_error(host: str, port: int) -> str:
+    """Recusa porta fora do padrão e servidor que resolve para rede interna (SSRF)."""
+
+    if port not in ALLOWED_SMTP_PORTS:
+        return "Use a porta 465, 587 ou 25."
+    addresses = resolve_host(host)
+    if not addresses:
+        return "Servidor não encontrado."
+    for address in addresses:
+        try:
+            if not ipaddress.ip_address(address.split("%")[0]).is_global:
+                return "O servidor precisa ser público."
+        except ValueError:
+            return "Servidor inválido."
+    return ""
 
 
 class DeliveryError(RuntimeError):
@@ -78,6 +107,9 @@ class SmtpTransport:
 
     def _run(self, message: EmailMessage | None) -> None:
         account = self.account
+        refusal = smtp_host_error(account.smtp_host, account.smtp_port)
+        if refusal:
+            raise PermanentDeliveryError(refusal)
         context = ssl.create_default_context()
         try:
             if account.smtp_security == DeliveryAccount.Security.SSL:

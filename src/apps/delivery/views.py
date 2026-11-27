@@ -46,11 +46,13 @@ STATUS_TONES = {
 }
 
 
-def _role_ok(context: dict[str, object], roles: set[str]) -> bool:
-    if context.get("support_session") is not None:
-        return bool(context.get("support_can_mutate"))
+def _role_ok(context: dict[str, object], roles: set[Membership.Role]) -> bool:
     membership = context.get("membership")
-    return isinstance(membership, Membership) and membership.role in roles
+    allowed = isinstance(membership, Membership) and membership.role in roles
+    if context.get("support_session") is not None:
+        # Suporte altera só com a concessão E com papel que já poderia fazê-lo.
+        return bool(context.get("support_can_mutate")) and allowed
+    return allowed
 
 
 def _gate(request: HttpRequest) -> tuple[dict[str, object], HttpResponse | None]:
@@ -173,7 +175,7 @@ def detail(request: HttpRequest, delivery_id: str) -> HttpResponse:
         {
             "page_title": delivery.subject,
             "delivery": delivery,
-            "tone": STATUS_TONES.get(delivery.status, "is-muted"),
+            "tone": STATUS_TONES.get(Delivery.Status(delivery.status), "is-muted"),
             "resends": delivery.resends.order_by("-created_at")[:20],
         }
     )

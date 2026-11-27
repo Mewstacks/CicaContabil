@@ -44,6 +44,9 @@ class FakeTransport:
 
 class DeliveryCase(TestCase):
     def setUp(self) -> None:
+        self.enterContext(
+            mock.patch("apps.delivery.transports.resolve_host", return_value=["93.184.216.34"])
+        )
         self.enterContext(override_settings(MEDIA_ROOT=self.enterContext(TemporaryDirectory())))
         self.office = Organization.objects.create(name="Escritório A", slug="escritorio-a")
         self.other = Organization.objects.create(name="Escritório B", slug="escritorio-b")
@@ -257,6 +260,11 @@ class ResendCancelTests(DeliveryCase):
 
 
 class TransportTests(TestCase):
+    def setUp(self) -> None:
+        self.enterContext(
+            mock.patch("apps.delivery.transports.resolve_host", return_value=["93.184.216.34"])
+        )
+
     def account(self, **kwargs: Any) -> DeliveryAccount:
         return DeliveryAccount(
             from_address="c@escritorio.com.br",
@@ -408,3 +416,40 @@ class ScreenTests(DeliveryCase):
         assert (
             self.client.post(url, {"company": str(self.stranger.pk), "day": "5"}).status_code == 404
         )
+
+
+class SecretAndEndpointTests(DeliveryCase):
+    def post_account(self, **overrides: str) -> Any:
+        data = {
+            "provider": "smtp",
+            "from_name": "Escritório",
+            "from_address": "contador@escritorio.com.br",
+            "smtp_host": "smtp.example.com",
+            "smtp_port": "465",
+            "smtp_security": "ssl",
+            "smtp_username": "contador@escritorio.com.br",
+            "smtp_password": "",
+            "active": "on",
+        }
+        data.update(overrides)
+        return self.client.post(reverse("delivery:account"), data)
+
+    def test_changing_host_without_retyping_password_is_refused(self) -> None:
+        response = self.post_account(smtp_host="smtp.outro.com")
+        assert response.status_code == 200
+        self.account.refresh_from_db()
+        assert self.account.smtp_host == "smtp.example.com"
+
+    def test_internal_host_and_odd_port_are_refused(self) -> None:
+        with mock.patch("apps.delivery.transports.resolve_host", return_value=["10.0.0.5"]):
+            assert self.post_account(smtp_password="x").status_code == 200
+        assert self.post_account(smtp_port="6379", smtp_password="x").status_code == 200
+        self.account.refresh_from_db()
+        assert self.account.smtp_port == 465
+
+    def test_transport_refuses_internal_address_at_send_time(self) -> None:
+        with (
+            mock.patch("apps.delivery.transports.resolve_host", return_value=["127.0.0.1"]),
+            self.assertRaises(transports.PermanentDeliveryError),
+        ):
+            transports.SmtpTransport(self.account).check()
