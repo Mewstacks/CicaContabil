@@ -207,3 +207,11 @@ def test_operator_cannot_batch_foreign_groups_or_pause_mixed_batch() -> None:
     client.post(f"/app/fap/lotes/{batch.pk}/acao/", {"acao": "pausar"})
     batch.refresh_from_db()
     assert batch.state == "queued"
+
+
+def test_fgts_group_needs_every_company_in_portfolio() -> None:
+    from apps.fgts.views import _group_visible
+
+    assert _group_visible({"codes": ["1"]}, {"1", "2"})
+    assert not _group_visible({"codes": ["1", "3"]}, {"1", "2"})
+    assert not _group_visible({"codes": []}, {"1"})

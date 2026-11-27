@@ -28,6 +28,13 @@ def _gate(request: HttpRequest) -> tuple[dict[str, Any], HttpResponse | None]:
     return cast("dict[str, Any]", context), blocked
 
 
+def _group_visible(group: dict[str, Any], visible: set[str]) -> bool:
+    """Grupo com várias empresas só é de quem enxerga TODAS elas (e ao menos uma existe)."""
+
+    codes = {str(c) for c in group.get("codes", [])}
+    return bool(codes) and codes <= {str(v) for v in visible}
+
+
 def _competence(request: HttpRequest) -> tuple[int, int]:
     today = date.today()
     try:
@@ -59,7 +66,7 @@ def index(request: HttpRequest) -> HttpResponse:
     groups = [
         g
         for g in (source.groups if source else [])
-        if g["root"] not in live and (wide or visible & {str(c) for c in g.get("codes", [])})
+        if g["root"] not in live and (wide or _group_visible(g, visible))
     ]
     allowed, why = services.emission_allowed(org)
     context.update(
@@ -125,7 +132,7 @@ def batch_new(request: HttpRequest) -> HttpResponse:
         allowed = {
             g["root"]
             for g in (src.groups if src else [])
-            if context.get("can_admin") or visible & {str(c) for c in g.get("codes", [])}
+            if context.get("can_admin") or _group_visible(g, visible)
         }
         if set(roots) - allowed:
             raise services.FgtsError("Há grupo fora da sua carteira.")
