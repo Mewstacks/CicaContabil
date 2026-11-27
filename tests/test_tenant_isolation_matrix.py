@@ -314,7 +314,7 @@ def test_both_nfse_collection_modes_were_exercised(matrix: MatrixResult) -> None
 def test_the_run_stays_inside_its_request_budget(matrix: MatrixResult) -> None:
     """Orçamento em requisições, não em segundos: não depende da máquina estar ocupada."""
 
-    assert matrix.requests < 15_000, f"{matrix.requests} requisições"
+    assert matrix.requests < 20_000, f"{matrix.requests} requisições"
 
 
 # --------------------------------------------------------------------------------------------

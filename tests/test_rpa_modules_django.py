@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 import pytest
 from django.core.management import call_command
@@ -13,7 +14,7 @@ from apps.folha.models import FolhaCycle
 from apps.folha.tasks import schedule_daily
 from apps.hub.models import ClientCompany, ProductModule
 from apps.hub.module_catalog import OFFERED_MODULE_CODES, self_service_module_codes
-from apps.organizations.models import Organization
+from apps.organizations.models import Membership, Organization
 from apps.rpa import registry
 from apps.rpa.tasks import release_expired
 
@@ -89,3 +90,82 @@ def test_release_task_is_a_noop_when_agent_flag_is_off() -> None:
     assert release_expired() == 0
     with override_settings(RPA_AGENT_ENABLED=True):
         assert release_expired() == 0
+
+
+# --- carteira: quem não é administrador só enxerga as empresas dos seus acessos ------------------
+
+
+def _restricted(org: Organization) -> tuple[Any, ClientCompany, ClientCompany]:
+    from uuid import uuid4
+
+    from django.test import Client
+
+    from apps.accounts.models import User
+    from apps.hub.models import CompanyAccessGrant
+    from apps.organizations.models import Membership
+
+    mine = ClientCompany.objects.create(organization=org, name="Minha", dominio_code="1")
+    theirs = ClientCompany.objects.create(organization=org, name="Alheia", dominio_code="2")
+    user = User.objects.create_user(
+        email=f"op-{uuid4().hex[:6]}@x.test", password="uma-senha-longa"
+    )
+    membership = Membership.objects.create(organization=org, user=user, role="operator")
+    CompanyAccessGrant.objects.create(
+        organization=org,
+        membership=membership,
+        company=mine,
+        is_active=True,
+        modules=["folha", "fgts", "det", "fap", "admissions"],
+    )
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(org.id)
+    session.save()
+    return client, mine, theirs
+
+
+def test_operator_never_reaches_another_companys_rows() -> None:
+    from apps.admissions import services as adm
+    from apps.admissions.models import Admission
+    from apps.fap.models import FapBatch, FapItem
+    from apps.fgts.models import FgtsBatch, FgtsItem
+
+    org = Organization.objects.create(name="fed", slug="fed")
+    for code in RPA_MODULES:
+        ProductModule.objects.create(organization=org, code=code, enabled=True)
+    client, _mine, theirs = _restricted(org)
+    owner_like = None
+    admission = Admission.objects.create(organization=org, company=theirs, data_json="")
+    fap_batch = FapBatch.objects.create(organization=org, year=2027)
+    fap_item = FapItem.objects.create(
+        organization=org, batch=fap_batch, company=theirs, code="2", name="Alheia", year=2027
+    )
+    fgts_batch = FgtsBatch.objects.create(
+        organization=org, year=2026, month=9, deadline=date(2026, 10, 7)
+    )
+    fgts_item = FgtsItem.objects.create(
+        organization=org,
+        batch=fgts_batch,
+        root="11222333",
+        year=2026,
+        month=9,
+        company=theirs,
+        expected_cents=1,
+    )
+    cycle = FolhaCycle.objects.create(organization=org, competence=date(2026, 9, 1))
+    folha_task = cycle.tasks.create(
+        organization=org, company=theirs, item="extrato", competence=date(2026, 9, 1)
+    )
+    assert owner_like is None and adm.settings_for(org)
+    assert client.get(f"/app/admissoes/{admission.pk}/").status_code == 404
+    assert client.get(f"/app/fap/lotes/{fap_batch.pk}/").status_code == 404
+    assert client.get(f"/app/fap/itens/{fap_item.pk}/arquivo/").status_code == 404
+    assert client.post(f"/app/fgts/itens/{fgts_item.pk}/", {"acao": "revisar"}).status_code == 404
+    assert client.get(f"/app/folha/ciclos/{cycle.pk}/").status_code == 404
+    assert folha_task.pk
+    # controle positivo: o mesmo pedido, feito por quem é dono, abre
+    Membership.objects.filter(organization=org).update(role="owner")
+    assert client.get(f"/app/admissoes/{admission.pk}/").status_code == 200
+    assert client.get(f"/app/fap/lotes/{fap_batch.pk}/").status_code == 200
+    assert client.get(f"/app/folha/ciclos/{cycle.pk}/").status_code == 200

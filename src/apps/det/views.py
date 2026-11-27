@@ -42,7 +42,7 @@ def index(request: HttpRequest) -> HttpResponse:
             .filter(active=True)
             .exclude(cnpj_masked="")
             .order_by("name")[:2000],
-            "queries": DetQuery.objects.filter(organization=org).order_by("-created_at")[:30],
+            "queries": _queries(context, request).order_by("-created_at")[:30],
         }
     )
     return render(request, "det/index.html", context)
@@ -71,8 +71,15 @@ def query_new(request: HttpRequest) -> HttpResponse:
     return redirect("det:query", query_id=query.pk)
 
 
-def _load(context: dict[str, Any], query_id: UUID) -> DetQuery:
-    return get_object_or_404(DetQuery, pk=query_id, organization=ui.office(context))
+def _queries(context: dict[str, Any], request: HttpRequest) -> Any:
+    """Consulta é de quem a criou; o administrador do escritório vê todas."""
+
+    base = DetQuery.objects.filter(organization=ui.office(context))
+    return base if context.get("can_admin") else base.filter(created_by=request.user)
+
+
+def _load(context: dict[str, Any], request: HttpRequest, query_id: UUID) -> DetQuery:
+    return cast(DetQuery, get_object_or_404(_queries(context, request), pk=query_id))
 
 
 @office_required
@@ -81,7 +88,7 @@ def query(request: HttpRequest, query_id: UUID) -> HttpResponse:
     context, blocked = _gate(request)
     if blocked:
         return blocked
-    item = _load(context, query_id)
+    item = _load(context, request, query_id)
     waiting = [
         c.job
         for c in item.chunks.select_related("job")
@@ -106,7 +113,7 @@ def sheet(request: HttpRequest, query_id: UUID) -> HttpResponse:
     context, blocked = _gate(request)
     if blocked:
         return blocked
-    item = _load(context, query_id)
+    item = _load(context, request, query_id)
     response = HttpResponse(
         services.workbook(item),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

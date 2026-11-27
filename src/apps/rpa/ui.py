@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.http import HttpRequest, HttpResponse
 
 from apps.hub.models import ClientCompany
@@ -51,6 +51,15 @@ def need_admin(request: HttpRequest, context: dict[str, object]) -> HttpResponse
     if not context.get("can_admin"):
         return refuse(request, "Só o administrador do escritório altera isto.")
     return None
+
+
+def scope(context: dict[str, object], field: str = "company") -> Q:
+    """Linhas das empresas da carteira de quem pede; sem empresa só o administrador enxerga."""
+
+    q = Q(**{f"{field}__in": companies(context)})
+    if context.get("can_admin"):
+        q |= Q(**{f"{field}__isnull": True})
+    return q
 
 
 def office(context: dict[str, object]) -> Organization:

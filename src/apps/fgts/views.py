@@ -54,7 +54,13 @@ def index(request: HttpRequest) -> HttpResponse:
             organization=org, year=year, month=month, state__in=FgtsItem.BLOCKING
         ).values_list("root", flat=True)
     )
-    groups = [g for g in (source.groups if source else []) if g["root"] not in live]
+    visible = set(ui.companies(context).values_list("dominio_code", flat=True))
+    wide = bool(context.get("can_admin"))
+    groups = [
+        g
+        for g in (source.groups if source else [])
+        if g["root"] not in live and (wide or visible & {str(c) for c in g.get("codes", [])})
+    ]
     allowed, why = services.emission_allowed(org)
     context.update(
         {
@@ -65,7 +71,9 @@ def index(request: HttpRequest) -> HttpResponse:
             "source": source,
             "groups": groups,
             "batches": FgtsBatch.objects.filter(organization=org).order_by("-created_at")[:20],
-            "items": FgtsItem.objects.filter(organization=org, year=year, month=month)
+            "items": FgtsItem.objects.filter(
+                ui.scope(context), organization=org, year=year, month=month
+            )
             .select_related("batch")
             .order_by("root"),
             "emission_allowed": allowed,
@@ -135,7 +143,9 @@ def item_action(request: HttpRequest, item_id: UUID) -> HttpResponse:
         return blocked
     if denied := ui.need_write(request, context):
         return denied
-    item = get_object_or_404(FgtsItem, pk=item_id, organization=ui.office(context))
+    item = get_object_or_404(
+        FgtsItem.objects.filter(ui.scope(context)), pk=item_id, organization=ui.office(context)
+    )
     user = cast(User, request.user)
     action = request.POST.get("acao", "")
     try:

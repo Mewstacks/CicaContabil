@@ -41,6 +41,13 @@ class SheetError(Exception):
     """Falha esperada da planilha (aba ou empresa não encontrada, Google fora)."""
 
 
+SPREADSHEET_ID = re.compile(r"^[A-Za-z0-9_-]{20,100}$")
+
+
+def valid_spreadsheet_id(value: str) -> bool:
+    return bool(SPREADSHEET_ID.match(value or ""))
+
+
 class SheetClient(Protocol):
     def titles(self, spreadsheet_id: str) -> list[str]: ...
 
@@ -187,6 +194,11 @@ class GoogleSheetsClient:
         self._expires = time.time() + int(data.get("expires_in", 3600))
         return self._token
 
+    @staticmethod
+    def _check(spreadsheet_id: str) -> None:
+        if not valid_spreadsheet_id(spreadsheet_id):
+            raise SheetError("Identificador de planilha inválido.")
+
     def _call(
         self, url: str, *, body: bytes | None = None, method: str = "GET", auth: bool = True
     ) -> dict[str, Any]:
@@ -202,10 +214,12 @@ class GoogleSheetsClient:
             raise SheetError(f"Google indisponível ({type(exc).__name__}).") from exc
 
     def titles(self, spreadsheet_id: str) -> list[str]:
+        self._check(spreadsheet_id)
         url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}?fields=sheets.properties.title"
         return [s["properties"]["title"] for s in self._call(url).get("sheets", [])]
 
     def read(self, spreadsheet_id: str, a1_range: str) -> list[list[str]]:
+        self._check(spreadsheet_id)
         url = (
             f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/"
             f"{urllib.parse.quote(a1_range)}"
@@ -213,6 +227,7 @@ class GoogleSheetsClient:
         return [[str(c) for c in row] for row in self._call(url).get("values", [])]
 
     def write(self, spreadsheet_id: str, a1_range: str, value: str) -> None:
+        self._check(spreadsheet_id)
         url = (
             f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/"
             f"{urllib.parse.quote(a1_range)}?valueInputOption=USER_ENTERED"

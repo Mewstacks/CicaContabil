@@ -7,6 +7,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from django.contrib import messages
+from django.db.models import Q
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404, redirect, render
@@ -41,7 +42,7 @@ def index(request: HttpRequest) -> HttpResponse:
             "page_title": "FAP",
             "cfg": services.settings_for(org),
             "choices": ui.companies(context).filter(active=True).order_by("name")[:500],
-            "batches": FapBatch.objects.filter(organization=org).order_by("-created_at")[:30],
+            "batches": _batches(context, request).order_by("-created_at")[:30],
             "default_year": date.today().year + 1,
         }
     )
@@ -71,8 +72,18 @@ def batch_new(request: HttpRequest) -> HttpResponse:
     return redirect("fap:batch", batch_id=batch.pk)
 
 
-def _batch(context: dict[str, Any], batch_id: UUID) -> FapBatch:
-    return get_object_or_404(FapBatch, pk=batch_id, organization=ui.office(context))
+def _batches(context: dict[str, Any], request: HttpRequest) -> Any:
+    """Lotes que a pessoa criou ou que têm empresa da sua carteira."""
+
+    mine = FapItem.objects.filter(ui.scope(context), organization=ui.office(context))
+    return FapBatch.objects.filter(
+        Q(created_by=request.user) | Q(pk__in=mine.values("batch_id")),
+        organization=ui.office(context),
+    )
+
+
+def _batch(context: dict[str, Any], request: HttpRequest, batch_id: UUID) -> FapBatch:
+    return cast(FapBatch, get_object_or_404(_batches(context, request), pk=batch_id))
 
 
 @office_required
@@ -81,12 +92,12 @@ def batch(request: HttpRequest, batch_id: UUID) -> HttpResponse:
     context, blocked = _gate(request)
     if blocked:
         return blocked
-    item = _batch(context, batch_id)
+    item = _batch(context, request, batch_id)
     context.update(
         {
             "page_title": f"FAP {item.year}",
             "batch": item,
-            "items": item.items.order_by("name"),
+            "items": item.items.filter(ui.scope(context)).order_by("name"),
         }
     )
     return render(request, "fap/batch.html", context)
@@ -100,7 +111,7 @@ def batch_action(request: HttpRequest, batch_id: UUID) -> HttpResponse:
         return blocked
     if denied := ui.need_write(request, context):
         return denied
-    item = _batch(context, batch_id)
+    item = _batch(context, request, batch_id)
     try:
         if request.POST.get("acao") == "pausar":
             services.pause(item, user=cast(User, request.user))
@@ -119,7 +130,9 @@ def item_reprocess(request: HttpRequest, item_id: UUID) -> HttpResponse:
         return blocked
     if denied := ui.need_write(request, context):
         return denied
-    item = get_object_or_404(FapItem, pk=item_id, organization=ui.office(context))
+    item = get_object_or_404(
+        FapItem.objects.filter(ui.scope(context)), pk=item_id, organization=ui.office(context)
+    )
     try:
         services.reprocess(
             item, user=cast(User, request.user), reason=request.POST.get("motivo", "")
@@ -135,7 +148,9 @@ def item_file(request: HttpRequest, item_id: UUID) -> HttpResponseBase:
     context, blocked = _gate(request)
     if blocked:
         return blocked
-    item = get_object_or_404(FapItem, pk=item_id, organization=ui.office(context))
+    item = get_object_or_404(
+        FapItem.objects.filter(ui.scope(context)), pk=item_id, organization=ui.office(context)
+    )
     if item.pdf is None:
         raise Http404
     response = FileResponse(

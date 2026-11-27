@@ -60,16 +60,33 @@ def _authorized_companies(context: dict[str, Any]) -> list[ClientCompany]:
     return list(ui.companies(context).filter(active=True, dominio_code__in=codes))
 
 
+def _cycles(context: dict[str, Any]) -> Any:
+    """Ciclos com ao menos uma empresa da carteira de quem pede (administrador vê todos)."""
+
+    base = FolhaCycle.objects.filter(organization=ui.office(context))
+    if context.get("can_admin"):
+        return base
+    mine = FolhaTask.objects.filter(
+        organization=ui.office(context), company__in=ui.companies(context)
+    )
+    return base.filter(pk__in=mine.values("cycle_id"))
+
+
+def _whole_cycle_mine(context: dict[str, Any], cycle: FolhaCycle) -> bool:
+    """Ação sobre o ciclo inteiro só para quem enxerga todas as empresas dele."""
+
+    if context.get("can_admin"):
+        return True
+    return not cycle.tasks.exclude(company__in=ui.companies(context)).exists()
+
+
 @office_required
 @require_GET
 def index(request: HttpRequest) -> HttpResponse:
     context, blocked = _gate(request)
     if blocked:
         return blocked
-    org = ui.office(context)
-    cycles = list(
-        FolhaCycle.objects.filter(organization=org).order_by("-competence", "-created_at")[:30]
-    )
+    cycles = list(_cycles(context).order_by("-competence", "-created_at")[:30])
     context.update(
         {
             "page_title": "Folha",
@@ -116,7 +133,7 @@ def cycle_new(request: HttpRequest) -> HttpResponse:
 
 
 def _cycle(context: dict[str, Any], cycle_id: UUID) -> FolhaCycle:
-    return get_object_or_404(FolhaCycle, pk=cycle_id, organization=ui.office(context))
+    return cast(FolhaCycle, get_object_or_404(_cycles(context), pk=cycle_id))
 
 
 @office_required
@@ -126,7 +143,10 @@ def cycle(request: HttpRequest, cycle_id: UUID) -> HttpResponse:
     if blocked:
         return blocked
     item = _cycle(context, cycle_id)
-    tasks = list(item.tasks.select_related("company").order_by("company__dominio_code", "item"))
+    mine = item.tasks.select_related("company")
+    if not context.get("can_admin"):
+        mine = mine.filter(company__in=ui.companies(context))
+    tasks = list(mine.order_by("company__dominio_code", "item"))
     reports = {r.task_id: r for r in FolhaReport.objects.filter(task__cycle=item)}
     for task in tasks:
         task.label = ITEM_LABELS.get(task.item, task.item)  # type: ignore[attr-defined]
@@ -163,20 +183,30 @@ def cycle_action(request: HttpRequest, cycle_id: UUID) -> HttpResponse:
     action = request.POST.get("acao", "")
     user = cast(User, request.user)
     try:
-        if action == "confirmar":
+        if action in {"confirmar", "cancelar"} and not _whole_cycle_mine(context, item):
+            messages.error(request, "O ciclo tem empresas fora da sua carteira.")
+        elif action == "confirmar":
             services.confirm_draft(
                 item, user=user, confirm_calc=request.POST.get("confirmo_calculo") == "sim"
             )
         elif action == "cancelar":
             services.cancel_cycle(item, user=user)
         elif action == "reprocessar":
-            task = get_object_or_404(FolhaTask, pk=request.POST.get("tarefa"), cycle=item)
+            task = get_object_or_404(
+                FolhaTask,
+                pk=request.POST.get("tarefa"),
+                cycle=item,
+                company__in=ui.companies(context),
+            )
             services.reprocess(
                 task, user=user, confirm_calc=request.POST.get("confirmo_calculo") == "sim"
             )
         elif action == "aprovar_relatorio":
             report = get_object_or_404(
-                FolhaReport, pk=request.POST.get("relatorio"), task__cycle=item
+                FolhaReport,
+                pk=request.POST.get("relatorio"),
+                task__cycle=item,
+                task__company__in=ui.companies(context),
             )
             services.approve_report(report, user=user)
         else:
@@ -193,7 +223,7 @@ def send(request: HttpRequest, cycle_id: UUID, company_id: UUID) -> HttpResponse
     if blocked:
         return blocked
     item = _cycle(context, cycle_id)
-    company = get_object_or_404(ClientCompany, pk=company_id, organization=item.organization)
+    company = get_object_or_404(ui.companies(context), pk=company_id)
     contacts = [
         recipients.Contact(tuple(c.emails), c.note)
         for c in FolhaContact.objects.filter(organization=item.organization, company=company)

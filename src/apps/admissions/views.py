@@ -77,7 +77,7 @@ def index(request: HttpRequest) -> HttpResponse:
             "page_title": "Admissões",
             "cfg": services.settings_for(org),
             "choices": ui.companies(context).filter(active=True).order_by("name")[:500],
-            "items": Admission.objects.filter(organization=org)
+            "items": Admission.objects.filter(ui.scope(context), organization=org)
             .select_related("company")
             .order_by("-created_at")[:30],
         }
@@ -113,7 +113,7 @@ def new(request: HttpRequest) -> HttpResponse:
 
 def _load(context: dict[str, Any], admission_id: UUID) -> Admission:
     return get_object_or_404(
-        Admission.objects.select_related("company"),
+        Admission.objects.select_related("company").filter(ui.scope(context)),
         pk=admission_id,
         organization=ui.office(context),
     )
