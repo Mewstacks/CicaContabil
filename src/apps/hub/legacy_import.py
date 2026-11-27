@@ -288,6 +288,7 @@ def import_bundle(
     convert: bool = True,
     hold_generation: bool = False,
     enable_nfse_sync: bool = False,
+    activate_layouts: bool = False,
 ) -> ImportReport:
     bundle = Bundle(path)
     report = ImportReport(bundle_sha256=bundle.sha256)
@@ -313,6 +314,7 @@ def import_bundle(
                 organization,
                 hold_generation=hold_generation,
                 enable_nfse_sync=enable_nfse_sync,
+                activate_layouts=activate_layouts,
             )
             for key, count in converted.created.items():
                 stats.created[key] += count

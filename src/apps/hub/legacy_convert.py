@@ -952,7 +952,10 @@ def convert_all(
     *,
     hold_generation: bool = False,
     enable_nfse_sync: bool = False,
+    activate_layouts: bool = False,
 ) -> Stats:
+    from apps.hub.legacy_convert_rpa import convert_extra
+
     stats = Stats()
     steps: list[tuple[str, Converter]] = [
         ("obrigações", lambda: convert_obligations(organization, stats)),
@@ -977,12 +980,16 @@ def convert_all(
     for _name, step in steps:
         with transaction.atomic():
             step()
+    convert_extra(organization, stats, activate_layouts=activate_layouts)
     return stats
 
 
 def parity_lines(organization: Organization, stats: Stats) -> list[str]:
     """Source rows vs native rows, measured from the database, not from run counters."""
 
+    from apps.hub.legacy_convert_rpa import EXTRA_NO_HOME
+
+    why_not = {**NO_NATIVE_HOME, **EXTRA_NO_HOME}
     out: list[str] = []
     records = LegacyImportRecord.objects.filter(organization=organization, source_system=SYSTEM)
     totals = dict(records.order_by().values_list("source_table").annotate(n=Count("pk")).order_by())
@@ -997,7 +1004,7 @@ def parity_lines(organization: Organization, stats: Stats) -> list[str]:
         total = totals[table]
         target = PARITY_TARGETS.get(table)
         if target is None:
-            why = NO_NATIVE_HOME.get(table, "sem modelo nativo ainda")
+            why = why_not.get(table, "sem modelo nativo ainda")
             out.append(
                 f"paridade {table}: origem={total} nativo=0 ({why}; guardada em LegacyImportRecord)"
             )

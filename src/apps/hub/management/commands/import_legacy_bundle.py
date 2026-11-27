@@ -38,6 +38,11 @@ class Command(BaseCommand):
             help="liga a sincronização NFS-e das empresas ativas (só na virada)",
         )
         parser.add_argument(
+            "--activate-layouts",
+            action="store_true",
+            help="ativa os layouts de fechamento que já leem a própria amostra",
+        )
+        parser.add_argument(
             "--nfse-documents",
             choices=["robo", "mongo", "all"],
             help="estágio das notas: grava NfseDocument direto do pacote, em lotes",
@@ -66,6 +71,7 @@ class Command(BaseCommand):
                     convert=not options["no_convert"],
                     hold_generation=bool(options["hold_generation"]),
                     enable_nfse_sync=bool(options["enable_nfse_sync"]),
+                    activate_layouts=bool(options["activate_layouts"]),
                 )
                 for line in report.lines():
                     self.stdout.write(line)

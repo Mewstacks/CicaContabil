@@ -51,6 +51,10 @@ tabela (`origem=N nativo=M`, com o motivo de cada linha sem nativo), medida no b
 | `core_feriado` | `fiscal_calendar.NonBusinessDay` (rascunho global, inerte até aprovação) |
 | `triagem_documenttype/senderrule/sendercompany/extractionrule/rulealias/checklist*` | `triage.*` |
 | `nfse_sincronizacaonfse` | `hub.NfseSync` (NSU preservado, desligada) |
+| `fechamento_mapeamentorecibo/campomapeado/recibo/conferencia` | `closing.ClosingLayout/Field/Document/Conference` (layouts entram desativados; `--activate-layouts` ativa os que já leem a amostra) |
+| `fap_lotefap/itemfap`, `fgts_lote/item`, `det_consulta` | `fap.FapBatch/FapItem`, `fgts.FgtsBatch/FgtsItem`, `det.DetQuery/DetResult` |
+| `relatorios_folha_*` | `folha.FolhaTitle`, `folha.FolhaSheetMark` |
+| `arquivos_modelopastas` | `triage.FolderModel` |
 | `robo_nfse_notanfse`, `mongo_nfse` | `hub.NfseDocument`, estágio próprio abaixo |
 
 Opções da conversão: `--no-convert` (só guarda cru), `--hold-generation` (vínculos entram
