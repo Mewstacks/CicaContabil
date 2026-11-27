@@ -66,6 +66,10 @@ REVIEWED_EXCEPTIONS["hub.0095_productmodule_code_delivery"] = (
     "só `choices` de productmodule.code; sem SQL (módulo Envio ao cliente)"
 )
 
+REVIEWED_EXCEPTIONS["hub.0097_alter_productmodule_code"] = (
+    "só `choices` de productmodule.code; sem SQL (módulos Folha, FGTS, DET, FAP, Admissões)"
+)
+
 ALWAYS_ALLOWED = {
     "CreateModel",
     "AddIndex",

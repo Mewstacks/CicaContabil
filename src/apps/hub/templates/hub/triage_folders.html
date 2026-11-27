@@ -56,7 +56,7 @@
 </section>
 
 <section class="workspace-panel" aria-labelledby="tf-clients-title">
-  <header class="workspace-panel-head"><div><h2 id="tf-clients-title">Clientes</h2><p>{{ folder_states.created }} criadas · {{ folder_states.pending }} pendentes · {{ folder_states.failed }} com falha</p></div></header>
+  <header class="workspace-panel-head"><div><h2 id="tf-clients-title">Clientes</h2><p>{{ folder_states.created }} criadas · {{ folder_states.pending }} pendentes · {{ folder_states.failed }} falhas</p></div></header>
   {% if can_manage_folders and folder_enabled %}
   <form class="tv2-form" method="post" data-submit-once>{% csrf_token %}
     <div class="tv2-actions">
