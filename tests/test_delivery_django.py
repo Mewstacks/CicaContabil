@@ -285,7 +285,7 @@ class TransportTests(TestCase):
 
     def test_smtp_auth_error_is_permanent_and_hides_server_text(self) -> None:
         account = self.account()
-        with mock.patch("smtplib.SMTP_SSL") as ssl_client:
+        with mock.patch("apps.delivery.transports._PinnedSMTPSSL") as ssl_client:
             ssl_client.return_value.__enter__.return_value.login.side_effect = (
                 smtplib.SMTPAuthenticationError(535, b"senha errada de fulano")
             )
@@ -295,7 +295,7 @@ class TransportTests(TestCase):
 
     def test_smtp_4xx_is_temporary(self) -> None:
         account = self.account()
-        with mock.patch("smtplib.SMTP_SSL") as ssl_client:
+        with mock.patch("apps.delivery.transports._PinnedSMTPSSL") as ssl_client:
             ssl_client.return_value.__enter__.return_value.send_message.side_effect = (
                 smtplib.SMTPResponseException(451, b"later")
             )
@@ -453,3 +453,18 @@ class SecretAndEndpointTests(DeliveryCase):
             self.assertRaises(transports.PermanentDeliveryError),
         ):
             transports.SmtpTransport(self.account).check()
+
+    def test_connection_goes_to_the_validated_ip_not_a_second_lookup(self) -> None:
+        account = self.account
+        seen: list[tuple[str, int]] = []
+
+        def fake_connection(address: tuple[str, int], timeout: float) -> Any:
+            seen.append(address)
+            raise OSError("sem rede no teste")
+
+        with (
+            mock.patch("socket.create_connection", side_effect=fake_connection),
+            self.assertRaises(transports.TemporaryDeliveryError),
+        ):
+            transports.SmtpTransport(account).check()
+        assert seen == [("93.184.216.34", 465)]

@@ -38,21 +38,52 @@ def resolve_host(host: str) -> list[str]:
         return []
 
 
-def smtp_host_error(host: str, port: int) -> str:
-    """Recusa porta fora do padrão e servidor que resolve para rede interna (SSRF)."""
+def checked_smtp_target(host: str, port: int) -> tuple[str, str]:
+    """(erro, ip): recusa porta fora do padrão e servidor que resolve para rede interna.
+
+    O IP devolvido é o validado; a conexão usa esse IP, então uma segunda resolução
+    (DNS rebinding) não consegue trocar o destino depois da checagem.
+    """
 
     if port not in ALLOWED_SMTP_PORTS:
-        return "Use a porta 465, 587 ou 25."
+        return "Use a porta 465, 587 ou 25.", ""
     addresses = resolve_host(host)
     if not addresses:
-        return "Servidor não encontrado."
+        return "Servidor não encontrado.", ""
     for address in addresses:
         try:
             if not ipaddress.ip_address(address.split("%")[0]).is_global:
-                return "O servidor precisa ser público."
+                return "O servidor precisa ser público.", ""
         except ValueError:
-            return "Servidor inválido."
-    return ""
+            return "Servidor inválido.", ""
+    return "", addresses[0]
+
+
+def smtp_host_error(host: str, port: int) -> str:
+    return checked_smtp_target(host, port)[0]
+
+
+class _PinnedSMTP(smtplib.SMTP):
+    """SMTP que conecta ao IP já validado; o nome continua valendo para o certificado."""
+
+    def __init__(self, host: str, port: int, *, pinned_ip: str, timeout: float) -> None:
+        self.pinned_ip = pinned_ip
+        super().__init__(host, port, timeout=timeout)
+
+    def _get_socket(self, host: str, port: int, timeout: float) -> socket.socket:
+        return socket.create_connection((self.pinned_ip or host, port), timeout)
+
+
+class _PinnedSMTPSSL(smtplib.SMTP_SSL):
+    def __init__(
+        self, host: str, port: int, *, pinned_ip: str, timeout: float, context: ssl.SSLContext
+    ) -> None:
+        self.pinned_ip = pinned_ip
+        super().__init__(host, port, timeout=timeout, context=context)
+
+    def _get_socket(self, host: str, port: int, timeout: float) -> socket.socket:
+        raw = socket.create_connection((self.pinned_ip or host, port), timeout)
+        return self.context.wrap_socket(raw, server_hostname=host)
 
 
 class DeliveryError(RuntimeError):
@@ -107,17 +138,26 @@ class SmtpTransport:
 
     def _run(self, message: EmailMessage | None) -> None:
         account = self.account
-        refusal = smtp_host_error(account.smtp_host, account.smtp_port)
+        refusal, pinned_ip = checked_smtp_target(account.smtp_host, account.smtp_port)
         if refusal:
             raise PermanentDeliveryError(refusal)
         context = ssl.create_default_context()
         try:
             if account.smtp_security == DeliveryAccount.Security.SSL:
-                client: smtplib.SMTP = smtplib.SMTP_SSL(
-                    account.smtp_host, account.smtp_port, timeout=TIMEOUT_SECONDS, context=context
+                client: smtplib.SMTP = _PinnedSMTPSSL(
+                    account.smtp_host,
+                    account.smtp_port,
+                    pinned_ip=pinned_ip,
+                    timeout=TIMEOUT_SECONDS,
+                    context=context,
                 )
             else:
-                client = smtplib.SMTP(account.smtp_host, account.smtp_port, timeout=TIMEOUT_SECONDS)
+                client = _PinnedSMTP(
+                    account.smtp_host,
+                    account.smtp_port,
+                    pinned_ip=pinned_ip,
+                    timeout=TIMEOUT_SECONDS,
+                )
             with client as session:
                 if account.smtp_security == DeliveryAccount.Security.STARTTLS:
                     session.starttls(context=context)

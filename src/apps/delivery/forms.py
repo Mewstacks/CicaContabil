@@ -101,11 +101,12 @@ class AccountForm(forms.ModelForm):  # type: ignore[type-arg]
         # destino da credencial (servidor, porta, login, diretório ou aplicativo)? Quem
         # edita redigita o segredo, senão a senha guardada seguiria para outro servidor.
         smtp_moved = bool(
-            {"smtp_host", "smtp_port", "smtp_security", "smtp_username", "provider"}
+            {"smtp_host", "smtp_port", "smtp_security", "smtp_username", "from_address", "provider"}
             & set(self.changed_data)
         )
         graph_moved = bool(
-            {"graph_tenant_id", "graph_client_id", "provider"} & set(self.changed_data)
+            {"graph_tenant_id", "graph_client_id", "from_address", "provider"}
+            & set(self.changed_data)
         )
         if not data.get("smtp_password") and self.instance.pk and not smtp_moved:
             data["smtp_password"] = self.instance.smtp_password
