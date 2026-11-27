@@ -510,11 +510,10 @@ def resolve(
     reason = (reason or "").strip()
     if not reason:
         raise ValidationError("Informe o motivo da decisão.")
-    locked = (
-        ClosingConference.objects.select_for_update()
-        .select_related("document", "layout")
-        .get(pk=conference.pk)
-    )
+    # Sem `select_related`: `layout` é FK nula e o PostgreSQL recusa FOR UPDATE no lado nulo de
+    # um LEFT JOIN ("FOR UPDATE cannot be applied to the nullable side of an outer join").
+    # `document` e `layout` carregam sob demanda, depois do bloqueio.
+    locked = ClosingConference.objects.select_for_update().get(pk=conference.pk)
     if locked.resolution:
         raise ValidationError("Esta conferência já foi decidida.")
     latest = locked.document.conferences.first()

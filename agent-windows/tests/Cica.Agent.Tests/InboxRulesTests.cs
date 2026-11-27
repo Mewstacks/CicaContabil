@@ -67,7 +67,7 @@ public sealed class InboxRulesTests
     public void RetryBackoffDoublesAndCapsAtOneHour(int attempt, int minutes) =>
         Assert.Equal(TimeSpan.FromMinutes(minutes), InboxRules.RetryDelay(attempt));
 
-    [Theory]
+    [WindowsTheory]
     [InlineData(@"D:\Clientes", @"D:\Clientes\Entrada", true)]
     [InlineData(@"D:\Clientes\", @"d:\clientes\ENTRADA\sub", true)]
     [InlineData(@"D:\Clientes", @"D:\Clientes", false)]
@@ -78,4 +78,13 @@ public sealed class InboxRulesTests
     [InlineData("", @"D:\Clientes\Entrada", false)]
     public void WatchedPathMustSitStrictlyUnderTheLocalRoot(string root, string path, bool expected) =>
         Assert.Equal(expected, InboxRules.IsStrictlyUnder(root, path));
+
+    private sealed class WindowsTheoryAttribute : TheoryAttribute
+    {
+        public WindowsTheoryAttribute()
+        {
+            if (!OperatingSystem.IsWindows())
+                Skip = "Uses drive-letter paths; the agent runs only on Windows.";
+        }
+    }
 }

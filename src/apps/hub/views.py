@@ -275,6 +275,7 @@ from apps.hub.services import (
     request_dctfweb_document,
     request_parcelamento_operation,
 )
+from apps.hub.support_membership import build_support_membership
 from apps.integra.client import credentials_from_settings
 from apps.integra.dctfweb import extract_pdf
 from apps.integra.errors import IntegraConfigurationError, IntegraError
@@ -313,7 +314,6 @@ from apps.platform.token_billing import (
     activate_token_book,
     quote_tokens,
 )
-from apps.hub.support_membership import build_support_membership
 from apps.platform.views import current_support
 from apps.triage.forms import (
     DestinationProfileForm,

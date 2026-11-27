@@ -5,7 +5,7 @@
   <header class="workspace-panel-head"><div><h2 id="fap-new-title">Novo lote</h2></div><span class="record-count">Teto {% if cfg.batch_limit %}{{ cfg.batch_limit }}{% else %}livre{% endif %}</span></header>
   <form method="post" action="{% url 'fap:batch-new' %}" class="stack-form" data-submit-once>
     {% csrf_token %}
-    <div class="field"><label for="fap-year">Vigência</label><input id="fap-year" type="number" name="vigencia" min="2000" max="2100" value="{{ default_year }}" required></div>
+    <div class="field"><label for="fap-year">Vigência</label><input id="fap-year" type="number" name="vigencia" min="2000" max="2100" value="{{ default_year|stringformat:'d' }}" required></div>
     <fieldset class="field"><legend>Empresas</legend>
       {% for company in choices %}<label class="check-row"><input type="checkbox" name="empresas" value="{{ company.pk }}"> {{ company.dominio_code }} · {{ company.name }}</label>{% endfor %}
     </fieldset>
@@ -21,7 +21,7 @@
     <caption class="sr-only">Lotes do FAP</caption>
     <thead><tr><th scope="col">Vigência</th><th scope="col">Situação</th><th scope="col">Criado</th></tr></thead>
     <tbody>{% for b in batches %}<tr>
-      <td data-label="Vigência"><strong><a class="text-action" href="{% url 'fap:batch' b.pk %}">{{ b.year }}</a></strong></td>
+      <td data-label="Vigência"><strong><a class="text-action" href="{% url 'fap:batch' b.pk %}">{{ b.year|stringformat:'d' }}</a></strong></td>
       <td data-label="Situação"><span class="module-state {% if b.state == 'done' %}is-active{% elif b.state == 'attention' %}is-danger{% else %}is-warning{% endif %}">{{ b.get_state_display }}</span></td>
       <td data-label="Criado">{{ b.created_at|date:'d/m/Y H:i' }}</td>
     </tr>{% endfor %}</tbody>

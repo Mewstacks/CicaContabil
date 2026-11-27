@@ -2,7 +2,7 @@
 {% block page_action %}<a class="button button-quiet" href="{% url 'fap:index' %}">Lotes</a>{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel" aria-labelledby="fap-b-title">
-  <header class="workspace-panel-head"><div><h2 id="fap-b-title">Vigência {{ batch.year }}</h2></div>
+  <header class="workspace-panel-head"><div><h2 id="fap-b-title">Vigência {{ batch.year|stringformat:'d' }}</h2></div>
     <span class="module-state {% if batch.state == 'done' %}is-active{% elif batch.state == 'attention' %}is-danger{% else %}is-warning{% endif %}">{{ batch.get_state_display }}</span></header>
   {% if can_write %}
   <form method="post" action="{% url 'fap:batch-action' batch.pk %}" class="inline-form">{% csrf_token %}

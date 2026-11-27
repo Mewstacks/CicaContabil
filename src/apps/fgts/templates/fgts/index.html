@@ -3,7 +3,7 @@
 {% block workspace_content %}
 <section class="workspace-panel" aria-labelledby="fg-src-title">
   <header class="workspace-panel-head">
-    <div><h2 id="fg-src-title">Apuração {{ month|stringformat:'02d' }}/{{ year }}</h2></div>
+    <div><h2 id="fg-src-title">Apuração {{ month|stringformat:'02d' }}/{{ year|stringformat:'d' }}</h2></div>
     <form method="get" class="inline-form"><label class="sr-only" for="fg-month">Competência</label><input id="fg-month" type="month" name="mes" value="{{ month_value }}"><button class="button button-quiet button-small" type="submit">Ver</button></form>
   </header>
   {% if can_write %}
