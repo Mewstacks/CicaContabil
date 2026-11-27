@@ -113,6 +113,10 @@ class Bundle:
             return self._zip.read(name)
         return (self.path / name).read_bytes()
 
+    def read_bytes(self, name: str) -> bytes:
+        """One whole member; for small files only (the big tables are streamed by ``rows``)."""
+        return self._read(name)
+
     def _open(self, name: str) -> IO[bytes]:
         """Binary stream of one member; never loads a big table into memory."""
         if self._zip is not None:

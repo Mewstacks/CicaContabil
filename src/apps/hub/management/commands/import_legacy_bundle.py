@@ -52,6 +52,15 @@ class Command(BaseCommand):
             "--measure-only", action="store_true", help="estágio das notas: mede, não grava"
         )
         parser.add_argument("--limit", type=int, help="estágio das notas: máximo por fonte")
+        parser.add_argument(
+            "--offset",
+            type=int,
+            default=0,
+            help="estágio das notas: pula as N primeiras de cada fonte",
+        )
+        parser.add_argument(
+            "--batch-size", type=int, default=200, help="estágio das notas: notas por lote"
+        )
 
     def handle(self, *args: object, **options: object) -> None:
         organization = Organization.objects.filter(slug=str(options["org"])).first()
@@ -83,6 +92,8 @@ class Command(BaseCommand):
                     sources=("robo", "mongo") if stage == "all" else (str(stage),),
                     measure_only=bool(options["measure_only"]),
                     limit=options["limit"],  # type: ignore[arg-type]
+                    offset=int(options["offset"]),  # type: ignore[call-overload]
+                    batch_size=int(options["batch_size"]),  # type: ignore[call-overload]
                 )
                 for line in docs.lines():
                     self.stdout.write(line)

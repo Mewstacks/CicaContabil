@@ -201,6 +201,8 @@ def import_nfse_documents(
     sources: tuple[str, ...] = ("robo", "mongo"),
     measure_only: bool = False,
     limit: int | None = None,
+    offset: int = 0,
+    batch_size: int = BATCH,
 ) -> NfseDocsReport:
     bundle = Bundle(path)
     report = NfseDocsReport(measure_only=measure_only)
@@ -239,12 +241,15 @@ def import_nfse_documents(
                 report.skipped["mongo_nfse ausente no pacote (use o pacote completo)"] += 1
                 continue
         batch: list[dict[str, Any]] = []
+        position = 0
         for item in bundle.rows(member):
             row = item["row"]
-            report.read[source] += 1
-            if limit is not None and report.read[source] > limit:
-                report.read[source] -= 1
+            position += 1
+            if position <= offset:
+                continue  # earlier slice: a cheap skip, nothing is decoded
+            if limit is not None and report.read[source] >= limit:
                 break
+            report.read[source] += 1
             prepared = _prepare(row, source, company_of)
             if prepared is None or "skip" in prepared:
                 report.skipped[(prepared or {}).get("skip", "linha ilegível")] += 1
@@ -256,7 +261,7 @@ def import_nfse_documents(
                 seen.add(prepared["key"])
             prepared["hash"] = hashlib.sha256(prepared["xml"].encode()).hexdigest()
             batch.append(prepared)
-            if len(batch) >= BATCH:
+            if len(batch) >= batch_size:
                 _flush(organization, batch, source, cnpj_of, report)
                 batch = []
         if batch:

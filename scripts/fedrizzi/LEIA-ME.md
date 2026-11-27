@@ -73,6 +73,17 @@ python manage.py import_legacy_bundle --org fedrizzi-contabilidade --bundle fedr
 python manage.py backfill_nfse_sides --organization fedrizzi-contabilidade
 ```
 
+Em fatias (cada chamada pula o que já foi gravado): `--nfse-documents mongo --offset 0 --limit 10000 --batch-size 100`, depois `--offset 10000`, e assim por diante.
+
+### Arquivos do pacote
+
+```powershell
+python manage.py import_legacy_files --org fedrizzi-contabilidade --bundle fedrizzi-export.zip --dry-run
+python manage.py import_legacy_files --org fedrizzi-contabilidade --bundle fedrizzi-export.zip
+```
+
+Cada arquivo é conferido contra o hash do manifesto e o do registro antigo, gravado no storage privado e ligado ao dono nativo: recibos em `ClosingDocument.file`, relatórios FAP em `RpaArtifact` (`FapItem.pdf`). Rodar de novo pula o que já está ligado. O que não tem dono nativo (triagem, amostras de layout, admissões, guias) é contado no relatório e fica só no zip.
+
 `--measure-only` lê o pacote e imprime quantas notas são novas e quanto ocupam; só depois de ver
 o tamanho no Neon rode sem ele. Precisa do pacote completo (com o Mongo). `--limit N` corta cada
 fonte para um teste.

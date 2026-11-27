@@ -621,3 +621,16 @@ def test_users_count_in_the_parity_report(office, tmp_path):
     }
     report = run(office, tmp_path, tables, with_users=True)
     assert any("paridade auth_user" in x and "origem=2 nativo=1" in x for x in report.parity)
+
+
+def test_nfse_offset_and_limit_slice_a_source(office, tmp_path):
+    bundle = nfse_bundle(tmp_path)
+    import_bundle(organization=office, path=bundle)
+    first = import_nfse_documents(
+        organization=office, path=bundle, sources=("robo",), offset=0, limit=1, batch_size=1
+    )
+    rest = import_nfse_documents(
+        organization=office, path=bundle, sources=("robo",), offset=1, limit=5
+    )
+    assert first.created["robo"] == 1 and rest.read["robo"] == 2 and rest.created["robo"] == 1
+    assert NfseDocument.objects.filter(organization=office).count() == 2  # a 3ª não tem empresa
