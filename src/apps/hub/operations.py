@@ -34,6 +34,7 @@ from apps.hub.models import (
     OperationalSourceObservation,
 )
 from apps.hub.notifications import notify_activity_owner
+from apps.hub.support_membership import support_session_may_operate, support_session_of
 from apps.organizations.models import Membership
 
 SOURCE_CAPABILITY_ACTIVITY_PROCESSING = "activity_processing_status"
@@ -230,6 +231,13 @@ def can_operate_activity(
 
     if membership is None:
         return False
+    if support_session_of(membership) is not None:
+        return support_session_may_operate(
+            membership=membership,
+            organization_id=activity.organization_id,
+            company_id=activity.company_id,
+            actor=actor,
+        )
     current = (
         Membership.objects.select_related("organization", "user")
         .filter(
@@ -269,22 +277,29 @@ def assign_activity(
     reason: str,
     request: object,
 ) -> OperationalActivity:
-    current_membership = (
-        Membership.objects.filter(
-            pk=membership.pk,
-            user_id=actor.pk,
-            organization_id=activity.organization_id,
-            is_active=True,
-            user__is_active=True,
+    if support_session_of(membership) is not None:
+        # The virtual owner is checked against the live session, not a Membership row.
+        is_administration = can_operate_activity(
+            membership=membership, activity=activity, actor=actor
         )
-        .only("role")
-        .first()
-    )
-    if (
-        current_membership is None
-        or current_membership.role not in {Membership.Role.OWNER, Membership.Role.ADMIN}
-        or not can_operate_activity(membership=membership, activity=activity, actor=actor)
-    ):
+    else:
+        current_membership = (
+            Membership.objects.filter(
+                pk=membership.pk,
+                user_id=actor.pk,
+                organization_id=activity.organization_id,
+                is_active=True,
+                user__is_active=True,
+            )
+            .only("role")
+            .first()
+        )
+        is_administration = (
+            current_membership is not None
+            and current_membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+            and can_operate_activity(membership=membership, activity=activity, actor=actor)
+        )
+    if not is_administration:
         raise PermissionDenied("Somente a administracao pode atribuir atividades da carteira.")
     locked = OperationalActivity.objects.select_for_update().get(pk=activity.pk)
     if locked.work_status in {

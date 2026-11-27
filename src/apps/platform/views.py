@@ -49,6 +49,7 @@ from apps.platform.services import (
     has_platform_role,
     platform_role,
     support_access_mode,
+    support_session_duration,
     transition_lifecycle,
 )
 
@@ -842,7 +843,9 @@ def start_support(request: HttpRequest, organization_id: str) -> HttpResponse:
     )
     active.update(status=SupportSession.Status.CLOSED, closed_at=timezone.now())
     expires_at = (
-        control_grant.expires_at if control_grant else timezone.now() + timedelta(minutes=30)
+        control_grant.expires_at
+        if control_grant
+        else timezone.now() + support_session_duration(user)
     )
     support = SupportSession.objects.create(
         organization=organization,

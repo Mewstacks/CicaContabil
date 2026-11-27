@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -29,8 +31,25 @@ def has_platform_role(user: User | AnonymousUser, *roles: str) -> bool:
     return bool(role and (role == PlatformAccess.Role.ADMIN or role in roles))
 
 
+ADMIN_SUPPORT_SESSION_HOURS = 8
+DEFAULT_SUPPORT_SESSION_MINUTES = 30
+
+
+def is_platform_admin(user: User | AnonymousUser) -> bool:
+    return platform_role(user) == PlatformAccess.Role.ADMIN
+
+
+def support_session_duration(user: User | AnonymousUser) -> timedelta:
+    """The platform owner works a full day; every other role keeps the short window."""
+    if is_platform_admin(user):
+        return timedelta(hours=ADMIN_SUPPORT_SESSION_HOURS)
+    return timedelta(minutes=DEFAULT_SUPPORT_SESSION_MINUTES)
+
+
 def support_access_mode(user: User | AnonymousUser) -> str:
-    """Any platform role gets a mutable support session while the testing flag is on."""
+    """Platform admin always mutates; other roles only while the testing flag is on."""
+    if is_platform_admin(user):
+        return "full"
     if settings.PLATFORM_DEVELOPER_FULL_ACCESS and platform_role(user) is not None:
         return "full"
     return "read_only"

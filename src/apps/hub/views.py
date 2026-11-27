@@ -313,6 +313,7 @@ from apps.platform.token_billing import (
     activate_token_book,
     quote_tokens,
 )
+from apps.hub.support_membership import build_support_membership
 from apps.platform.views import current_support
 from apps.triage.forms import (
     DestinationProfileForm,
@@ -796,6 +797,9 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
     # the session and expose the operator's last workspace in the header.
     membership = active_membership(request) if support_session is None else None
     if support_session:
+        # Platform admin: unsaved owner stand-in, so role-gated screens open as for the
+        # office owner. Other platform roles keep ``None`` (limited support view).
+        membership = build_support_membership(support_session)
         office = support_session.organization
         companies_query = ClientCompany.objects.filter(
             organization=support_session.organization, active=True
