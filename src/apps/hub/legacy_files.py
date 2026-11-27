@@ -183,7 +183,9 @@ def import_files(*, organization: Organization, path: Path, dry_run: bool = Fals
     items: dict[str, Any] = bundle.manifest.get("files", {}).get("items", {})
     report = FilesReport(in_bundle=len(items), dry_run=dry_run)
     claimed: set[str] = set()
-    if not LegacyImportRecord.objects.filter(organization=organization, source_system=SYSTEM):
+    if not LegacyImportRecord.objects.filter(
+        organization=organization, source_system=SYSTEM
+    ).exists():
         report.skipped["importe o pacote antes (sem registros do HubFedrizzi)"] += len(items)
         return report
     _receipts(organization, bundle, items, claimed, report, dry_run)
