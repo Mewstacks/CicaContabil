@@ -80,7 +80,7 @@ def clear(
     reference = f"closing:{conference.document_id}:{conference.document.content_hash[:16]}"
     if human:
         reason = conference.resolution_reason
-        OperationalEvidence.objects.get_or_create(
+        OperationalEvidence.objects.get_or_create(  # type: ignore[misc]
             organization_id=activity.organization_id,
             activity=activity,
             kind=OperationalActivity.EvidenceKind.HUMAN,

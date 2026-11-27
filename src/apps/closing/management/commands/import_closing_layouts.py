@@ -125,14 +125,14 @@ class Command(BaseCommand):
             made[sigla.upper()] = layout
         if not options["no_hints"]:
             for sigla, hint in HINTS.items():
-                layout = made.get(sigla)
+                hinted = made.get(sigla)
                 wanted = hint.get("paired")
-                if layout is None or not wanted:
+                if hinted is None or not wanted:
                     continue
                 partner = ClosingLayout.objects.filter(organization=office, code=wanted).first()
                 if partner is not None:
-                    layout.paired_layout = partner
-                    layout.save(update_fields=["paired_layout", "updated_at"])
+                    hinted.paired_layout = partner
+                    hinted.save(update_fields=["paired_layout", "updated_at"])
         self.stdout.write(
             self.style.SUCCESS(
                 f"{len(made)} layouts em rascunho em {office.name}"

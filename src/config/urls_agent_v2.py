@@ -4,8 +4,8 @@ from apps.crosscheck import agent_api as crosscheck_agent
 from apps.intelligence import agent_v2, native_ledger, native_titles
 from apps.intelligence.portfolio import company_scan
 from apps.profitability import agent_api as profitability_agent
-from apps.triage import agent_folders, agent_inbox
 from apps.rpa import agent_api as rpa_agent
+from apps.triage import agent_folders, agent_inbox
 
 urlpatterns = [
     path("rpa/next", rpa_agent.next_job, name="agent-v2-rpa-next"),

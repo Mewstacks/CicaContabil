@@ -489,15 +489,15 @@ def extract(text: str, spec: FieldSpec) -> object | None:
         return _digits(pick) or None
     if kind == "competence":
         if column:
-            found = _competences(column)
+            comp_found = _competences(column)
             idx = max(n, 1) - 1
         elif n >= 1:
-            found = _competences(_window(text, spec.anchor))
+            comp_found = _competences(_window(text, spec.anchor))
             idx = n - 1
         else:
-            found = _competences(cell)
+            comp_found = _competences(cell)
             idx = 0
-        return (found[idx][1], found[idx][2]) if idx < len(found) else None
+        return (comp_found[idx][1], comp_found[idx][2]) if idx < len(comp_found) else None
     if kind == "money":
         pool = _RE_MONEY.findall(
             column or (_window(text, spec.anchor) if (n >= 1 or spec.sum_count >= 2) else cell)

@@ -34,7 +34,6 @@ def index(request: HttpRequest) -> HttpResponse:
     context, blocked = _gate(request)
     if blocked:
         return blocked
-    org = ui.office(context)
     context.update(
         {
             "page_title": "DET",
@@ -75,7 +74,7 @@ def _queries(context: dict[str, Any], request: HttpRequest) -> Any:
     """Consulta é de quem a criou; o administrador do escritório vê todas."""
 
     base = DetQuery.objects.filter(organization=ui.office(context))
-    return base if context.get("can_admin") else base.filter(created_by=request.user)
+    return base if context.get("can_admin") else base.filter(created_by_id=request.user.pk)
 
 
 def _load(context: dict[str, Any], request: HttpRequest, query_id: UUID) -> DetQuery:
